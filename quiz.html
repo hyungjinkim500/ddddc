@@ -76,8 +76,8 @@
         .modal-overlay.show { opacity: 1; visibility: visible; transition: opacity 0.3s ease; }
         .modal-content { 
             background-color: var(--card-bg-light); padding: 2.5rem; border-radius: 1rem; width: 90%; max-width: 420px; 
-            position: relative; transform: translateY(20px); transition: transform 0.3s ease, height 0.3s ease-out; 
-            overflow: hidden;
+            position: relative; transform: translateY(20px); transition: transform 0.3s ease, min-height 0.3s ease-out; 
+            overflow: hidden; min-height: 550px; /* Added min-height */
         }
         html.dark .modal-content { background-color: var(--card-bg-dark); }
         .modal-overlay.show .modal-content { transform: translateY(0); }
@@ -466,38 +466,16 @@
         const showRegisterLink = document.getElementById('show-register-view-link');
         const showLoginLink = document.getElementById('show-login-view-link');
 
-        const views = [loginView, registerView];
-
-        function adjustModalHeight() {
-            // Find the currently visible view
-            const visibleView = views.find(v => v.style.display !== 'none');
-            
-            if (visibleView) {
-                // Temporarily set height to 'auto' to measure the content
-                modalContent.style.height = 'auto';
-                const newHeight = visibleView.scrollHeight;
-                // Set the height back to the measured scrollHeight
-                modalContent.style.height = newHeight + 'px';
-            }
-        }
-
         function openModal() {
             loginModal.classList.add('show');
             document.body.style.overflow = 'hidden';
-            
-            // Reset to login view
             loginView.style.display = 'block';
             registerView.style.display = 'none';
-
-            // Adjust height after a short delay to allow for rendering
-            setTimeout(adjustModalHeight, 50);
         }
 
         function closeModal() {
             loginModal.classList.remove('show');
             document.body.style.overflow = '';
-            // Reset height to allow for animation
-            modalContent.style.height = null;
         }
 
         loginModalButton.addEventListener('click', openModal);
@@ -512,20 +490,12 @@
             e.preventDefault();
             loginView.style.display = 'none';
             registerView.style.display = 'block';
-            adjustModalHeight();
         });
 
         showLoginLink.addEventListener('click', (e) => {
             e.preventDefault();
             registerView.style.display = 'none';
             loginView.style.display = 'block';
-            adjustModalHeight();
-        });
-
-        window.addEventListener('resize', () => {
-             if (loginModal.classList.contains('show')) {
-                adjustModalHeight();
-             }
         });
 
     </script>
