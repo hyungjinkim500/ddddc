@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="ko" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>퀴즈 | 딩동댕닷컴</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="tailwind.config.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Pretendard:wght@400;600;700&display=swap');
+        
+        :root {
+            --pm-navy: #0e1117;
+            --pm-teal: #00d395; 
+            --pm-teal-dark: #00a876;
+            --bg-primary-light: #f1f5f9; /* Light mode background */
+            --bg-primary-dark: #020617; /* Dark mode background */
+            --text-primary-light: #1e293b;
+            --text-primary-dark: #e2e8f0;
+            --card-bg-light: white;
+            --card-bg-dark: #0f172a;
+            --border-light: #e2e8f0;
+            --border-dark: #1e293b;
+        }
+
+        body {
+            font-family: 'Pretendard', sans-serif;
+            letter-spacing: -0.025em;
+            word-break: keep-all;
+            background-color: var(--bg-primary-light);
+            color: var(--text-primary-light);
+        }
+        html.dark body {
+            background-color: var(--bg-primary-dark);
+            color: var(--text-primary-dark);
+        }
+        
+        .xylophone-logo {
+            display: flex; gap: 3px; align-items: flex-end; height: 20px;
+        }
+        .xy-bar { background-color: var(--pm-teal); width: 5px; border-radius: 2px; }
+        .xy-1 { height: 12px; }
+        .xy-2 { height: 16px; }
+        .xy-3 { height: 20px; }
+        .xy-mallet {
+            width: 8px; height: 8px; border-radius: 50%;
+            background-color: white; border: 2px solid var(--pm-teal);
+            margin-bottom: 12px; margin-left: -2px;
+        }
+
+        .text-teal { color: var(--pm-teal); }
+        .bg-teal { background-color: var(--pm-teal); }
+        .btn-primary { background-color: var(--pm-teal); color: var(--pm-navy); }
+        
+        .tab-button.active {
+            background-color: var(--pm-teal) !important;
+            color: var(--pm-navy) !important;
+            font-weight: 700;
+        }
+        
+        .quiz-details {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-out, padding 0.5s ease-out;
+            padding-top: 0;
+            padding-bottom: 0;
+        }
+    </style>
+</head>
+<body class="transition-colors duration-300">
+
+    <nav class="border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-card-bg-dark/80 backdrop-blur-sm sticky top-0 z-[100]">
+        <div class="container mx-auto px-4 sm:px-6 py-3 flex justify-between items-center">
+             <div class="flex items-center gap-3">
+                <a href="index.html" class="flex items-center gap-3">
+                    <div class="xylophone-logo">
+                        <div class="xy-bar xy-1"></div>
+                        <div class="xy-bar xy-2"></div>
+                        <div class="xy-bar xy-3"></div>
+                        <div class="xy-mallet"></div>
+                    </div>
+                    <h1 class="text-xl font-bold tracking-tight text-slate-900 dark:text-white">딩동댕닷컴</h1>
+                </a>
+            </div>
+            <div class="flex items-center gap-2 md:gap-4">
+                <button id="theme-toggle" class="text-slate-400 hover:text-teal dark:text-slate-500 dark:hover:text-teal transition-colors duration-300 px-2">
+                    <i class="fa-solid fa-moon text-lg"></i>
+                </button>
+                <div class="text-center">
+                    <button class="btn-primary px-3 py-2 md:px-4 rounded-lg font-bold text-xs md:text-sm transition-all hover:opacity-90 whitespace-nowrap">퀴즈 만들기</button>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 font-semibold">1000P</p>
+                </div>
+                <button class="bg-white dark:bg-slate-700/50 border border-slate-200 dark:border-slate-700 px-3 py-2 md:px-4 rounded-lg font-bold text-xs md:text-sm text-slate-600 dark:text-slate-300 transition-all hover:border-teal whitespace-nowrap">마이페이지</button>
+                <div class="w-8 h-8 rounded-full bg-slate-300 dark:bg-slate-700 hidden sm:block"></div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto px-4 sm:px-6 py-8 md:py-12">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+            <div id="category-tabs" class="flex flex-wrap items-center gap-2">
+                <button data-category="all" class="tab-button active px-4 py-2 text-sm rounded-full transition-colors duration-200 bg-white dark:bg-card-bg-dark text-slate-600 dark:text-slate-300">전체</button>
+                <button data-category="hot" class="tab-button px-4 py-2 text-sm rounded-full transition-colors duration-200 bg-white dark:bg-card-bg-dark text-slate-600 dark:text-slate-300">대한민국 핫이슈</button>
+                <button data-category="real-estate" class="tab-button px-4 py-2 text-sm rounded-full transition-colors duration-200 bg-white dark:bg-card-bg-dark text-slate-600 dark:text-slate-300">부동산</button>
+                <button data-category="finance" class="tab-button px-4 py-2 text-sm rounded-full transition-colors duration-200 bg-white dark:bg-card-bg-dark text-slate-600 dark:text-slate-300">금융</button>
+                <button data-category="entertainment" class="tab-button px-4 py-2 text-sm rounded-full transition-colors duration-200 bg-white dark:bg-card-bg-dark text-slate-600 dark:text-slate-300">연예</button>
+                <button data-category="sports" class="tab-button px-4 py-2 text-sm rounded-full transition-colors duration-200 bg-white dark:bg-card-bg-dark text-slate-600 dark:text-slate-300">스포츠</button>
+                <button data-category="international" class="tab-button px-4 py-2 text-sm rounded-full transition-colors duration-200 bg-white dark:bg-card-bg-dark text-slate-600 dark:text-slate-300">국제</button>
+                <button data-category="etc" class="tab-button px-4 py-2 text-sm rounded-full transition-colors duration-200 bg-white dark:bg-card-bg-dark text-slate-600 dark:text-slate-300">기타</button>
+            </div>
+        </div>
+
+        <div id="quiz-container" class="space-y-4">
+            
+            <div class="quiz-item" data-category="real-estate">
+                <div class="quiz-header bg-card-bg-light dark:bg-card-bg-dark border border-border-light dark:border-border-dark p-4 md:p-5 rounded-2xl shadow-sm flex items-center gap-4 cursor-pointer">
+                    <div class="flex-grow">
+                        <h3 class="font-bold text-base md:text-lg mb-2 text-slate-900 dark:text-white">이번 주 서울 아파트 평균 매매가, 상승할까?</h3>
+                        <p class="text-xs md:text-sm text-slate-500 dark:text-slate-400">참여자 1,204명 | 총 리워드 5,000P</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button class="px-4 py-2 md:px-5 md:py-2.5 rounded-lg font-bold text-sm transition-all bg-blue-500 text-white hover:bg-blue-600">상승</button>
+                        <button class="px-4 py-2 md:px-5 md:py-2.5 rounded-lg font-bold text-sm transition-all bg-red-500 text-white hover:bg-red-600">하락</button>
+                    </div>
+                </div>
+                <div class="quiz-details bg-card-bg-light dark:bg-card-bg-dark border-x border-b border-border-light dark:border-border-dark p-6 rounded-b-2xl -mt-2">
+                    <h4 class="font-bold text-md mb-3 text-slate-800 dark:text-slate-100">퀴즈 상세 정보</h4>
+                    <p class="text-sm text-slate-600 dark:text-slate-300 mb-4">최근 정부의 부동산 정책 발표와 시장의 반응을 종합해 볼 때, 이번 주 서울 아파트 평균 매매가는 어떻게 될까요?</p>
+                    <div class="mb-4 p-3 bg-slate-100 dark:bg-slate-800/50 rounded-lg">
+                        <span class="font-semibold text-xs text-slate-500 dark:text-slate-400">💡 힌트: 지난 주 국토교통부 실거래가 지수는 0.2% 상승 마감했습니다.</span>
+                    </div>
+                    <div>
+                        <h5 class="font-bold text-sm mb-2 text-slate-800 dark:text-slate-200">참여자 비율</h5>
+                        <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-6 flex overflow-hidden">
+                            <div class="bg-blue-500 h-6 flex items-center justify-center text-white font-bold text-xs" style="width: 65%">상승 (65%)</div>
+                            <div class="bg-red-500 h-6 flex items-center justify-center text-white font-bold text-xs" style="width: 35%">하락 (35%)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="quiz-item" data-category="hot">
+                <div class="quiz-header bg-card-bg-light dark:bg-card-bg-dark border border-border-light dark:border-border-dark p-4 md:p-5 rounded-2xl shadow-sm flex items-center gap-4 cursor-pointer">
+                    <div class="flex-grow">
+                        <h3 class="font-bold text-base md:text-lg mb-2 text-slate-900 dark:text-white">차기 대선 유력 후보, 6개월 내 지지율 5% 이상 변동?</h3>
+                        <p class="text-xs md:text-sm text-slate-500 dark:text-slate-400">참여자 876명 | 총 리워드 3,000P</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button class="px-4 py-2 md:px-5 md:py-2.5 rounded-lg font-bold text-sm transition-all bg-teal-500 text-white hover:bg-teal-600">YES</button>
+                        <button class="px-4 py-2 md:px-5 md:py-2.5 rounded-lg font-bold text-sm transition-all bg-slate-500 text-white hover:bg-slate-600">NO</button>
+                    </div>
+                </div>
+                 <div class="quiz-details bg-card-bg-light dark:bg-card-bg-dark border-x border-b border-border-light dark:border-border-dark p-6 rounded-b-2xl -mt-2">
+                    <h4 class="font-bold text-md mb-3 text-slate-800 dark:text-slate-100">퀴즈 상세 정보</h4>
+                    <p class="text-sm text-slate-600 dark:text-slate-300 mb-4">A 후보의 최근 발언과 정책 행보가 지지율에 어떤 영향을 미칠까요? 향후 6개월 내 지지율이 5%p 이상 상승 또는 하락할지에 대해 예측해주세요.</p>
+                    <div class="mb-4 p-3 bg-slate-100 dark:bg-slate-800/50 rounded-lg">
+                        <span class="font-semibold text-xs text-slate-500 dark:text-slate-400">💡 힌트: 최근 여론조사 결과, A 후보의 지지율은 3주 연속 보합세를 보이고 있습니다.</span>
+                    </div>
+                    <div>
+                        <h5 class="font-bold text-sm mb-2 text-slate-800 dark:text-slate-200">참여자 비율</h5>
+                        <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-6 flex overflow-hidden">
+                            <div class="bg-teal-500 h-6 flex items-center justify-center text-white font-bold text-xs" style="width: 40%">YES (40%)</div>
+                            <div class="bg-slate-500 h-6 flex items-center justify-center text-white font-bold text-xs" style="width: 60%">NO (60%)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="quiz-item" data-category="international">
+                <div class="quiz-header bg-card-bg-light dark:bg-card-bg-dark border border-border-light dark:border-border-dark p-4 md:p-5 rounded-2xl shadow-sm flex items-center gap-4 cursor-pointer">
+                    <div class="flex-grow">
+                        <h3 class="font-bold text-base md:text-lg mb-2 text-slate-900 dark:text-white">미국 연준, 다음 FOMC에서 금리 인상할까?</h3>
+                        <p class="text-xs md:text-sm text-slate-500 dark:text-slate-400">참여자 2,512명 | 총 리워드 12,000P</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button class="px-4 py-2 md:px-5 md:py-2.5 rounded-lg font-bold text-sm transition-all bg-blue-500 text-white hover:bg-blue-600">인상</button>
+                        <button class="px-4 py-2 md:px-5 md:py-2.5 rounded-lg font-bold text-sm transition-all bg-slate-500 text-white hover:bg-slate-600">동결/인하</button>
+                    </div>
+                </div>
+                <div class="quiz-details bg-card-bg-light dark:bg-card-bg-dark border-x border-b border-border-light dark:border-border-dark p-6 rounded-b-2xl -mt-2">
+                     <h4 class="font-bold text-md mb-3 text-slate-800 dark:text-slate-100">퀴즈 상세 정보</h4>
+                    <p class="text-sm text-slate-600 dark:text-slate-300 mb-4">최근 발표된 소비자물가지수(CPI)와 실업률 지표를 바탕으로, 다음 FOMC 정례회의에서 미국 연방준비제도(Fed)가 기준금리를 인상할지 예측해주세요.</p>
+                    <div class="mb-4 p-3 bg-slate-100 dark:bg-slate-800/50 rounded-lg">
+                        <span class="font-semibold text-xs text-slate-500 dark:text-slate-400">💡 힌트: Fed 의장은 최근 인터뷰에서 "데이터에 기반한 신중한 접근"을 강조했습니다.</span>
+                    </div>
+                    <div>
+                        <h5 class="font-bold text-sm mb-2 text-slate-800 dark:text-slate-200">참여자 비율</h5>
+                        <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-6 flex overflow-hidden">
+                            <div class="bg-blue-500 h-6 flex items-center justify-center text-white font-bold text-xs" style="width: 25%">인상 (25%)</div>
+                            <div class="bg-slate-500 h-6 flex items-center justify-center text-white font-bold text-xs" style="width: 75%">동결/인하 (75%)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="quiz-item" data-category="finance">
+                <div class="quiz-header bg-card-bg-light dark:bg-card-bg-dark border border-border-light dark:border-border-dark p-4 md:p-5 rounded-2xl shadow-sm flex items-center gap-4 cursor-pointer">
+                    <div class="flex-grow">
+                        <h3 class="font-bold text-base md:text-lg mb-2 text-slate-900 dark:text-white">비트코인, 이번 달 1억 원 돌파할까?</h3>
+                        <p class="text-xs md:text-sm text-slate-500 dark:text-slate-400">참여자 10,876명 | 총 리워드 25,000P</p>
+                    </div>
+                     <div class="flex gap-2">
+                        <button class="px-4 py-2 md:px-5 md:py-2.5 rounded-lg font-bold text-sm transition-all bg-teal-500 text-white hover:bg-teal-600">YES</button>
+                        <button class="px-4 py-2 md:px-5 md:py-2.5 rounded-lg font-bold text-sm transition-all bg-slate-500 text-white hover:bg-slate-600">NO</button>
+                    </div>
+                </div>
+                <div class="quiz-details bg-card-bg-light dark:bg-card-bg-dark border-x border-b border-border-light dark:border-border-dark p-6 rounded-b-2xl -mt-2">
+                    <h4 class="font-bold text-md mb-3 text-slate-800 dark:text-slate-100">퀴즈 상세 정보</h4>
+                    <p class="text-sm text-slate-600 dark:text-slate-300 mb-4">글로벌 기관들의 투자와 반감기 이슈가 맞물린 지금, 비트코인이 이번 달 내로 1억 원을 돌파할 수 있을지 예측해보세요.</p>
+                     <div class="mb-4 p-3 bg-slate-100 dark:bg-slate-800/50 rounded-lg">
+                        <span class="font-semibold text-xs text-slate-500 dark:text-slate-400">💡 힌트: 지난 반감기 이후 6개월 간 비트코인은 평균 320% 상승했습니다.</span>
+                    </div>
+                    <div>
+                        <h5 class="font-bold text-sm mb-2 text-slate-800 dark:text-slate-200">참여자 비율</h5>
+                        <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-6 flex overflow-hidden">
+                            <div class="bg-teal-500 h-6 flex items-center justify-center text-white font-bold text-xs" style="width: 80%">YES (80%)</div>
+                            <div class="bg-slate-500 h-6 flex items-center justify-center text-white font-bold text-xs" style="width: 20%">NO (20%)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="quiz-item" data-category="entertainment">
+                <div class="quiz-header bg-card-bg-light dark:bg-card-bg-dark border border-border-light dark:border-border-dark p-4 md:p-5 rounded-2xl shadow-sm flex items-center gap-4 cursor-pointer">
+                    <div class="flex-grow">
+                        <h3 class="font-bold text-base md:text-lg mb-2 text-slate-900 dark:text-white">새 드라마 '예측의 제왕', 첫 주 시청률 10% 넘을까?</h3>
+                        <p class="text-xs md:text-sm text-slate-500 dark:text-slate-400">참여자 5,432명 | 총 리워드 8,000P</p>
+                    </div>
+                     <div class="flex gap-2">
+                        <button class="px-4 py-2 md:px-5 md:py-2.5 rounded-lg font-bold text-sm transition-all bg-teal-500 text-white hover:bg-teal-600">YES</button>
+                        <button class="px-4 py-2 md:px-5 md:py-2.5 rounded-lg font-bold text-sm transition-all bg-slate-500 text-white hover:bg-slate-600">NO</button>
+                    </div>
+                </div>
+                <div class="quiz-details bg-card-bg-light dark:bg-card-bg-dark border-x border-b border-border-light dark:border-border-dark p-6 rounded-b-2xl -mt-2">
+                    <p class="text-sm text-slate-600 dark:text-slate-300 mb-4">탄탄한 캐스팅과 흥미로운 소재로 기대를 모으고 있는 '예측의 제왕'이 첫 주 시청률 10%의 벽을 넘을 수 있을지 예측해주세요.</p>
+                    <div>
+                        <h5 class="font-bold text-sm mb-2 text-slate-800 dark:text-slate-200">참여자 비율</h5>
+                        <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-6 flex overflow-hidden">
+                            <div class="bg-teal-500 h-6 flex items-center justify-center text-white font-bold text-xs" style="width: 72%">YES (72%)</div>
+                            <div class="bg-slate-500 h-6 flex items-center justify-center text-white font-bold text-xs" style="width: 28%">NO (28%)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+             <div class="quiz-item" data-category="sports">
+                <div class="quiz-header bg-card-bg-light dark:bg-card-bg-dark border border-border-light dark:border-border-dark p-4 md:p-5 rounded-2xl shadow-sm flex items-center gap-4 cursor-pointer">
+                    <div class="flex-grow">
+                        <h3 class="font-bold text-base md:text-lg mb-2 text-slate-900 dark:text-white">이번 주말 EPL 빅매치, A팀이 승리할까?</h3>
+                        <p class="text-xs md:text-sm text-slate-500 dark:text-slate-400">참여자 3,102명 | 총 리워드 7,500P</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button class="px-4 py-2 md:px-5 md:py-2.5 rounded-lg font-bold text-sm transition-all bg-teal-500 text-white hover:bg-teal-600">YES</button>
+                        <button class="px-4 py-2 md:px-5 md:py-2.5 rounded-lg font-bold text-sm transition-all bg-slate-500 text-white hover:bg-slate-600">NO</button>
+                    </div>
+                </div>
+                 <div class="quiz-details bg-card-bg-light dark:bg-card-bg-dark border-x border-b border-border-light dark:border-border-dark p-6 rounded-b-2xl -mt-2">
+                    <p class="text-sm text-slate-600 dark:text-slate-300 mb-4">리그 1, 2위 간의 맞대결! 최근 5경기 무패를 달리고 있는 A팀이 홈에서 B팀을 상대로 승리를 거둘 수 있을까요?</p>
+                    <div>
+                        <h5 class="font-bold text-sm mb-2 text-slate-800 dark:text-slate-200">참여자 비율</h5>
+                        <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-6 flex overflow-hidden">
+                            <div class="bg-teal-500 h-6 flex items-center justify-center text-white font-bold text-xs" style="width: 55%">YES (55%)</div>
+                            <div class="bg-slate-500 h-6 flex items-center justify-center text-white font-bold text-xs" style="width: 45%">NO (45%)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="quiz-item" data-category="etc">
+                <div class="quiz-header bg-card-bg-light dark:bg-card-bg-dark border border-border-light dark:border-border-dark p-4 md:p-5 rounded-2xl shadow-sm flex items-center gap-4 cursor-pointer">
+                    <div class="flex-grow">
+                        <h3 class="font-bold text-base md:text-lg mb-2 text-slate-900 dark:text-white">내일 서울 날씨, 비가 올까?</h3>
+                        <p class="text-xs md:text-sm text-slate-500 dark:text-slate-400">참여자 500명 | 총 리워드 1,000P</p>
+                    </div>
+                     <div class="flex gap-2">
+                        <button class="px-4 py-2 md:px-5 md:py-2.5 rounded-lg font-bold text-sm transition-all bg-blue-500 text-white hover:bg-blue-600">비 온다</button>
+                        <button class="px-4 py-2 md:px-5 md:py-2.5 rounded-lg font-bold text-sm transition-all bg-yellow-500 text-white hover:bg-yellow-600">안 온다</button>
+                    </div>
+                </div>
+                <div class="quiz-details bg-card-bg-light dark:bg-card-bg-dark border-x border-b border-border-light dark:border-border-dark p-6 rounded-b-2xl -mt-2">
+                    <p class="text-sm text-slate-600 dark:text-slate-300 mb-4">기상청 데이터 기준, 내일 서울 지역에 비가 올 확률을 예측해보세요.</p>
+                    <div>
+                        <h5 class="font-bold text-sm mb-2 text-slate-800 dark:text-slate-200">참여자 비율</h5>
+                        <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-6 flex overflow-hidden">
+                            <div class="bg-blue-500 h-6 flex items-center justify-center text-white font-bold text-xs" style="width: 30%">비 온다 (30%)</div>
+                            <div class="bg-yellow-500 h-6 flex items-center justify-center text-white font-bold text-xs" style="width: 70%">안 온다 (70%)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        // --- Theme Toggle --- //
+        const themeToggle = document.getElementById('theme-toggle');
+        const html = document.documentElement;
+        const icon = themeToggle.querySelector('i');
+
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        html.classList.add(savedTheme);
+        if (savedTheme === 'dark') {
+            icon.classList.remove('fa-moon');
+            icon.classList.add('fa-sun');
+        } else {
+            icon.classList.remove('fa-sun');
+            icon.classList.add('fa-moon');
+        }
+
+        themeToggle.addEventListener('click', () => {
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                html.classList.add('light');
+                localStorage.setItem('theme', 'light');
+                icon.classList.remove('fa-sun');
+                icon.classList.add('fa-moon');
+            } else {
+                html.classList.remove('light');
+                html.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+                icon.classList.remove('fa-moon');
+                icon.classList.add('fa-sun');
+            }
+        });
+
+        // --- Tab & Accordion Functionality --- //
+        const categoryTabs = document.getElementById('category-tabs');
+        const quizContainer = document.getElementById('quiz-container');
+        const quizItems = quizContainer.querySelectorAll('.quiz-item');
+
+        // Tab switching
+        categoryTabs.addEventListener('click', (e) => {
+            const targetButton = e.target.closest('.tab-button');
+            if (targetButton) {
+                categoryTabs.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                targetButton.classList.add('active');
+                
+                const category = targetButton.dataset.category;
+                
+                quizItems.forEach(item => {
+                    if (category === 'all' || item.dataset.category === category) {
+                        item.style.display = 'block';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            }
+        });
+
+        // Accordion for quiz items
+        quizContainer.addEventListener('click', (e) => {
+            const header = e.target.closest('.quiz-header');
+            if (!header) return;
+            
+            // Prevent accordion from opening if a button inside header is clicked
+            if (e.target.closest('button')) {
+                e.stopPropagation();
+                console.log("Prediction button clicked.");
+                // Here you can add logic for handling the prediction
+                return;
+            }
+
+            const currentItem = header.parentElement;
+            const details = header.nextElementSibling;
+
+            // Close all other open items
+            quizItems.forEach(item => {
+                if (item !== currentItem) {
+                    const otherDetails = item.querySelector('.quiz-details');
+                    otherDetails.style.maxHeight = null;
+                    otherDetails.style.paddingTop = null;
+                    otherDetails.style.paddingBottom = null;
+                    item.querySelector('.quiz-header').classList.remove('rounded-b-none');
+                }
+            });
+
+            // Toggle current item
+            if (details.style.maxHeight) {
+                details.style.maxHeight = null;
+                details.style.paddingTop = null;
+                details.style.paddingBottom = null;
+                header.classList.remove('rounded-b-none');
+
+            } else {
+                header.classList.add('rounded-b-none');
+                details.style.paddingTop = '1.5rem';
+                details.style.paddingBottom = '1.5rem';
+                details.style.maxHeight = details.scrollHeight + "px";
+            }
+        });
+    </script>
+
+</body>
+</html>
