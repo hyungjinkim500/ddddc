@@ -66,34 +66,47 @@
             padding-bottom: 0;
         }
 
-        /* For sticky top calculation */
-        :root {
-            --nav-height: 61px;
+        :root { --nav-height: 61px; }
+
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(14, 17, 23, 0.6);
+            display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0s linear 0.3s; -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
         }
+        .modal-overlay.show { opacity: 1; visibility: visible; transition: opacity 0.3s ease; }
+        .modal-content { 
+            background-color: var(--card-bg-light); padding: 2.5rem; border-radius: 1rem; width: 90%; max-width: 420px; 
+            position: relative; transform: translateY(20px); transition: transform 0.3s ease, height 0.3s ease-out; 
+            overflow: hidden;
+        }
+        html.dark .modal-content { background-color: var(--card-bg-dark); }
+        .modal-overlay.show .modal-content { transform: translateY(0); }
+        .modal-close-button {
+            position: absolute; top: 1rem; right: 1rem; font-size: 1.5rem; line-height: 1; color: #9ca3af; 
+            cursor: pointer; border: none; background: none;
+        }
+        html.dark .modal-close-button { color: #6b7280; }
     </style>
 </head>
 <body class="transition-colors duration-300">
 
-    <nav class="border-b border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-black backdrop-blur-sm sticky top-0 z-[100]">
+    <nav class="border-b border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-black/80 backdrop-blur-sm sticky top-0 z-[100]">
         <div class="container mx-auto px-4 sm:px-6 py-3 flex justify-between items-center">
-             <div class="flex items-center gap-3">
-                <a href="index.html" class="flex items-center gap-3">
-                    <div class="xylophone-logo">
-                        <div class="xy-bar xy-1"></div>
-                        <div class="xy-bar xy-2"></div>
-                        <div class="xy-bar xy-3"></div>
-                        <div class="xy-mallet"></div>
-                    </div>
-                    <h1 class="text-xl font-bold tracking-tight text-slate-900 dark:text-white">딩동댕닷컴</h1>
-                </a>
-            </div>
+             <a href="index.html" class="flex items-center gap-3">
+                <div class="xylophone-logo">
+                    <div class="xy-bar xy-1"></div>
+                    <div class="xy-bar xy-2"></div>
+                    <div class="xy-bar xy-3"></div>
+                    <div class="xy-mallet"></div>
+                </div>
+                <h1 class="text-xl font-bold tracking-tight text-slate-900 dark:text-white">딩동댕닷컴</h1>
+            </a>
             <div class="flex items-center gap-2 md:gap-3">
                 <button id="theme-toggle" class="text-slate-400 hover:text-teal dark:text-slate-500 dark:hover:text-teal transition-colors duration-300 px-2">
                     <i class="fa-solid fa-moon text-lg"></i>
                 </button>
                 <button class="btn-primary px-3 py-2 md:px-4 rounded-lg font-bold text-xs md:text-sm transition-all hover:opacity-90 whitespace-nowrap h-[40px] md:h-[42px]">퀴즈 만들기</button>
-                <button class="bg-slate-100 dark:bg-slate-200 border border-slate-200 dark:border-slate-300 px-3 py-2 md:px-4 rounded-lg font-bold text-xs md:text-sm text-slate-700 dark:text-slate-900 transition-all hover:border-teal whitespace-nowrap h-[40px] md:h-[42px]">마이페이지</button>
-                <div class="w-8 h-8 rounded-full bg-slate-300 dark:bg-slate-700 hidden sm:block"></div>
+                <button id="login-modal-button" class="bg-slate-100 dark:bg-slate-200 border border-slate-200 dark:border-slate-300 px-3 py-2 md:px-4 rounded-lg font-bold text-xs md:text-sm text-slate-700 dark:text-slate-900 transition-all hover:border-teal whitespace-nowrap h-[40px] md:h-[42px]">로그인</button>
             </div>
         </div>
     </nav>
@@ -327,12 +340,65 @@
         </div>
     </main>
 
+    <!-- Login/Register Modal -->
+    <div id="login-modal" class="modal-overlay">
+        <div class="modal-content">
+            <button id="login-modal-close-button" class="modal-close-button">&times;</button>
+            
+            <!-- Login View -->
+            <div id="login-view">
+                <div class="text-center mb-8">
+                    <h2 class="text-2xl font-bold text-slate-900 dark:text-white">로그인</h2>
+                    <p class="text-slate-500 dark:text-slate-400 mt-2">딩동댕닷컴에 오신 것을 환영합니다!</p>
+                </div>
+                <div class="space-y-4">
+                    <button class="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition">
+                        <i class="fa-brands fa-google text-lg"></i><span class="font-bold text-slate-700 dark:text-slate-200">Google 계정으로 로그인</span>
+                    </button>
+                    <button class="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-lg bg-slate-800 dark:bg-slate-200 hover:bg-slate-900 dark:hover:bg-slate-300 transition">
+                        <i class="fa-brands fa-github text-lg text-white dark:text-black"></i><span class="font-bold text-white dark:text-black">Github 계정으로 로그인</span>
+                    </button>
+                </div>
+                <div class="my-6 flex items-center">
+                    <hr class="w-full border-slate-200 dark:border-slate-700"/><span class="px-4 text-xs font-semibold text-slate-400 dark:text-slate-500">OR</span><hr class="w-full border-slate-200 dark:border-slate-700"/>
+                </div>
+                <form class="space-y-4">
+                    <div><input type="email" name="email" placeholder="이메일 주소를 입력하세요" class="w-full px-4 py-3 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-teal text-sm transition"></div>
+                    <div><input type="password" name="password" placeholder="비밀번호를 입력하세요" class="w-full px-4 py-3 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-teal text-sm transition"></div>
+                    <div class="flex items-center justify-between text-sm">
+                        <div class="flex items-center gap-2">
+                            <input type="checkbox" id="remember" name="remember" class="h-4 w-4 rounded border-slate-300 text-teal focus:ring-teal"><label for="remember" class="text-slate-600 dark:text-slate-300">로그인 유지</label>
+                        </div>
+                        <a href="#" class="font-semibold text-teal hover:underline">비밀번호 찾기</a>
+                    </div>
+                    <div><button type="submit" class="w-full btn-primary px-5 py-3 rounded-lg font-bold text-base transition-all hover:opacity-90 mt-2">로그인</button></div>
+                </form>
+                <p class="text-center text-sm mt-6 text-slate-500 dark:text-slate-400">계정이 없으신가요? <a href="#" id="show-register-view-link" class="font-semibold text-teal hover:underline">회원가입</a></p>
+            </div>
+
+            <!-- Register View (Hidden by default) -->
+            <div id="register-view" style="display: none;">
+                <div class="text-center mb-8">
+                    <h2 class="text-2xl font-bold text-slate-900 dark:text-white">회원가입</h2>
+                    <p class="text-slate-500 dark:text-slate-400 mt-2">몇 단계만 거치면 바로 예측에 참여할 수 있습니다!</p>
+                </div>
+                <form class="space-y-4">
+                    <div><input type="text" placeholder="사용할 닉네임을 입력하세요" class="w-full px-4 py-3 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-teal text-sm transition"></div>
+                    <div><input type="email" placeholder="이메일 주소를 입력하세요" class="w-full px-4 py-3 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-teal text-sm transition"></div>
+                    <div><input type="password" placeholder="비밀번호를 입력하세요" class="w-full px-4 py-3 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-teal text-sm transition"></div>
+                    <div><input type="password" placeholder="비밀번호를 다시 한번 입력하세요" class="w-full px-4 py-3 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-teal text-sm transition"></div>
+                    <div><button type="submit" class="w-full btn-primary px-5 py-3 rounded-lg font-bold text-base transition-all hover:opacity-90 mt-2">회원가입</button></div>
+                </form>
+                <p class="text-center text-sm mt-6 text-slate-500 dark:text-slate-400">이미 계정이 있으신가요? <a href="#" id="show-login-view-link" class="font-semibold text-teal hover:underline">로그인으로 돌아가기</a></p>
+            </div>
+        </div>
+    </div>
+
     <script>
         // --- Theme Toggle --- //
         const themeToggle = document.getElementById('theme-toggle');
         const html = document.documentElement;
         const icon = themeToggle.querySelector('i');
-
         const savedTheme = localStorage.getItem('theme') || 'light';
         html.classList.add(savedTheme);
         if (savedTheme === 'dark') {
@@ -342,20 +408,13 @@
             icon.classList.remove('fa-sun');
             icon.classList.add('fa-moon');
         }
-
         themeToggle.addEventListener('click', () => {
             if (html.classList.contains('dark')) {
-                html.classList.remove('dark');
-                html.classList.add('light');
-                localStorage.setItem('theme', 'light');
-                icon.classList.remove('fa-sun');
-                icon.classList.add('fa-moon');
+                html.classList.remove('dark'); html.classList.add('light'); localStorage.setItem('theme', 'light');
+                icon.classList.remove('fa-sun'); icon.classList.add('fa-moon');
             } else {
-                html.classList.remove('light');
-                html.classList.add('dark');
-                localStorage.setItem('theme', 'dark');
-                icon.classList.remove('fa-moon');
-                icon.classList.add('fa-sun');
+                html.classList.remove('light'); html.classList.add('dark'); localStorage.setItem('theme', 'dark');
+                icon.classList.remove('fa-moon'); icon.classList.add('fa-sun');
             }
         });
 
@@ -363,73 +422,112 @@
         const categoryTabs = document.getElementById('category-tabs');
         const quizContainer = document.getElementById('quiz-container');
         const quizItems = quizContainer.querySelectorAll('.quiz-item');
-
-        // Tab switching
         categoryTabs.addEventListener('click', (e) => {
             const targetButton = e.target.closest('.tab-button');
-            if (targetButton) {
-                categoryTabs.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-                targetButton.classList.add('active');
-                
-                const category = targetButton.dataset.category;
-                
-                quizItems.forEach(item => {
-                    // We check the parent .quiz-item for the data-category
-                    if (category === 'all' || item.dataset.category === category) {
-                        item.style.display = 'block';
-                    } else {
-                        item.style.display = 'none';
-                    }
-                });
-            }
+            if (!targetButton) return;
+            categoryTabs.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            targetButton.classList.add('active');
+            const category = targetButton.dataset.category;
+            quizItems.forEach(item => {
+                item.style.display = (category === 'all' || item.dataset.category === category) ? 'block' : 'none';
+            });
         });
-
-        // Accordion for quiz items
         quizContainer.addEventListener('click', (e) => {
             const header = e.target.closest('.quiz-header');
-            if (!header) return;
-            
-            // Prevent accordion from opening if a button inside header is clicked
-            if (e.target.closest('button')) {
-                e.stopPropagation();
-                console.log("Prediction button clicked.");
-                // Here you can add logic for handling the prediction
-                return;
-            }
-
+            if (!header || e.target.closest('button')) return;
             const currentItem = header.parentElement;
             const details = header.nextElementSibling;
             const icon = header.querySelector('i.fa-chevron-down');
-
             const isOpening = !details.style.maxHeight;
-
-            // Close all other open items
             quizItems.forEach(item => {
                 if (item !== currentItem) {
                     const otherDetails = item.querySelector('.quiz-details');
-                    otherDetails.style.maxHeight = null;
-                    otherDetails.style.paddingTop = null;
-                    otherDetails.style.paddingBottom = null;
-
+                    otherDetails.style.maxHeight = null; otherDetails.style.paddingTop = null; otherDetails.style.paddingBottom = null;
                     const otherIcon = item.querySelector('i.fa-chevron-down');
                     if (otherIcon) otherIcon.classList.remove('rotate-180');
                 }
             });
-
-            // Toggle current item
-            if (!isOpening) {
-                details.style.maxHeight = null;
-                 details.style.paddingTop = null;
-                details.style.paddingBottom = null;
-                if (icon) icon.classList.remove('rotate-180');
-
-            } else {
-                details.style.paddingTop = '0';
-                details.style.paddingBottom = '0';
+            if (isOpening) {
                 details.style.maxHeight = details.scrollHeight + "px";
                 if (icon) icon.classList.add('rotate-180');
+            } else {
+                details.style.maxHeight = null;
+                if (icon) icon.classList.remove('rotate-180');
             }
         });
+
+        // --- Login/Register Modal --- //
+        const loginModalButton = document.getElementById('login-modal-button');
+        const loginModal = document.getElementById('login-modal');
+        const modalContent = loginModal.querySelector('.modal-content');
+        const loginModalCloseButton = document.getElementById('login-modal-close-button');
+        const loginView = document.getElementById('login-view');
+        const registerView = document.getElementById('register-view');
+        const showRegisterLink = document.getElementById('show-register-view-link');
+        const showLoginLink = document.getElementById('show-login-view-link');
+
+        const views = [loginView, registerView];
+
+        function adjustModalHeight() {
+            // Find the currently visible view
+            const visibleView = views.find(v => v.style.display !== 'none');
+            
+            if (visibleView) {
+                // Temporarily set height to 'auto' to measure the content
+                modalContent.style.height = 'auto';
+                const newHeight = visibleView.scrollHeight;
+                // Set the height back to the measured scrollHeight
+                modalContent.style.height = newHeight + 'px';
+            }
+        }
+
+        function openModal() {
+            loginModal.classList.add('show');
+            document.body.style.overflow = 'hidden';
+            
+            // Reset to login view
+            loginView.style.display = 'block';
+            registerView.style.display = 'none';
+
+            // Adjust height after a short delay to allow for rendering
+            setTimeout(adjustModalHeight, 50);
+        }
+
+        function closeModal() {
+            loginModal.classList.remove('show');
+            document.body.style.overflow = '';
+            // Reset height to allow for animation
+            modalContent.style.height = null;
+        }
+
+        loginModalButton.addEventListener('click', openModal);
+        loginModalCloseButton.addEventListener('click', closeModal);
+        loginModal.addEventListener('click', (e) => { 
+            if (e.target === loginModal) {
+                closeModal(); 
+            }
+        });
+
+        showRegisterLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            loginView.style.display = 'none';
+            registerView.style.display = 'block';
+            adjustModalHeight();
+        });
+
+        showLoginLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            registerView.style.display = 'none';
+            loginView.style.display = 'block';
+            adjustModalHeight();
+        });
+
+        window.addEventListener('resize', () => {
+             if (loginModal.classList.contains('show')) {
+                adjustModalHeight();
+             }
+        });
+
     </script>
 
 </body>
