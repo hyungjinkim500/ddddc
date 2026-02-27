@@ -154,13 +154,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if(betUpButton) {
         betUpButton.addEventListener('click', () => {
-            console.log('bet clicked');
+            if (auth.currentUser) {
+                console.log('Up-bet clicked by logged in user. Ready for next step.');
+            } else {
+                alert("로그인을 해주세요");
+            }
         });
     }
 
     if(betDownButton) {
         betDownButton.addEventListener('click', () => {
-            console.log('bet clicked');
+            if (auth.currentUser) {
+                console.log('Down-bet clicked by logged in user. Ready for next step.');
+            } else {
+                alert("로그인을 해주세요");
+            }
         });
     }
 
