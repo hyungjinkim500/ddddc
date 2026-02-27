@@ -7,157 +7,157 @@ import {
     GoogleAuthProvider,
     signInWithPopup
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { app } from './firebase-config.js';
+// FIX: Import the 'auth' instance directly from the config file
+import { auth } from './firebase-config.js';
 
-const auth = getAuth(app);
+// REMOVED: No need to re-create the auth instance
+// const auth = getAuth(app); 
 
-// Elements
-const loginModal = document.getElementById('login-modal');
-const loginModalButton = document.getElementById('login-modal-button');
-const loginModalCloseButton = document.getElementById('login-modal-close-button');
-const loginForm = document.getElementById('login-form');
-const registerForm = document.getElementById('register-form');
-const logoutButton = document.getElementById('logout-button');
+document.addEventListener('DOMContentLoaded', () => {
+    // Elements
+    const loginModal = document.getElementById('login-modal');
+    const loginModalButton = document.getElementById('login-modal-button');
+    const loginModalCloseButton = document.getElementById('login-modal-close-button');
+    const loginForm = document.getElementById('login-form');
+    const registerForm = document.getElementById('register-form');
+    const logoutButton = document.getElementById('logout-button');
+    const googleLoginButton = document.getElementById('google-login-button');
 
-const loginView = document.getElementById('login-view');
-const registerView = document.getElementById('register-view');
-const showRegisterViewLink = document.getElementById('show-register-view-link');
+    const loginView = document.getElementById('login-view');
+    const registerView = document.getElementById('register-view');
+    const showRegisterViewLink = document.getElementById('show-register-view-link');
+    const showLoginViewLinkFromTerms = document.getElementById('show-login-view-link-from-terms');
+    
+    // Function to show the modal
+    const showModal = () => loginModal.classList.add('show');
 
-const showLoginViewLinkFromTerms = document.getElementById('show-login-view-link-from-terms');
+    // Function to hide the modal
+    const hideModal = () => loginModal.classList.remove('show');
 
-// --- UI Control ---
-
-// Function to show the modal
-const showModal = () => loginModal.classList.add('show');
-
-// Function to hide the modal
-const hideModal = () => loginModal.classList.remove('show');
-
-// Show modal when login button is clicked
-loginModalButton.addEventListener('click', showModal);
-
-// Hide modal when close button is clicked
-loginModalCloseButton.addEventListener('click', hideModal);
-
-// Hide modal when clicking outside of it
-loginModal.addEventListener('click', (e) => {
-    if (e.target === loginModal) {
-        hideModal();
+    // Show modal when login button is clicked
+    if (loginModalButton) {
+        loginModalButton.addEventListener('click', showModal);
     }
-});
-
-// Toggle between login and register views
-const showLogin = () => {
-    loginView.style.display = 'block';
-    registerView.style.display = 'none';
-}
-
-const showRegister = () => {
-    loginView.style.display = 'none';
-    registerView.style.display = 'block';
-}
-
-showRegisterViewLink.addEventListener('click', (e) => {
-    e.preventDefault();
-    showRegister();
-});
-
-showLoginViewLinkFromTerms.addEventListener('click', (e) => {
-    e.preventDefault();
-    showLogin();
-});
-
-
-// --- Authentication Logic ---
-
-// Handle registration
-registerForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const email = registerForm.email.value;
-    const password = registerForm.password.value;
-    const passwordConfirm = registerForm['password-confirm'].value;
-
-    if (password !== passwordConfirm) {
-        alert('Passwords do not match');
-        return;
+    
+    // Hide modal when close button is clicked
+    if (loginModalCloseButton) {
+        loginModalCloseButton.addEventListener('click', hideModal);
     }
 
-    createUserWithEmailAndPassword(auth, email, password)
-        .then((userCredential) => {
-            // Signed in 
-            const user = userCredential.user;
-            console.log('Registered and signed in:', user);
-            alert('회원가입이 완료되었습니다!');
-            hideModal();
-        })
-        .catch((error) => {
-            console.error('Registration error:', error);
-            alert(`Error: ${error.message}`);
+    // Hide modal when clicking outside of it
+    if (loginModal) {
+        loginModal.addEventListener('click', (e) => {
+            if (e.target === loginModal) {
+                hideModal();
+            }
         });
-});
+    }
 
-// Handle login
-loginForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const email = loginForm.email.value;
-    const password = loginForm.password.value;
+    const showLogin = () => {
+        if(loginView) loginView.style.display = 'block';
+        if(registerView) registerView.style.display = 'none';
+    }
 
-    signInWithEmailAndPassword(auth, email, password)
-        .then((userCredential) => {
-            // Signed in 
-            const user = userCredential.user;
-            console.log('Signed in:', user);
-            hideModal();
-        })
-        .catch((error) => {
-            console.error('Login error:', error);
-            alert(`Error: ${error.message}`);
+    const showRegister = () => {
+        if(loginView) loginView.style.display = 'none';
+        if(registerView) registerView.style.display = 'block';
+    }
+    
+    if (showRegisterViewLink) {
+        showRegisterViewLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            showRegister();
         });
-});
-
-// Handle Google Login
-const googleLoginButton = document.getElementById('google-login-button');
-googleLoginButton.addEventListener('click', () => {
-    const provider = new GoogleAuthProvider();
-    signInWithPopup(auth, provider)
-        .then((result) => {
-            // This gives you a Google Access Token. You can use it to access the Google API.
-            const credential = GoogleAuthProvider.credentialFromResult(result);
-            const token = credential.accessToken;
-            // The signed-in user info.
-            const user = result.user;
-            console.log('Google sign-in successful:', user);
-            hideModal();
-        }).catch((error) => {
-            // Handle Errors here.
-            const errorCode = error.code;
-            const errorMessage = error.message;
-            // The email of the user's account used.
-            const email = error.customData.email;
-            // The AuthCredential type that was used.
-            const credential = GoogleAuthProvider.credentialFromError(error);
-            console.error('Google sign-in error:', errorCode, errorMessage);
+    }
+    
+    if (showLoginViewLinkFromTerms) {
+        showLoginViewLinkFromTerms.addEventListener('click', (e) => {
+            e.preventDefault();
+            showLogin();
         });
-});
+    }
 
-// Handle logout
-logoutButton.addEventListener('click', () => {
-    signOut(auth).then(() => {
-        console.log('User signed out');
-    }).catch((error) => {
-        console.error('Sign out error:', error);
+    // Handle registration
+    if (registerForm) {
+        registerForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            console.log("Sign up clicked"); // DEBUG LOG
+
+            const email = registerForm.email.value;
+            const password = registerForm.password.value;
+
+            createUserWithEmailAndPassword(auth, email, password)
+                .then((userCredential) => {
+                    const user = userCredential.user;
+                    console.log('Registered and signed in:', user);
+                    alert('회원가입이 완료되었습니다.'); // SUCCESS ALERT
+                    hideModal();
+                })
+                .catch((error) => {
+                    console.error('Registration error:', error);
+                    alert(`회원가입에 실패했습니다: ${error.message}`); // FAILURE ALERT
+                });
+        });
+    }
+
+    // Handle login
+    if (loginForm) {
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            console.log("Login clicked"); // DEBUG LOG
+            
+            const email = loginForm.email.value;
+            const password = loginForm.password.value;
+
+            signInWithEmailAndPassword(auth, email, password)
+                .then((userCredential) => {
+                    const user = userCredential.user;
+                    console.log('Signed in:', user);
+                    alert('로그인에 성공했습니다.'); // SUCCESS ALERT
+                    hideModal();
+                })
+                .catch((error) => {
+                    console.error('Login error:', error);
+                    alert(`로그인에 실패했습니다: ${error.message}`); // FAILURE ALERT
+                });
+        });
+    }
+
+    // Handle Google Login
+    if (googleLoginButton) {
+        googleLoginButton.addEventListener('click', () => {
+            console.log("Google button clicked"); 
+            const provider = new GoogleAuthProvider();
+            signInWithPopup(auth, provider)
+                .then((result) => {
+                    const user = result.user;
+                    console.log('Google sign-in successful:', user);
+                    hideModal();
+                }).catch((error) => {
+                    console.error('Google sign-in error:', error);
+                });
+        });
+    }
+
+    // Handle logout
+    if (logoutButton) {
+        logoutButton.addEventListener('click', () => {
+            signOut(auth).then(() => {
+                console.log('User signed out');
+            }).catch((error) => {
+                console.error('Sign out error:', error);
+            });
+        });
+    }
+
+    // Listen for auth state changes
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            if (loginModalButton) loginModalButton.classList.add('hidden');
+            if (logoutButton) logoutButton.classList.remove('hidden');
+        } else {
+            if (loginModalButton) loginModalButton.classList.remove('hidden');
+            if (logoutButton) logoutButton.classList.add('hidden');
+        }
     });
-});
-
-// Listen for auth state changes
-onAuthStateChanged(auth, (user) => {
-    if (user) {
-        // User is signed in
-        loginModalButton.classList.add('hidden');
-        logoutButton.classList.remove('hidden');
-    } else {
-        // User is signed out
-        loginModalButton.classList.remove('hidden');
-        logoutButton.classList.add('hidden');
-    }
 });
