@@ -97,215 +97,43 @@
 
     <main class="container mx-auto px-4 sm:px-6 py-8 md:py-12">
         <div id="quiz-container" class="space-y-4">
-            
-            <div class="quiz-item bg-card-bg-light dark:bg-card-bg-dark border border-border-light dark:border-border-dark rounded-2xl shadow-sm" data-category="real-estate">
+            <div class="quiz-item bg-card-bg-light dark:bg-card-bg-dark border border-border-light dark:border-border-dark rounded-2xl shadow-sm" data-category="real-estate" id="quiz_apt_001">
                 <div class="quiz-header p-4 md:p-5 flex items-center gap-4 cursor-pointer">
                     <div class="flex-shrink-0 w-6 text-center">
                         <i class="fa-solid fa-chevron-down transition-transform duration-300 text-slate-400 dark:text-slate-500"></i>
                     </div>
                     <div class="flex-grow">
-                        <h3 class="font-bold text-base md:text-lg mb-2 text-slate-900 dark:text-white">이번 주 서울 아파트 평균 매매가, 상승할까?</h3>
-                        <p class="text-xs md:text-sm text-slate-500 dark:text-slate-400">참여자 1,204명 | 총 리워드 5,000P</p>
+                        <h3 class="font-bold text-base md:text-lg mb-2 text-slate-900 dark:text-white">압구정 현대14차(강남구) 다음 실거래가는 상승할까? 하락할까?</h3>
+                        <p class="text-xs md:text-sm text-slate-500 dark:text-slate-400">참여자 0명</p>
                     </div>
                     <div class="flex gap-2">
-                        <button class="px-4 py-2 md:px-5 md:py-2.5 rounded-lg font-bold text-sm transition-all bg-blue-500 text-white hover:bg-blue-600">상승</button>
-                        <button class="px-4 py-2 md:px-5 md:py-2.5 rounded-lg font-bold text-sm transition-all bg-red-500 text-white hover:bg-red-600">하락</button>
+                        <button id="bet-up-button" class="px-4 py-2 md:px-5 md:py-2.5 rounded-lg font-bold text-sm transition-all bg-blue-500 text-white hover:bg-blue-600">상승</button>
+                        <button id="bet-down-button" class="px-4 py-2 md:px-5 md:py-2.5 rounded-lg font-bold text-sm transition-all bg-red-500 text-white hover:bg-red-600">하락</button>
                     </div>
                 </div>
                 <div class="quiz-details px-6">
-                    <div class="border-t border-border-light dark:border-border-dark py-6">
-                        <p class="text-sm text-slate-600 dark:text-slate-300 mb-4">최근 정부의 부동산 정책 발표와 시장의 반응을 종합해 볼 때, 이번 주 서울 아파트 평균 매매가는 어떻게 될까요?</p>
-                        <div class="mb-4 p-3 bg-slate-100 dark:bg-slate-800/50 rounded-lg">
-                            <span class="font-semibold text-xs text-slate-500 dark:text-slate-400">💡 힌트: 지난 주 국토교통부 실거래가 지수는 0.2% 상승 마감했습니다.</span>
+                    <div class="border-t border-border-light dark:border-border-dark py-6 space-y-4">
+                        <p class="text-sm text-slate-600 dark:text-slate-300">서울 최고가 주거지 중 하나인 강남구 압구정동 ‘현대14차’ 아파트. 재건축 이슈와 강남권 시세 흐름에 따라 가격 변동성이 큰 단지입니다. 다음 실거래가가 상승할지 하락할지 예측해보세요.</p>
+                        
+                        <div class="p-4 bg-slate-100 dark:bg-slate-800/50 rounded-lg text-sm">
+                            <h4 class="font-bold text-slate-800 dark:text-slate-200 mb-2">기준 거래 정보</h4>
+                            <div class="space-y-1 text-slate-600 dark:text-slate-300">
+                                <p><span class="font-semibold w-24 inline-block">거래일:</span> 2025-11-17</p>
+                                <p><span class="font-semibold w-24 inline-block">기준 거래가:</span> 63억 (84.98㎡)</p>
+                                <p><span class="font-semibold w-24 inline-block">기준 평단가:</span> 약 7,400만 원/㎡</p>
+                            </div>
                         </div>
+
                         <div>
                             <h5 class="font-bold text-sm mb-2 text-slate-800 dark:text-slate-200">참여자 비율</h5>
                             <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-6 flex overflow-hidden">
-                                <div class="bg-blue-500 h-6 flex items-center justify-center text-white font-bold text-xs" style="width: 65%">상승 (65%)</div>
-                                <div class="bg-red-500 h-6 flex items-center justify-center text-white font-bold text-xs" style="width: 35%">하락 (35%)</div>
+                                <div class="bg-blue-500 h-6 flex items-center justify-center text-white font-bold text-xs" style="width: 50%">상승 50%</div>
+                                <div class="bg-red-500 h-6 flex items-center justify-center text-white font-bold text-xs" style="width: 50%">하락 50%</div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-
-            <div class="quiz-item bg-card-bg-light dark:bg-card-bg-dark border border-border-light dark:border-border-dark rounded-2xl shadow-sm" data-category="hot">
-                <div class="quiz-header p-4 md:p-5 flex items-center gap-4 cursor-pointer">
-                    <div class="flex-shrink-0 w-6 text-center">
-                        <i class="fa-solid fa-chevron-down transition-transform duration-300 text-slate-400 dark:text-slate-500"></i>
-                    </div>
-                    <div class="flex-grow">
-                        <h3 class="font-bold text-base md:text-lg mb-2 text-slate-900 dark:text-white">차기 대선 유력 후보, 6개월 내 지지율 5% 이상 변동?</h3>
-                        <p class="text-xs md:text-sm text-slate-500 dark:text-slate-400">참여자 876명 | 총 리워드 3,000P</p>
-                    </div>
-                    <div class="flex gap-2">
-                        <button class="px-4 py-2 md:px-5 md:py-2.5 rounded-lg font-bold text-sm transition-all bg-teal-500 text-white hover:bg-teal-600">YES</button>
-                        <button class="px-4 py-2 md:px-5 md:py-2.5 rounded-lg font-bold text-sm transition-all bg-slate-500 text-white hover:bg-slate-600">NO</button>
-                    </div>
-                </div>
-                 <div class="quiz-details px-6">
-                    <div class="border-t border-border-light dark:border-border-dark py-6">
-                        <p class="text-sm text-slate-600 dark:text-slate-300 mb-4">A 후보의 최근 발언과 정책 행보가 지지율에 어떤 영향을 미칠까요? 향후 6개월 내 지지율이 5%p 이상 상승 또는 하락할지에 대해 예측해주세요.</p>
-                        <div class="mb-4 p-3 bg-slate-100 dark:bg-slate-800/50 rounded-lg">
-                            <span class="font-semibold text-xs text-slate-500 dark:text-slate-400">💡 힌트: 최근 여론조사 결과, A 후보의 지지율은 3주 연속 보합세를 보이고 있습니다.</span>
-                        </div>
-                        <div>
-                            <h5 class="font-bold text-sm mb-2 text-slate-800 dark:text-slate-200">참여자 비율</h5>
-                            <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-6 flex overflow-hidden">
-                                <div class="bg-teal-500 h-6 flex items-center justify-center text-white font-bold text-xs" style="width: 40%">YES (40%)</div>
-                                <div class="bg-slate-500 h-6 flex items-center justify-center text-white font-bold text-xs" style="width: 60%">NO (60%)</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="quiz-item bg-card-bg-light dark:bg-card-bg-dark border border-border-light dark:border-border-dark rounded-2xl shadow-sm" data-category="international">
-                <div class="quiz-header p-4 md:p-5 flex items-center gap-4 cursor-pointer">
-                    <div class="flex-shrink-0 w-6 text-center">
-                        <i class="fa-solid fa-chevron-down transition-transform duration-300 text-slate-400 dark:text-slate-500"></i>
-                    </div>
-                    <div class="flex-grow">
-                        <h3 class="font-bold text-base md:text-lg mb-2 text-slate-900 dark:text-white">미국 연준, 다음 FOMC에서 금리 인상할까?</h3>
-                        <p class="text-xs md:text-sm text-slate-500 dark:text-slate-400">참여자 2,512명 | 총 리워드 12,000P</p>
-                    </div>
-                    <div class="flex gap-2">
-                        <button class="px-4 py-2 md:px-5 md:py-2.5 rounded-lg font-bold text-sm transition-all bg-blue-500 text-white hover:bg-blue-600">인상</button>
-                        <button class="px-4 py-2 md:px-5 md:py-2.5 rounded-lg font-bold text-sm transition-all bg-slate-500 text-white hover:bg-slate-600">동결/인하</button>
-                    </div>
-                </div>
-                <div class="quiz-details px-6">
-                    <div class="border-t border-border-light dark:border-border-dark py-6">
-                        <p class="text-sm text-slate-600 dark:text-slate-300 mb-4">최근 발표된 소비자물가지수(CPI)와 실업률 지표를 바탕으로, 다음 FOMC 정례회의에서 미국 연방준비제도(Fed)가 기준금리를 인상할지 예측해주세요.</p>
-                        <div class="mb-4 p-3 bg-slate-100 dark:bg-slate-800/50 rounded-lg">
-                            <span class="font-semibold text-xs text-slate-500 dark:text-slate-400">💡 힌트: Fed 의장은 최근 인터뷰에서 "데이터에 기반한 신중한 접근"을 강조했습니다.</span>
-                        </div>
-                        <div>
-                            <h5 class="font-bold text-sm mb-2 text-slate-800 dark:text-slate-200">참여자 비율</h5>
-                            <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-6 flex overflow-hidden">
-                                <div class="bg-blue-500 h-6 flex items-center justify-center text-white font-bold text-xs" style="width: 25%">인상 (25%)</div>
-                                <div class="bg-slate-500 h-6 flex items-center justify-center text-white font-bold text-xs" style="width: 75%">동결/인하 (75%)</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="quiz-item bg-card-bg-light dark:bg-card-bg-dark border border-border-light dark:border-border-dark rounded-2xl shadow-sm" data-category="finance">
-                <div class="quiz-header p-4 md:p-5 flex items-center gap-4 cursor-pointer">
-                    <div class="flex-shrink-0 w-6 text-center">
-                        <i class="fa-solid fa-chevron-down transition-transform duration-300 text-slate-400 dark:text-slate-500"></i>
-                    </div>
-                    <div class="flex-grow">
-                        <h3 class="font-bold text-base md:text-lg mb-2 text-slate-900 dark:text-white">비트코인, 이번 달 1억 원 돌파할까?</h3>
-                        <p class="text-xs md:text-sm text-slate-500 dark:text-slate-400">참여자 10,876명 | 총 리워드 25,000P</p>
-                    </div>
-                     <div class="flex gap-2">
-                        <button class="px-4 py-2 md:px-5 md:py-2.5 rounded-lg font-bold text-sm transition-all bg-teal-500 text-white hover:bg-teal-600">YES</button>
-                        <button class="px-4 py-2 md:px-5 md:py-2.5 rounded-lg font-bold text-sm transition-all bg-slate-500 text-white hover:bg-slate-600">NO</button>
-                    </div>
-                </div>
-                <div class="quiz-details px-6">
-                    <div class="border-t border-border-light dark:border-border-dark py-6">
-                        <p class="text-sm text-slate-600 dark:text-slate-300 mb-4">글로벌 기관들의 투자와 반감기 이슈가 맞물린 지금, 비트코인이 이번 달 내로 1억 원을 돌파할 수 있을지 예측해보세요.</p>
-                         <div class="mb-4 p-3 bg-slate-100 dark:bg-slate-800/50 rounded-lg">
-                            <span class="font-semibold text-xs text-slate-500 dark:text-slate-400">💡 힌트: 지난 반감기 이후 6개월 간 비트코인은 평균 320% 상승했습니다.</span>
-                        </div>
-                        <div>
-                            <h5 class="font-bold text-sm mb-2 text-slate-800 dark:text-slate-200">참여자 비율</h5>
-                            <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-6 flex overflow-hidden">
-                                <div class="bg-teal-500 h-6 flex items-center justify-center text-white font-bold text-xs" style="width: 80%">YES (80%)</div>
-                                <div class="bg-slate-500 h-6 flex items-center justify-center text-white font-bold text-xs" style="width: 20%">NO (20%)</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="quiz-item bg-card-bg-light dark:bg-card-bg-dark border border-border-light dark:border-border-dark rounded-2xl shadow-sm" data-category="entertainment">
-                <div class="quiz-header p-4 md:p-5 flex items-center gap-4 cursor-pointer">
-                    <div class="flex-shrink-0 w-6 text-center">
-                        <i class="fa-solid fa-chevron-down transition-transform duration-300 text-slate-400 dark:text-slate-500"></i>
-                    </div>
-                    <div class="flex-grow">
-                        <h3 class="font-bold text-base md:text-lg mb-2 text-slate-900 dark:text-white">새 드라마 '예측의 제왕', 첫 주 시청률 10% 넘을까?</h3>
-                        <p class="text-xs md:text-sm text-slate-500 dark:text-slate-400">참여자 5,432명 | 총 리워드 8,000P</p>
-                    </div>
-                     <div class="flex gap-2">
-                        <button class="px-4 py-2 md:px-5 md:py-2.5 rounded-lg font-bold text-sm transition-all bg-teal-500 text-white hover:bg-teal-600">YES</button>
-                        <button class="px-4 py-2 md:px-5 md:py-2.5 rounded-lg font-bold text-sm transition-all bg-slate-500 text-white hover:bg-slate-600">NO</button>
-                    </div>
-                </div>
-                <div class="quiz-details px-6">
-                    <div class="border-t border-border-light dark:border-border-dark py-6">
-                        <p class="text-sm text-slate-600 dark:text-slate-300 mb-4">탄탄한 캐스팅과 흥미로운 소재로 기대를 모으고 있는 '예측의 제왕'이 첫 주 시청률 10%의 벽을 넘을 수 있을지 예측해주세요.</p>
-                        <div>
-                            <h5 class="font-bold text-sm mb-2 text-slate-800 dark:text-slate-200">참여자 비율</h5>
-                            <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-6 flex overflow-hidden">
-                                <div class="bg-teal-500 h-6 flex items-center justify-center text-white font-bold text-xs" style="width: 72%">YES (72%)</div>
-                                <div class="bg-slate-500 h-6 flex items-center justify-center text-white font-bold text-xs" style="width: 28%">NO (28%)</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-             <div class="quiz-item bg-card-bg-light dark:bg-card-bg-dark border border-border-light dark:border-border-dark rounded-2xl shadow-sm" data-category="sports">
-                <div class="quiz-header p-4 md:p-5 flex items-center gap-4 cursor-pointer">
-                    <div class="flex-shrink-0 w-6 text-center">
-                        <i class="fa-solid fa-chevron-down transition-transform duration-300 text-slate-400 dark:text-slate-500"></i>
-                    </div>
-                    <div class="flex-grow">
-                        <h3 class="font-bold text-base md:text-lg mb-2 text-slate-900 dark:text-white">이번 주말 EPL 빅매치, A팀이 승리할까?</h3>
-                        <p class="text-xs md:text-sm text-slate-500 dark:text-slate-400">참여자 3,102명 | 총 리워드 7,500P</p>
-                    </div>
-                    <div class="flex gap-2">
-                        <button class="px-4 py-2 md:px-5 md:py-2.5 rounded-lg font-bold text-sm transition-all bg-teal-500 text-white hover:bg-teal-600">YES</button>
-                        <button class="px-4 py-2 md:px-5 md:py-2.5 rounded-lg font-bold text-sm transition-all bg-slate-500 text-white hover:bg-slate-600">NO</button>
-                    </div>
-                </div>
-                 <div class="quiz-details px-6">
-                     <div class="border-t border-border-light dark:border-border-dark py-6">
-                        <p class="text-sm text-slate-600 dark:text-slate-300 mb-4">리그 1, 2위 간의 맞대결! 최근 5경기 무패를 달리고 있는 A팀이 홈에서 B팀을 상대로 승리를 거둘 수 있을까요?</p>
-                        <div>
-                            <h5 class="font-bold text-sm mb-2 text-slate-800 dark:text-slate-200">참여자 비율</h5>
-                            <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-6 flex overflow-hidden">
-                                <div class="bg-teal-500 h-6 flex items-center justify-center text-white font-bold text-xs" style="width: 55%">YES (55%)</div>
-                                <div class="bg-slate-500 h-6 flex items-center justify-center text-white font-bold text-xs" style="width: 45%">NO (45%)</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="quiz-item bg-card-bg-light dark:bg-card-bg-dark border border-border-light dark:border-border-dark rounded-2xl shadow-sm" data-category="etc">
-                <div class="quiz-header p-4 md:p-5 flex items-center gap-4 cursor-pointer">
-                    <div class="flex-shrink-0 w-6 text-center">
-                        <i class="fa-solid fa-chevron-down transition-transform duration-300 text-slate-400 dark:text-slate-500"></i>
-                    </div>
-                    <div class="flex-grow">
-                        <h3 class="font-bold text-base md:text-lg mb-2 text-slate-900 dark:text-white">내일 서울 날씨, 비가 올까?</h3>
-                        <p class="text-xs md:text-sm text-slate-500 dark:text-slate-400">참여자 500명 | 총 리워드 1,000P</p>
-                    </div>
-                     <div class="flex gap-2">
-                        <button class="px-4 py-2 md:px-5 md:py-2.5 rounded-lg font-bold text-sm transition-all bg-blue-500 text-white hover:bg-blue-600">비 온다</button>
-                        <button class="px-4 py-2 md:px-5 md:py-2.5 rounded-lg font-bold text-sm transition-all bg-yellow-500 text-white hover:bg-yellow-600">안 온다</button>
-                    </div>
-                </div>
-                <div class="quiz-details px-6">
-                    <div class="border-t border-border-light dark:border-border-dark py-6">
-                        <p class="text-sm text-slate-600 dark:text-slate-300 mb-4">기상청 데이터 기준, 내일 서울 지역에 비가 올 확률을 예측해보세요.</p>
-                        <div>
-                            <h5 class="font-bold text-sm mb-2 text-slate-800 dark:text-slate-200">참여자 비율</h5>
-                            <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-6 flex overflow-hidden">
-                                <div class="bg-blue-500 h-6 flex items-center justify-center text-white font-bold text-xs" style="width: 30%">비 온다 (30%)</div>
-                                <div class="bg-yellow-500 h-6 flex items-center justify-center text-white font-bold text-xs" style="width: 70%">안 온다 (70%)</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
         </div>
     </main>
 

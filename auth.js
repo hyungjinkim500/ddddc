@@ -22,6 +22,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const registerForm = document.getElementById('register-form');
     const logoutButton = document.getElementById('logout-button');
     const googleLoginButton = document.getElementById('google-login-button');
+    const betUpButton = document.getElementById('bet-up-button');
+    const betDownButton = document.getElementById('bet-down-button');
 
     const loginView = document.getElementById('login-view');
     const registerView = document.getElementById('register-view');
@@ -147,6 +149,18 @@ document.addEventListener('DOMContentLoaded', () => {
             }).catch((error) => {
                 console.error('Sign out error:', error);
             });
+        });
+    }
+
+    if(betUpButton) {
+        betUpButton.addEventListener('click', () => {
+            console.log('bet clicked');
+        });
+    }
+
+    if(betDownButton) {
+        betDownButton.addEventListener('click', () => {
+            console.log('bet clicked');
         });
     }
 
