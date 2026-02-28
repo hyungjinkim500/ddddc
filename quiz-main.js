@@ -59,7 +59,7 @@ async function loadQuizzes() {
         <div class="quiz-body max-h-0 overflow-hidden transition-all duration-500 ease-in-out">
             <div class="px-6 pb-6 pt-0">
                 <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">${quiz.description || ''}</p>
-                ${generateParticipationRateHTML(quiz.vote)}
+                ${generateParticipationRateHTML(quiz)}
             </div>
         </div>
       `;
@@ -72,20 +72,32 @@ async function loadQuizzes() {
   }
 }
 
-function generateParticipationRateHTML(voteData) {
-    const upVotes = voteData?.up || 0;
-    const downVotes = voteData?.down || 0;
-    const totalVotes = upVotes + downVotes;
-    const upPercentage = totalVotes > 0 ? ((upVotes / totalVotes) * 100) : 0;
+function generateParticipationRateHTML(quiz) {
+    const voteData = quiz.vote ?? {};
+    const initialVotes = {};
+    quiz.options.forEach(option => {
+        initialVotes[option.id] = voteData[option.id] || 0;
+    });
+
+    const totalVotes = Object.values(initialVotes).reduce((sum, v) => sum + v, 0);
+    const primaryOptionId = quiz.options[0]?.id || 'up'; // Ensure primaryOptionId exists
+    const primaryPercentage = totalVotes > 0 ? ((initialVotes[primaryOptionId] || 0) / totalVotes) * 100 : 0;
+
+    // Find the label for the primary option to display it dynamically
+    const primaryOptionLabel = quiz.options.find(opt => opt.id === primaryOptionId)?.label || 'Primary';
+    const secondaryOptionId = quiz.options[1]?.id || 'down';
+    const secondaryOptionLabel = quiz.options.find(opt => opt.id === secondaryOptionId)?.label || 'Secondary';
+    const secondaryPercentage = totalVotes > 0 ? 100 - primaryPercentage : 0;
+
 
     return `
         <div class="participation-rate mt-4">
-            <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2.5" data-up-votes="${upVotes}" data-down-votes="${downVotes}">
-                <div class="progress-bar bg-emerald-500 h-2.5 rounded-full transition-all duration-300" style="width: ${upPercentage.toFixed(1)}%"></div>
+            <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2.5" data-votes='${JSON.stringify(initialVotes)}'>
+                <div class="progress-bar bg-emerald-500 h-2.5 rounded-full transition-all duration-300" style="width: ${primaryPercentage.toFixed(1)}%"></div>
             </div>
             <div class="text-xs text-slate-500 dark:text-slate-400 mt-2 flex justify-between">
-                <span class="up-percentage font-bold text-emerald-500">상승: ${upPercentage.toFixed(1)}%</span>
-                <span class="down-percentage font-bold text-red-500">하락: ${(100 - upPercentage).toFixed(1)}%</span>
+                <span class="up-percentage font-bold text-emerald-500">${primaryOptionLabel}: ${primaryPercentage.toFixed(1)}%</span>
+                <span class="down-percentage font-bold text-red-500">${secondaryOptionLabel}: ${secondaryPercentage.toFixed(1)}%</span>
             </div>
         </div>
     `;
@@ -104,15 +116,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const allOptionButtons = card.querySelectorAll('.vote-option-btn');
                 const previouslySelectedButton = card.querySelector('.vote-option-btn.ring-2');
-                const participationContainer = card.querySelector('[data-up-votes]');
-                let upVotes = parseInt(participationContainer.dataset.upVotes, 10);
-                let downVotes = parseInt(participationContainer.dataset.downVotes, 10);
+                const participationContainer = card.querySelector('[data-votes]');
+                let votes = JSON.parse(participationContainer.dataset.votes);
                 const clickedOptionId = voteButton.dataset.optionId;
 
                 // Case 1: 이미 선택된 버튼을 다시 클릭 -> 투표 취소
                 if (voteButton === previouslySelectedButton) {
-                    if (clickedOptionId === 'up') upVotes--;
-                    else if (clickedOptionId === 'down') downVotes--;
+                    votes[clickedOptionId]--;
                     allOptionButtons.forEach(btn => btn.classList.remove('opacity-50', 'ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', 'ring-emerald-400', 'ring-red-400', 'ring-slate-400'));
                 
                 // Case 2: 새 버튼을 선택 (혹은 다른 버튼으로 변경)
@@ -120,12 +130,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     // 이전에 투표한 내역이 있으면 먼저 해당 투표 수를 1 감소
                     if (previouslySelectedButton) {
                         const previousOptionId = previouslySelectedButton.dataset.optionId;
-                        if (previousOptionId === 'up') upVotes--;
-                        else if (previousOptionId === 'down') downVotes--;
+                        votes[previousOptionId]--;
                     }
                     // 새로 클릭한 버튼의 투표 수를 1 증가
-                    if (clickedOptionId === 'up') upVotes++;
-                    else if (clickedOptionId === 'down') downVotes++;
+                    votes[clickedOptionId]++;
 
                     // 스타일 업데이트
                     allOptionButtons.forEach(btn => {
@@ -137,16 +145,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 // 공통 로직: 데이터 속성 및 참여율 UI 업데이트
-                participationContainer.dataset.upVotes = upVotes;
-                participationContainer.dataset.downVotes = downVotes;
+                participationContainer.dataset.votes = JSON.stringify(votes);
 
-                const totalVotes = upVotes + downVotes;
-                const upPercentage = totalVotes > 0 ? ((upVotes / totalVotes) * 100) : 0;
-                const downPercentage = 100 - upPercentage;
+                const totalVotes = Object.values(votes).reduce((sum, v) => sum + v, 0);
+                const primaryOptionId = Object.keys(votes)[0] || 'up'; // Fallback for safety
+                const primaryPercentage = totalVotes > 0 ? ((votes[primaryOptionId] || 0) / totalVotes) * 100 : 0;
+                const secondaryOptionId = Object.keys(votes)[1] || 'down';
+                const secondaryPercentage = totalVotes > 0 ? 100 - primaryPercentage : 0;
 
-                card.querySelector('.progress-bar').style.width = `${upPercentage.toFixed(1)}%`;
-                card.querySelector('.up-percentage').textContent = `상승: ${upPercentage.toFixed(1)}%`;
-                card.querySelector('.down-percentage').textContent = `하락: ${downPercentage.toFixed(1)}%`;
+                const primaryLabel = card.querySelector(`[data-option-id="${primaryOptionId}"]`).textContent.trim();
+                const secondaryLabel = card.querySelector(`[data-option-id="${secondaryOptionId}"]`).textContent.trim();
+
+                card.querySelector('.progress-bar').style.width = `${primaryPercentage.toFixed(1)}%`;
+                card.querySelector('.up-percentage').textContent = `${primaryLabel}: ${primaryPercentage.toFixed(1)}%`;
+                card.querySelector('.down-percentage').textContent = `${secondaryLabel}: ${secondaryPercentage.toFixed(1)}%`;
                 
                 return; // 중요: 아코디언 토글 방지
             }
