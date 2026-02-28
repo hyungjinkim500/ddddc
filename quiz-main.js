@@ -1,6 +1,6 @@
 import { auth, db } from './firebase-config.js';
 import { onAuthStateChanged, signOut, getAuth } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { collection, getDocs, doc, runTransaction } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { collection, doc, runTransaction, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const colorMap = {
   emerald: "bg-emerald-500 hover:bg-emerald-600",
@@ -8,7 +8,9 @@ const colorMap = {
   slate: "bg-slate-500 hover:bg-slate-600"
 };
 
-async function loadQuizzes() {
+let isInitialLoad = true;
+
+function loadQuizzes() {
   const quizContainer = document.getElementById("quiz-container");
   if (!quizContainer) {
     console.error("Critical: Quiz container element not found in HTML!");
@@ -17,60 +19,103 @@ async function loadQuizzes() {
 
   quizContainer.innerHTML = `<p class="text-center text-slate-500 dark:text-slate-400">퀴즈를 불러오는 중입니다...</p>`;
 
-  try {
-    const collectionPath = "quizzes/quiz1/quizzes";
-    const quizSnapshot = await getDocs(collection(db, collectionPath));
+  const collectionPath = "quizzes/quiz1/quizzes";
+  const q = collection(db, collectionPath);
 
-    if (quizSnapshot.empty) {
-      quizContainer.innerHTML = `<p class="text-center text-slate-500 dark:text-slate-400">표시할 퀴즈가 없습니다.</p>`;
-      return;
-    }
-
-    quizContainer.innerHTML = "";
-
-    quizSnapshot.forEach((doc) => {
-      const quiz = doc.data();
-
-      if (!quiz.title || !Array.isArray(quiz.options) || quiz.options.length < 2) {
-        console.warn('Skipping invalid quiz data:', doc.id, quiz);
+  onSnapshot(q, 
+    (snapshot) => {
+      if (isInitialLoad && snapshot.empty) {
+        quizContainer.innerHTML = `<p class="text-center text-slate-500 dark:text-slate-400">표시할 퀴즈가 없습니다.</p>`;
+        isInitialLoad = false;
         return;
       }
 
-      const quizCard = document.createElement("div");
-      quizCard.className = "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm overflow-hidden";
-      quizCard.dataset.quizId = doc.id;
-      
-      quizCard.innerHTML = `
-        <div class="quiz-header p-6 flex justify-between items-center cursor-pointer">
-            <div class="flex items-center gap-4">
-                <i class="arrow-icon fas fa-chevron-down text-slate-400 transition-transform duration-300"></i>
-                <h3 class="font-bold text-lg text-slate-900 dark:text-white">${quiz.title}</h3>
-            </div>
-            <div class="flex gap-2">${
-                quiz.options.map(option => `
-                    <button 
-                        class="vote-option-btn px-4 py-2 rounded-lg text-white font-semibold transition-all hover:opacity-90 ${colorMap[option.color] || 'bg-slate-500 hover:bg-slate-600'}"
-                        data-option-id="${option.id}"
-                    >
-                        ${option.label}
-                    </button>
-                `).join('')
-            }</div>
-        </div>
-        <div class="quiz-body max-h-0 overflow-hidden transition-all duration-500 ease-in-out">
-            <div class="px-6 pb-6 pt-0">
-                <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">${quiz.description || ''}</p>
-                ${generateParticipationRateHTML(quiz)}
-            </div>
-        </div>
-      `;
-      quizContainer.appendChild(quizCard);
-    });
+      if (isInitialLoad) {
+          quizContainer.innerHTML = ""; // Clear "Loading..." message only on initial load
+          isInitialLoad = false;
+      }
 
-  } catch (error) {
-    console.error("Firestore Error: Failed to load quizzes.", error);
-    quizContainer.innerHTML = `<p class="text-center text-red-500">퀴즈를 불러오는 중 오류가 발생했습니다. 개발자 콘솔을 확인해주세요.</p>`;
-  }
+      snapshot.docChanges().forEach((change) => {
+        const quiz = change.doc.data();
+        const quizId = change.doc.id;
+
+        if (change.type === "added") {
+            if (!quiz.title || !Array.isArray(quiz.options) || quiz.options.length < 2) {
+                console.warn('Skipping invalid quiz data:', quizId, quiz);
+                return;
+            }
+            const quizCard = createQuizCard(quizId, quiz);
+            quizContainer.appendChild(quizCard);
+        }
+
+        if (change.type === "modified") {
+            const quizCard = quizContainer.querySelector(`[data-quiz-id="${quizId}"]`);
+            if (quizCard) {
+                updateParticipationUI(quizCard, quiz);
+            }
+        }
+
+        if (change.type === "removed") {
+            const quizCard = quizContainer.querySelector(`[data-quiz-id="${quizId}"]`);
+            if (quizCard) {
+                quizCard.remove();
+            }
+        }
+      });
+    },
+    (error) => {
+      console.error("Realtime subscription error:", error);
+      quizContainer.innerHTML = `<p class="text-center text-red-500">퀴즈를 실시간으로 불러오는 중 오류가 발생했습니다. 개발자 콘솔을 확인해주세요.</p>`;
+      isInitialLoad = false;
+    }
+  );
+}
+
+function createQuizCard(quizId, quiz) {
+    const quizCard = document.createElement("div");
+    quizCard.className = "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm overflow-hidden";
+    quizCard.dataset.quizId = quizId;
+
+    quizCard.innerHTML = `
+      <div class="quiz-header p-6 flex justify-between items-center cursor-pointer">
+          <div class="flex items-center gap-4">
+              <i class="arrow-icon fas fa-chevron-down text-slate-400 transition-transform duration-300"></i>
+              <h3 class="font-bold text-lg text-slate-900 dark:text-white">${quiz.title}</h3>
+          </div>
+          <div class="flex gap-2">${
+              quiz.options.map(option => `
+                  <button 
+                      class="vote-option-btn px-4 py-2 rounded-lg text-white font-semibold transition-all hover:opacity-90 ${colorMap[option.color] || 'bg-slate-500 hover:bg-slate-600'}"
+                      data-option-id="${option.id}"
+                  >
+                      ${option.label}
+                  </button>
+              `).join('')
+          }</div>
+      </div>
+      <div class="quiz-body max-h-0 overflow-hidden transition-all duration-500 ease-in-out">
+          <div class="px-6 pb-6 pt-0">
+              <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">${quiz.description || ''}</p>
+              ${generateParticipationRateHTML(quiz)}
+          </div>
+      </div>
+    `;
+    return quizCard;
+}
+
+function updateParticipationUI(quizCard, quiz) {
+    const participationRateElement = quizCard.querySelector('.participation-rate');
+    if (participationRateElement) {
+        const newParticipationHTML = generateParticipationRateHTML(quiz);
+        // Create a temporary element to hold the new HTML
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = newParticipationHTML;
+        const newElement = tempDiv.firstElementChild;
+
+        if (newElement) {
+            participationRateElement.replaceWith(newElement);
+        }       
+    }
 }
 
 function generateParticipationRateHTML(quiz) {
@@ -236,7 +281,7 @@ document.addEventListener('DOMContentLoaded', () => {
         categoryTabs.addEventListener('click', (e) => {
             if (!e.target.classList.contains('tab-button')) return;
 
-            const buttons = categoryTabs.querySelectorAll('.tab-button');
+            const buttons = categoryTabs.querySelectorAll('tab-button');
             buttons.forEach(btn => {
                 btn.classList.remove('active', 'bg-emerald-500', 'text-white');
                 btn.classList.add('text-slate-600', 'dark:text-slate-300', 'hover:bg-slate-100', 'dark:hover:bg-slate-700');
