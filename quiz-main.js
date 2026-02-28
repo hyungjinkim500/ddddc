@@ -2,6 +2,12 @@ import { auth, db } from './firebase-config.js';
 import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { collection, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
+const colorMap = {
+  emerald: "bg-emerald-500 hover:bg-emerald-600",
+  red: "bg-red-500 hover:bg-red-600",
+  slate: "bg-slate-500 hover:bg-slate-600"
+};
+
 async function loadQuizzes() {
   const quizContainer = document.getElementById("quiz-container");
   if (!quizContainer) {
@@ -39,10 +45,16 @@ async function loadQuizzes() {
                 <i class="arrow-icon fas fa-chevron-down text-slate-400 transition-transform duration-300"></i>
                 <h3 class="font-bold text-lg text-slate-900 dark:text-white">${quiz.title}</h3>
             </div>
-            <div class="flex gap-2">
-                <button class="vote-up-btn px-4 py-2 rounded-lg bg-emerald-500 text-white font-semibold transition-all hover:opacity-90">${quiz.options[0]}</button>
-                <button class="vote-down-btn px-4 py-2 rounded-lg bg-red-500 text-white font-semibold transition-all hover:opacity-90">${quiz.options[1]}</button>
-            </div>
+            <div class="flex gap-2">${
+                quiz.options.map(option => `
+                    <button 
+                        class="vote-option-btn px-4 py-2 rounded-lg text-white font-semibold transition-all hover:opacity-90 ${colorMap[option.color] || 'bg-slate-500 hover:bg-slate-600'}"
+                        data-option-id="${option.id}"
+                    >
+                        ${option.label}
+                    </button>
+                `).join('')
+            }</div>
         </div>
         <div class="quiz-body max-h-0 overflow-hidden transition-all duration-500 ease-in-out">
             <div class="px-6 pb-6 pt-0">
@@ -85,54 +97,49 @@ document.addEventListener('DOMContentLoaded', () => {
     const quizContainer = document.getElementById('quiz-container');
     if (quizContainer) {
         quizContainer.addEventListener('click', (event) => {
-            const voteButton = event.target.closest('.vote-up-btn, .vote-down-btn');
+            const voteButton = event.target.closest('.vote-option-btn');
             if (voteButton) {
                 const card = voteButton.closest('.shadow-sm');
                 if (!card) return;
 
-                const upButton = card.querySelector('.vote-up-btn');
-                const downButton = card.querySelector('.vote-down-btn');
-
-                // 상태 확인: 현재 버튼, 이전에 선택된 버튼
-                const wasUpVoted = upButton.classList.contains('ring-2');
-                const wasDownVoted = downButton.classList.contains('ring-2');
-                const isVotingUp = voteButton.classList.contains('vote-up-btn');
-
-                // UI 스타일링 (기존 로직)
-                upButton.classList.remove('opacity-50', 'ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', 'ring-emerald-400');
-                downButton.classList.remove('opacity-50', 'ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', 'ring-red-400');
-
-                if (isVotingUp) {
-                    upButton.classList.add('ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', 'ring-emerald-400');
-                    downButton.classList.add('opacity-50');
-                } else {
-                    downButton.classList.add('ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', 'ring-red-400');
-                    upButton.classList.add('opacity-50');
-                }
-
-                // --- 신규: 참여율 UI 실시간 업데이트 ---
+                const allOptionButtons = card.querySelectorAll('.vote-option-btn');
+                const previouslySelectedButton = card.querySelector('.vote-option-btn.ring-2');
                 const participationContainer = card.querySelector('[data-up-votes]');
-                let upVotes = parseInt(participationContainer.dataset.upVotes);
-                let downVotes = parseInt(participationContainer.dataset.downVotes);
+                let upVotes = parseInt(participationContainer.dataset.upVotes, 10);
+                let downVotes = parseInt(participationContainer.dataset.downVotes, 10);
+                const clickedOptionId = voteButton.dataset.optionId;
+
+                // Case 1: 이미 선택된 버튼을 다시 클릭 -> 투표 취소
+                if (voteButton === previouslySelectedButton) {
+                    if (clickedOptionId === 'up') upVotes--;
+                    else if (clickedOptionId === 'down') downVotes--;
+                    allOptionButtons.forEach(btn => btn.classList.remove('opacity-50', 'ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', 'ring-emerald-400', 'ring-red-400', 'ring-slate-400'));
                 
-                // 투표 상태에 따라 로컬 투표 수 조정
-                if (isVotingUp) { // 상승 클릭
-                    if (!wasUpVoted) { // 이전에 상승 투표하지 않았을 경우만
-                         upVotes++;
-                         if (wasDownVoted) downVotes--; // 하락->상승으로 변경 시
+                // Case 2: 새 버튼을 선택 (혹은 다른 버튼으로 변경)
+                } else {
+                    // 이전에 투표한 내역이 있으면 먼저 해당 투표 수를 1 감소
+                    if (previouslySelectedButton) {
+                        const previousOptionId = previouslySelectedButton.dataset.optionId;
+                        if (previousOptionId === 'up') upVotes--;
+                        else if (previousOptionId === 'down') downVotes--;
                     }
-                } else { // 하락 클릭
-                    if (!wasDownVoted) { // 이전에 하락 투표하지 않았을 경우만
-                        downVotes++;
-                        if (wasUpVoted) upVotes--; // 상승->하락으로 변경 시
-                    }
+                    // 새로 클릭한 버튼의 투표 수를 1 증가
+                    if (clickedOptionId === 'up') upVotes++;
+                    else if (clickedOptionId === 'down') downVotes++;
+
+                    // 스타일 업데이트
+                    allOptionButtons.forEach(btn => {
+                        btn.classList.remove('opacity-50', 'ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', 'ring-emerald-400', 'ring-red-400', 'ring-slate-400');
+                        if (btn !== voteButton) btn.classList.add('opacity-50');
+                    });
+                    let ringColorClass = voteButton.classList.contains('bg-emerald-500') ? 'ring-emerald-400' : (voteButton.classList.contains('bg-red-500') ? 'ring-red-400' : 'ring-slate-400');
+                    voteButton.classList.add('ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', ringColorClass);
                 }
 
-                // 데이터 속성 업데이트 (최신 투표 수 저장)
+                // 공통 로직: 데이터 속성 및 참여율 UI 업데이트
                 participationContainer.dataset.upVotes = upVotes;
                 participationContainer.dataset.downVotes = downVotes;
 
-                // 퍼센트 재계산 및 UI 업데이트
                 const totalVotes = upVotes + downVotes;
                 const upPercentage = totalVotes > 0 ? ((upVotes / totalVotes) * 100) : 0;
                 const downPercentage = 100 - upPercentage;
@@ -141,7 +148,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 card.querySelector('.up-percentage').textContent = `상승: ${upPercentage.toFixed(1)}%`;
                 card.querySelector('.down-percentage').textContent = `하락: ${downPercentage.toFixed(1)}%`;
                 
-                return;
+                return; // 중요: 아코디언 토글 방지
             }
 
             const header = event.target.closest('.quiz-header');
