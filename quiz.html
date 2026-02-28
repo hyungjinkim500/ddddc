@@ -83,57 +83,16 @@
     <div class="bg-white dark:bg-slate-800 border-b border-border-light dark:border-border-dark sticky top-[var(--nav-height)] z-50">
         <div class="container mx-auto px-4 sm:px-6">
             <div id="category-tabs" class="flex flex-wrap items-center gap-2 py-3 overflow-x-auto">
-                <button data-category="all" class="tab-button active px-4 py-2 text-base font-bold rounded-full transition-colors duration-200 text-slate-700 dark:text-slate-100 whitespace-nowrap">전체</button>
-                <button data-category="hot" class="tab-button px-4 py-2 text-base font-bold rounded-full transition-colors duration-200 text-slate-700 dark:text-slate-100 whitespace-nowrap">대한민국 핫이슈</button>
-                <button data-category="real-estate" class="tab-button px-4 py-2 text-base font-bold rounded-full transition-colors duration-200 text-slate-700 dark:text-slate-100 whitespace-nowrap">부동산</button>
-                <button data-category="finance" class="tab-button px-4 py-2 text-base font-bold rounded-full transition-colors duration-200 text-slate-700 dark:text-slate-100 whitespace-nowrap">금융</button>
-                <button data-category="entertainment" class="tab-button px-4 py-2 text-base font-bold rounded-full transition-colors duration-200 text-slate-700 dark:text-slate-100 whitespace-nowrap">연예</button>
-                <button data-category="sports" class="tab-button px-4 py-2 text-base font-bold rounded-full transition-colors duration-200 text-slate-700 dark:text-slate-100 whitespace-nowrap">스포츠</button>
-                <button data-category="international" class="tab-button px-4 py-2 text-base font-bold rounded-full transition-colors duration-200 text-slate-700 dark:text-slate-100 whitespace-nowrap">국제</button>
-                <button data-category="etc" class="tab-button px-4 py-2 text-base font-bold rounded-full transition-colors duration-200 text-slate-700 dark:text-slate-100 whitespace-nowrap">기타</button>
+                <button class="tab-button active px-4 py-2 text-base font-bold rounded-full transition-colors duration-200 text-slate-700 dark:text-slate-100 whitespace-nowrap">부동산딩동댕</button>
+                <button class="tab-button px-4 py-2 text-base font-bold rounded-full transition-colors duration-200 text-slate-700 dark:text-slate-100 whitespace-nowrap">실시간HOT!</button>
+                <button class="tab-button px-4 py-2 text-base font-bold rounded-full transition-colors duration-200 text-slate-700 dark:text-slate-100 whitespace-nowrap">서울</button>
+                <button class="tab-button px-4 py-2 text-base font-bold rounded-full transition-colors duration-200 text-slate-700 dark:text-slate-100 whitespace-nowrap">경기</button>
             </div>
         </div>
     </div>
 
     <main class="container mx-auto px-4 sm:px-6 py-8 md:py-12">
         <div id="quiz-container" class="space-y-4">
-            <div class="quiz-item bg-card-bg-light dark:bg-card-bg-dark border border-border-light dark:border-border-dark rounded-2xl shadow-sm" data-category="real-estate" id="quiz_apt_001">
-                <div class="quiz-header p-4 md:p-5 flex items-center gap-4 cursor-pointer">
-                    <div class="flex-shrink-0 w-6 text-center">
-                        <i class="fa-solid fa-chevron-down transition-transform duration-300 text-slate-400 dark:text-slate-500"></i>
-                    </div>
-                    <div class="flex-grow">
-                        <h3 class="font-bold text-base md:text-lg mb-2 text-slate-900 dark:text-white">압구정 현대14차(강남구) 다음 실거래가는 상승할까? 하락할까?</h3>
-                        <p class="text-xs md:text-sm text-slate-500 dark:text-slate-400">참여자 0명</p>
-                    </div>
-                    <div class="flex gap-2">
-                        <button id="bet-up-button" class="px-4 py-2 md:px-5 md:py-2.5 rounded-lg font-bold text-sm transition-all bg-blue-500 text-white hover:bg-blue-600">상승</button>
-                        <button id="bet-down-button" class="px-4 py-2 md:px-5 md:py-2.5 rounded-lg font-bold text-sm transition-all bg-red-500 text-white hover:bg-red-600">하락</button>
-                    </div>
-                </div>
-                <div class="quiz-details px-6">
-                    <div class="border-t border-border-light dark:border-border-dark py-6 space-y-4">
-                        <p class="text-sm text-slate-600 dark:text-slate-300">서울 최고가 주거지 중 하나인 강남구 압구정동 ‘현대14차’ 아파트. 재건축 이슈와 강남권 시세 흐름에 따라 가격 변동성이 큰 단지입니다. 다음 실거래가가 상승할지 하락할지 예측해보세요.</p>
-                        
-                        <div class="p-4 bg-slate-100 dark:bg-slate-800/50 rounded-lg text-sm">
-                            <h4 class="font-bold text-slate-800 dark:text-slate-200 mb-2">기준 거래 정보</h4>
-                            <div class="space-y-1 text-slate-600 dark:text-slate-300">
-                                <p><span class="font-semibold w-24 inline-block">거래일:</span> 2025-11-17</p>
-                                <p><span class="font-semibold w-24 inline-block">기준 거래가:</span> 63억 (84.98㎡)</p>
-                                <p><span class="font-semibold w-24 inline-block">기준 평단가:</span> 약 7,400만 원/㎡</p>
-                            </div>
-                        </div>
-
-                        <div>
-                            <h5 class="font-bold text-sm mb-2 text-slate-800 dark:text-slate-200">참여자 비율</h5>
-                            <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-6 flex overflow-hidden">
-                                <div class="bg-blue-500 h-6 flex items-center justify-center text-white font-bold text-xs" style="width: 50%">상승 50%</div>
-                                <div class="bg-red-500 h-6 flex items-center justify-center text-white font-bold text-xs" style="width: 50%">하락 50%</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
     </main>
 
