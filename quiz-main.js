@@ -25,26 +25,30 @@ async function loadQuizzes() {
     quizSnapshot.forEach((doc) => {
       const quiz = doc.data();
 
-      // *** 수정된 부분: option -> options 로 유효성 검사 필드 이름 수정 ***
       if (!quiz.title || !Array.isArray(quiz.options) || quiz.options.length < 2) {
         console.warn('Skipping invalid quiz data:', doc.id, quiz);
         return;
       }
 
       const quizCard = document.createElement("div");
-      quizCard.className = "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm";
+      quizCard.className = "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm overflow-hidden";
       
-      // *** 수정된 부분: option -> options 로 필드 이름 수정 ***
       quizCard.innerHTML = `
-        <h3 class="font-bold text-lg mb-2 text-slate-900 dark:text-white">
-          ${quiz.title}
-        </h3>
-        <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">
-          ${quiz.description || ''}
-        </p>
-        <div class="flex gap-3">
-          <button class="vote-up-btn px-4 py-2 rounded-lg bg-emerald-500 text-white font-semibold transition-all hover:opacity-90">${quiz.options[0]}</button>
-          <button class="vote-down-btn px-4 py-2 rounded-lg bg-red-500 text-white font-semibold transition-all hover:opacity-90">${quiz.options[1]}</button>
+        <div class="quiz-header p-6 flex justify-between items-center cursor-pointer">
+            <div class="flex items-center gap-4">
+                <i class="arrow-icon fas fa-chevron-down text-slate-400 transition-transform duration-300"></i>
+                <h3 class="font-bold text-lg text-slate-900 dark:text-white">${quiz.title}</h3>
+            </div>
+            <div class="flex gap-2">
+                <button class="vote-up-btn px-4 py-2 rounded-lg bg-emerald-500 text-white font-semibold transition-all hover:opacity-90">${quiz.options[0]}</button>
+                <button class="vote-down-btn px-4 py-2 rounded-lg bg-red-500 text-white font-semibold transition-all hover:opacity-90">${quiz.options[1]}</button>
+            </div>
+        </div>
+        <div class="quiz-body max-h-0 overflow-hidden transition-all duration-500 ease-in-out">
+            <div class="px-6 pb-6 pt-0">
+                <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">${quiz.description || ''}</p>
+                ${generateParticipationRateHTML(quiz.vote)}
+            </div>
         </div>
       `;
       quizContainer.appendChild(quizCard);
@@ -56,34 +60,103 @@ async function loadQuizzes() {
   }
 }
 
+function generateParticipationRateHTML(voteData) {
+    const upVotes = voteData?.up || 0;
+    const downVotes = voteData?.down || 0;
+    const totalVotes = upVotes + downVotes;
+    const upPercentage = totalVotes > 0 ? ((upVotes / totalVotes) * 100) : 0;
+
+    return `
+        <div class="participation-rate mt-4">
+            <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2.5" data-up-votes="${upVotes}" data-down-votes="${downVotes}">
+                <div class="progress-bar bg-emerald-500 h-2.5 rounded-full transition-all duration-300" style="width: ${upPercentage.toFixed(1)}%"></div>
+            </div>
+            <div class="text-xs text-slate-500 dark:text-slate-400 mt-2 flex justify-between">
+                <span class="up-percentage font-bold text-emerald-500">상승: ${upPercentage.toFixed(1)}%</span>
+                <span class="down-percentage font-bold text-red-500">하락: ${(100 - upPercentage).toFixed(1)}%</span>
+            </div>
+        </div>
+    `;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     loadQuizzes();
 
     const quizContainer = document.getElementById('quiz-container');
     if (quizContainer) {
         quizContainer.addEventListener('click', (event) => {
-            const button = event.target.closest('button');
-            if (!button || (!button.classList.contains('vote-up-btn') && !button.classList.contains('vote-down-btn'))) {
+            const voteButton = event.target.closest('.vote-up-btn, .vote-down-btn');
+            if (voteButton) {
+                const card = voteButton.closest('.shadow-sm');
+                if (!card) return;
+
+                const upButton = card.querySelector('.vote-up-btn');
+                const downButton = card.querySelector('.vote-down-btn');
+
+                // 상태 확인: 현재 버튼, 이전에 선택된 버튼
+                const wasUpVoted = upButton.classList.contains('ring-2');
+                const wasDownVoted = downButton.classList.contains('ring-2');
+                const isVotingUp = voteButton.classList.contains('vote-up-btn');
+
+                // UI 스타일링 (기존 로직)
+                upButton.classList.remove('opacity-50', 'ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', 'ring-emerald-400');
+                downButton.classList.remove('opacity-50', 'ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', 'ring-red-400');
+
+                if (isVotingUp) {
+                    upButton.classList.add('ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', 'ring-emerald-400');
+                    downButton.classList.add('opacity-50');
+                } else {
+                    downButton.classList.add('ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', 'ring-red-400');
+                    upButton.classList.add('opacity-50');
+                }
+
+                // --- 신규: 참여율 UI 실시간 업데이트 ---
+                const participationContainer = card.querySelector('[data-up-votes]');
+                let upVotes = parseInt(participationContainer.dataset.upVotes);
+                let downVotes = parseInt(participationContainer.dataset.downVotes);
+                
+                // 투표 상태에 따라 로컬 투표 수 조정
+                if (isVotingUp) { // 상승 클릭
+                    if (!wasUpVoted) { // 이전에 상승 투표하지 않았을 경우만
+                         upVotes++;
+                         if (wasDownVoted) downVotes--; // 하락->상승으로 변경 시
+                    }
+                } else { // 하락 클릭
+                    if (!wasDownVoted) { // 이전에 하락 투표하지 않았을 경우만
+                        downVotes++;
+                        if (wasUpVoted) upVotes--; // 상승->하락으로 변경 시
+                    }
+                }
+
+                // 데이터 속성 업데이트 (최신 투표 수 저장)
+                participationContainer.dataset.upVotes = upVotes;
+                participationContainer.dataset.downVotes = downVotes;
+
+                // 퍼센트 재계산 및 UI 업데이트
+                const totalVotes = upVotes + downVotes;
+                const upPercentage = totalVotes > 0 ? ((upVotes / totalVotes) * 100) : 0;
+                const downPercentage = 100 - upPercentage;
+
+                card.querySelector('.progress-bar').style.width = `${upPercentage.toFixed(1)}%`;
+                card.querySelector('.up-percentage').textContent = `상승: ${upPercentage.toFixed(1)}%`;
+                card.querySelector('.down-percentage').textContent = `하락: ${downPercentage.toFixed(1)}%`;
+                
                 return;
             }
 
-            const card = button.closest('.shadow-sm');
-            if (!card) return;
+            const header = event.target.closest('.quiz-header');
+            if (header) {
+                const card = header.closest('.shadow-sm');
+                const body = card.querySelector('.quiz-body');
+                const icon = header.querySelector('.arrow-icon');
 
-            const upButton = card.querySelector('.vote-up-btn');
-            const downButton = card.querySelector('.vote-down-btn');
-
-            upButton.classList.remove('opacity-50', 'ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', 'ring-emerald-400');
-            downButton.classList.remove('opacity-50', 'ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', 'ring-red-400');
-
-            if (button.classList.contains('vote-up-btn')) {
-                console.log('상승 클릭');
-                upButton.classList.add('ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', 'ring-emerald-400');
-                downButton.classList.add('opacity-50');
-            } else if (button.classList.contains('vote-down-btn')) {
-                console.log('하락 클릭');
-                downButton.classList.add('ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', 'ring-red-400');
-                upButton.classList.add('opacity-50');
+                if (body.style.maxHeight) {
+                    body.style.maxHeight = null;
+                    icon.classList.remove('rotate-180');
+                } else {
+                    body.style.maxHeight = body.scrollHeight + 'px';
+                    icon.classList.add('rotate-180');
+                }
             }
         });
     }
