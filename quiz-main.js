@@ -1,6 +1,6 @@
 import { auth, db } from './firebase-config.js';
 import { onAuthStateChanged, signOut, getAuth } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { collection, doc, runTransaction, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { collection, doc, runTransaction, onSnapshot, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const colorMap = {
   emerald: "bg-emerald-500 hover:bg-emerald-600",
@@ -62,6 +62,12 @@ function loadQuizzes() {
             }
         }
       });
+
+      // After initial load or changes, restore user votes if logged in
+      const user = auth.currentUser;
+      if(user) {
+        restoreUserVotes(user);
+      }
     },
     (error) => {
       console.error("Realtime subscription error:", error);
@@ -147,6 +153,38 @@ function generateParticipationRateHTML(quiz) {
             </div>
         </div>
     `;
+}
+
+async function restoreUserVotes(user) {
+    const quizCards = document.querySelectorAll('[data-quiz-id]');
+    for (const card of quizCards) {
+        const quizId = card.dataset.quizId;
+        const userVoteRef = doc(db, `quizzes/quiz1/quizzes/${quizId}/userVotes/${user.uid}`);
+        
+        try {
+            const userVoteSnap = await getDoc(userVoteRef);
+            const buttons = card.querySelectorAll('.vote-option-btn');
+
+            // Reset all buttons first
+            buttons.forEach(btn => {
+                btn.classList.remove('opacity-50', 'ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', 'ring-emerald-400', 'ring-red-400', 'ring-slate-400');
+            });
+
+            if (userVoteSnap.exists()) {
+                const selectedOptionId = userVoteSnap.data().selectedOption;
+                buttons.forEach(btn => {
+                    if (btn.dataset.optionId === selectedOptionId) {
+                        let ringColorClass = btn.classList.contains('bg-emerald-500') ? 'ring-emerald-400' : (btn.classList.contains('bg-red-500') ? 'ring-red-400' : 'ring-slate-400');
+                        btn.classList.add('ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', ringColorClass);
+                    } else {
+                        btn.classList.add('opacity-50');
+                    }
+                });
+            }
+        } catch (error) {
+            console.error(`Failed to restore vote for quiz ${quizId}:`, error);
+        }
+    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -336,14 +374,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Auth State Listener & UI Update ---
-    onAuthStateChanged(auth, (user) => {
+    onAuthStateChanged(auth, async (user) => {
         if (user) {
             console.log('User is logged in:', user.email);
             if(loginModalButton) loginModalButton.classList.add('hidden');
             if(logoutButton) logoutButton.classList.remove('hidden');
             closeModal();
+            await restoreUserVotes(user);
         } else {
             console.log('User is logged out.');
+            document.querySelectorAll('.vote-option-btn').forEach(btn => {
+                btn.classList.remove(
+                    'opacity-50', 
+                    'ring-2', 
+                    'ring-offset-2', 
+                    'dark:ring-offset-slate-800', 
+                    'ring-emerald-400', 
+                    'ring-red-400', 
+                    'ring-slate-400'
+                );
+            });
             if(loginModalButton) loginModalButton.classList.remove('hidden');
             if(logoutButton) logoutButton.classList.add('hidden');
         }
