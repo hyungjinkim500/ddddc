@@ -24,16 +24,23 @@ async function loadQuizzes() {
 
     quizSnapshot.forEach((doc) => {
       const quiz = doc.data();
+
+      // *** 수정된 부분: option -> options 로 유효성 검사 필드 이름 수정 ***
+      if (!quiz.title || !Array.isArray(quiz.options) || quiz.options.length < 2) {
+        console.warn('Skipping invalid quiz data:', doc.id, quiz);
+        return;
+      }
+
       const quizCard = document.createElement("div");
       quizCard.className = "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm";
       
-      // *** 수정된 부분: 버튼에 hover 효과 및 이벤트 감지를 위한 고유 클래스 추가 ***
+      // *** 수정된 부분: option -> options 로 필드 이름 수정 ***
       quizCard.innerHTML = `
         <h3 class="font-bold text-lg mb-2 text-slate-900 dark:text-white">
           ${quiz.title}
         </h3>
         <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">
-          ${quiz.description}
+          ${quiz.description || ''}
         </p>
         <div class="flex gap-3">
           <button class="vote-up-btn px-4 py-2 rounded-lg bg-emerald-500 text-white font-semibold transition-all hover:opacity-90">${quiz.options[0]}</button>
@@ -56,13 +63,27 @@ document.addEventListener('DOMContentLoaded', () => {
     if (quizContainer) {
         quizContainer.addEventListener('click', (event) => {
             const button = event.target.closest('button');
-            if (!button) return;
+            if (!button || (!button.classList.contains('vote-up-btn') && !button.classList.contains('vote-down-btn'))) {
+                return;
+            }
 
-            // *** 수정된 부분: 스타일 클래스가 아닌, 기능 클래스로 이벤트를 정확히 감지 ***
+            const card = button.closest('.shadow-sm');
+            if (!card) return;
+
+            const upButton = card.querySelector('.vote-up-btn');
+            const downButton = card.querySelector('.vote-down-btn');
+
+            upButton.classList.remove('opacity-50', 'ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', 'ring-emerald-400');
+            downButton.classList.remove('opacity-50', 'ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', 'ring-red-400');
+
             if (button.classList.contains('vote-up-btn')) {
                 console.log('상승 클릭');
+                upButton.classList.add('ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', 'ring-emerald-400');
+                downButton.classList.add('opacity-50');
             } else if (button.classList.contains('vote-down-btn')) {
                 console.log('하락 클릭');
+                downButton.classList.add('ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', 'ring-red-400');
+                upButton.classList.add('opacity-50');
             }
         });
     }
