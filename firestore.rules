@@ -3,14 +3,29 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // 규칙 1: 사용자 관련 규칙 (기존과 동일)
+    // /users/{userId}
+    // 사용자는 자신의 문서를 생성할 수 있습니다. (회원가입)
+    // 모든 사용자는 다른 사용자의 정보를 읽을 수 있습니다. (랭킹)
+    // 사용자는 자신의 displayName만 수정할 수 있으며, points는 수정할 수 없습니다.
     match /users/{userId} {
-      allow create, read, update, delete: if request.auth != null && request.auth.uid == userId;
+      allow read: if true;
+      allow create: if request.auth.uid == userId;
+      allow update: if request.auth.uid == userId && request.resource.data.keys().hasOnly(['displayName', 'points']) && request.resource.data.points == resource.data.points;
     }
 
-    // 규칙 2: 퀴즈 데이터 조회 규칙 (반드시 추가되어야 할 부분)
+    // /quizzes/quiz1/quizzes/{quizId}
+    // 모든 사용자는 퀴즈 목록과 개별 퀴즈를 읽을 수 있습니다.
+    // 로그인한 사용자는 'vote' 필드만 업데이트할 수 있습니다. (투표)
     match /quizzes/{quizDocId}/quizzes/{quizId} {
       allow get, list: if true;
+      allow update: if request.auth != null 
+                      && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['vote']);
+
+      // /quizzes/quiz1/quizzes/{quizId}/userVotes/{userId}
+      // 로그인한 사용자는 자신의 투표 기록만 생성, 조회, 수정, 삭제할 수 있습니다.
+      match /userVotes/{userId} {
+        allow read, write: if request.auth.uid == userId;
+      }
     }
   }
 }

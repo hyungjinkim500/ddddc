@@ -4,7 +4,8 @@ import {
     onAuthStateChanged, 
     signOut,
     GoogleAuthProvider,
-    signInWithPopup
+    signInWithPopup,
+    updateProfile
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { app, auth, db } from './firebase-config.js';
 import { doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -63,20 +64,22 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const email = registerForm.email.value;
             const password = registerForm.password.value;
-            const nickname = registerForm.nickname.value; // Get nickname from form
-            console.log("Sign up clicked", email);
+            const displayName = registerForm.nickname.value; // Get nickname from form
 
             try {
                 // 1. Create user in Auth
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                console.log('Registered and signed in:', userCredential.user.uid);
+                const user = userCredential.user;
 
-                // 2. Save nickname to Firestore
-                const userRef = doc(db, "users", userCredential.user.uid);
+                // 2. Update Auth profile
+                await updateProfile(user, { displayName });
+
+                // 3. Create user document in Firestore
+                const userRef = doc(db, "users", user.uid);
                 await setDoc(userRef, {
-                    nickname: nickname
+                    displayName: displayName,
+                    points: 0
                 });
-                console.log("Nickname saved to Firestore for user:", userCredential.user.uid);
 
                 alert('회원가입이 완료되었습니다.');
                 hideModal();
@@ -93,11 +96,9 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const email = loginForm.email.value;
             const password = loginForm.password.value;
-            console.log("Email login clicked", email);
 
             try {
                 const userCredential = await signInWithEmailAndPassword(auth, email, password);
-                console.log('Login success', userCredential.user.uid);
                 alert('로그인에 성공했습니다.');
                 hideModal();
             } catch (error) {
@@ -111,11 +112,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (googleLoginButton) {
         googleLoginButton.addEventListener('click', async (e) => {
             e.preventDefault();
-            console.log("Google login clicked");
             const provider = new GoogleAuthProvider();
             try {
                 const result = await signInWithPopup(auth, provider);
-                console.log('Google sign-in successful:', result.user.uid);
                 hideModal();
             } catch (error) {
                 console.error('Google sign-in error:', error);
@@ -135,8 +134,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Listen for auth state changes
     onAuthStateChanged(auth, async (user) => {
-        console.log("onAuthStateChanged:", user ? user.uid : "signed out");
-        
         const themeToggleButton = document.getElementById('theme-toggle');
         const buttonContainer = themeToggleButton.parentElement;
         const createQuizButton = buttonContainer.querySelector('.btn-primary'); // '퀴즈 만들기' 버튼
@@ -157,21 +154,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 const userRef = doc(db, "users", user.uid);
                 const docSnap = await getDoc(userRef);
 
-                if (docSnap.exists() && docSnap.data().nickname) {
-                    const nickname = docSnap.data().nickname;
-                    
-                    const nicknameDisplayElement = document.createElement('span');
-                    nicknameDisplayElement.id = 'user-nickname-display';
-                    nicknameDisplayElement.textContent = `${nickname}님`;
-                    nicknameDisplayElement.className = 'text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center whitespace-nowrap';
+                const displayName = user.displayName || (docSnap.exists() ? docSnap.data().displayName : "사용자");
 
-                    // '퀴즈 만들기' 버튼 앞에 닉네임 엘리먼트를 삽입합니다.
-                    if (buttonContainer && createQuizButton) {
-                        buttonContainer.insertBefore(nicknameDisplayElement, createQuizButton);
-                    }
+                const nicknameDisplayElement = document.createElement('span');
+                nicknameDisplayElement.id = 'user-nickname-display';
+                nicknameDisplayElement.textContent = `${displayName}님`;
+                nicknameDisplayElement.className = 'text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center whitespace-nowrap';
+
+                // '퀴즈 만들기' 버튼 앞에 닉네임 엘리먼트를 삽입합니다.
+                if (buttonContainer && createQuizButton) {
+                    buttonContainer.insertBefore(nicknameDisplayElement, createQuizButton);
                 }
+
             } catch (error) {
-                console.error("Error fetching user nickname:", error);
+                console.error("Error fetching user displayName:", error);
             }
 
         } else {

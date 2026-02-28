@@ -79,19 +79,20 @@ function loadQuizzes() {
 
 function createQuizCard(quizId, quiz) {
     const quizCard = document.createElement("div");
-    quizCard.className = "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm overflow-hidden";
+    // Added responsive width, centering, and margin for spacing.
+    quizCard.className = "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm overflow-hidden w-full max-w-4xl mx-auto mb-4";
     quizCard.dataset.quizId = quizId;
 
     quizCard.innerHTML = `
-      <div class="quiz-header p-6 flex justify-between items-center cursor-pointer">
+      <div class="quiz-header p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 cursor-pointer">
           <div class="flex items-center gap-4">
               <i class="arrow-icon fas fa-chevron-down text-slate-400 transition-transform duration-300"></i>
-              <h3 class="font-bold text-lg text-slate-900 dark:text-white">${quiz.title}</h3>
+              <h3 class="font-bold text-lg sm:text-xl leading-snug text-slate-900 dark:text-white">${quiz.title}</h3>
           </div>
-          <div class="flex gap-2">${
+          <div class="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">${
               quiz.options.map(option => `
                   <button 
-                      class="vote-option-btn px-4 py-2 rounded-lg text-white font-semibold transition-all hover:opacity-90 ${colorMap[option.color] || 'bg-slate-500 hover:bg-slate-600'}"
+                      class="vote-option-btn w-full sm:w-auto px-4 py-2 rounded-lg text-white font-semibold transition-all hover:opacity-90 ${colorMap[option.color] || 'bg-slate-500 hover:bg-slate-600'}"
                       data-option-id="${option.id}"
                   >
                       ${option.label}
@@ -374,28 +375,41 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Auth State Listener & UI Update ---
-    onAuthStateChanged(auth, async (user) => {
+    onAuthStateChanged(auth, (user) => {
+        const loginButton = document.getElementById('login-modal-button');
+        const logoutButton = document.getElementById('logout-button');
+        const userProfileInfo = document.getElementById('user-profile-info');
+        const userNickname = document.getElementById('user-nickname');
+        const userPoints = document.getElementById('user-points');
+
         if (user) {
-            console.log('User is logged in:', user.email);
-            if(loginModalButton) loginModalButton.classList.add('hidden');
-            if(logoutButton) logoutButton.classList.remove('hidden');
-            closeModal();
-            await restoreUserVotes(user);
-        } else {
-            console.log('User is logged out.');
-            document.querySelectorAll('.vote-option-btn').forEach(btn => {
-                btn.classList.remove(
-                    'opacity-50', 
-                    'ring-2', 
-                    'ring-offset-2', 
-                    'dark:ring-offset-slate-800', 
-                    'ring-emerald-400', 
-                    'ring-red-400', 
-                    'ring-slate-400'
-                );
+            loginButton.classList.add('hidden');
+            logoutButton.classList.remove('hidden');
+            userProfileInfo.classList.remove('hidden');
+            userProfileInfo.classList.add('flex');
+
+            const userRef = doc(db, "users", user.uid);
+            onSnapshot(userRef, (doc) => {
+                if (doc.exists()) {
+                    const userData = doc.data();
+                    userNickname.textContent = userData.displayName || "사용자";
+                    userPoints.textContent = `${userData.points || 0} P`;
+                } else {
+                    userNickname.textContent = user.displayName || "사용자";
+                    userPoints.textContent = "0 P";
+                }
             });
-            if(loginModalButton) loginModalButton.classList.remove('hidden');
-            if(logoutButton) logoutButton.classList.add('hidden');
+            restoreUserVotes(user);
+
+        } else {
+            loginButton.classList.remove('hidden');
+            logoutButton.classList.add('hidden');
+            userProfileInfo.classList.add('hidden');
+            userProfileInfo.classList.remove('flex');
+
+            document.querySelectorAll('.vote-option-btn').forEach(btn => {
+                btn.classList.remove('opacity-50', 'ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', 'ring-emerald-400', 'ring-red-400', 'ring-slate-400');
+            });
         }
     });
 
@@ -404,7 +418,6 @@ document.addEventListener('DOMContentLoaded', () => {
         logoutButton.addEventListener('click', async () => {
             try {
                 await signOut(auth);
-                // The onAuthStateChanged listener will handle the UI update.
             } catch (error) {
                 console.error('Logout Error:', error);
                 alert('로그아웃 중 오류가 발생했습니다.');
