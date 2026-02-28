@@ -1,6 +1,6 @@
 import { auth, db } from './firebase-config.js';
-import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { collection, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { onAuthStateChanged, signOut, getAuth } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+import { collection, getDocs, doc, runTransaction } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const colorMap = {
   emerald: "bg-emerald-500 hover:bg-emerald-600",
@@ -38,6 +38,7 @@ async function loadQuizzes() {
 
       const quizCard = document.createElement("div");
       quizCard.className = "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm overflow-hidden";
+      quizCard.dataset.quizId = doc.id;
       
       quizCard.innerHTML = `
         <div class="quiz-header p-6 flex justify-between items-center cursor-pointer">
@@ -116,26 +117,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const allOptionButtons = card.querySelectorAll('.vote-option-btn');
                 const previouslySelectedButton = card.querySelector('.vote-option-btn.ring-2');
-                const participationContainer = card.querySelector('[data-votes]');
-                let votes = JSON.parse(participationContainer.dataset.votes);
                 const clickedOptionId = voteButton.dataset.optionId;
 
-                // Case 1: 이미 선택된 버튼을 다시 클릭 -> 투표 취소
+                // Optimistic UI update for button styles
                 if (voteButton === previouslySelectedButton) {
-                    votes[clickedOptionId]--;
                     allOptionButtons.forEach(btn => btn.classList.remove('opacity-50', 'ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', 'ring-emerald-400', 'ring-red-400', 'ring-slate-400'));
-                
-                // Case 2: 새 버튼을 선택 (혹은 다른 버튼으로 변경)
                 } else {
-                    // 이전에 투표한 내역이 있으면 먼저 해당 투표 수를 1 감소
-                    if (previouslySelectedButton) {
-                        const previousOptionId = previouslySelectedButton.dataset.optionId;
-                        votes[previousOptionId]--;
-                    }
-                    // 새로 클릭한 버튼의 투표 수를 1 증가
-                    votes[clickedOptionId]++;
-
-                    // 스타일 업데이트
                     allOptionButtons.forEach(btn => {
                         btn.classList.remove('opacity-50', 'ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', 'ring-emerald-400', 'ring-red-400', 'ring-slate-400');
                         if (btn !== voteButton) btn.classList.add('opacity-50');
@@ -143,32 +130,60 @@ document.addEventListener('DOMContentLoaded', () => {
                     let ringColorClass = voteButton.classList.contains('bg-emerald-500') ? 'ring-emerald-400' : (voteButton.classList.contains('bg-red-500') ? 'ring-red-400' : 'ring-slate-400');
                     voteButton.classList.add('ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', ringColorClass);
                 }
-
-                // 공통 로직: 데이터 속성 및 참여율 UI 업데이트
-                participationContainer.dataset.votes = JSON.stringify(votes);
-
-                const totalVotes = Object.values(votes).reduce((sum, v) => sum + v, 0);
-
-                const options = Array.from(allOptionButtons).map(btn => ({
-                    id: btn.dataset.optionId,
-                    label: btn.textContent.trim(),
-                    color: btn.classList.contains('bg-emerald-500') ? 'emerald' : (btn.classList.contains('bg-red-500') ? 'red' : 'slate')
-                }));
-
-                const barSegments = options.map(option => {
-                    const percentage = totalVotes > 0 ? (votes[option.id] / totalVotes) * 100 : 0;
-                    return `<div class="${colorMap[option.color] || 'bg-slate-500'} h-2.5" style="width: ${percentage.toFixed(1)}%"></div>`;
-                }).join('');
-
-                const percentageTexts = options.map(option => {
-                    const percentage = totalVotes > 0 ? ((votes[option.id] / totalVotes) * 100).toFixed(1) : "0.0";
-                    return `<span class="font-bold text-${option.color}-500">${option.label}: ${percentage}%</span>`;
-                }).join('');
-
-                card.querySelector('.multi-bar').innerHTML = barSegments;
-                card.querySelector('.percentage-row').innerHTML = percentageTexts;
                 
-                return; // 중요: 아코디언 토글 방지
+                // Update Firestore using a transaction
+                (async () => {
+                    try {
+                        const auth = getAuth();
+                        const user = auth.currentUser;
+                        if (!user) {
+                            // Optionally, prompt the user to log in
+                            console.log("User not logged in. Vote not recorded.");
+                            return;
+                        }
+
+                        const quizRef = doc(db, "quizzes/quiz1/quizzes", card.dataset.quizId);
+                        const userVoteRef = doc(db, "quizzes/quiz1/quizzes", card.dataset.quizId, "userVotes", user.uid);
+
+                        await runTransaction(db, async (transaction) => {
+                            const quizDoc = await transaction.get(quizRef);
+                            if (!quizDoc.exists()) {
+                                throw "Quiz document does not exist!";
+                            }
+
+                            const userVoteDoc = await transaction.get(userVoteRef);
+                            const data = quizDoc.data();
+                            const voteData = data.vote ?? {};
+                            const updatedVotes = { ...voteData };
+
+                            let previousOptionId = null;
+                            if (userVoteDoc.exists()) {
+                                previousOptionId = userVoteDoc.data().selectedOption;
+                            }
+
+                            if (previousOptionId === clickedOptionId) {
+                                // Deselecting the same option
+                                updatedVotes[clickedOptionId] = Math.max(0, (updatedVotes[clickedOptionId] || 0) - 1);
+                                transaction.delete(userVoteRef);
+                            } else {
+                                // Selecting a new option or switching vote
+                                if (previousOptionId) {
+                                    updatedVotes[previousOptionId] = Math.max(0, (updatedVotes[previousOptionId] || 0) - 1);
+                                }
+                                updatedVotes[clickedOptionId] = (updatedVotes[clickedOptionId] || 0) + 1;
+                                transaction.set(userVoteRef, { selectedOption: clickedOptionId });
+                            }
+
+                            transaction.set(quizRef, { vote: updatedVotes }, { merge: true });
+                        });
+
+                    } catch (e) {
+                        console.error("Transaction failed: ", e);
+                        // TODO: Revert optimistic UI changes if the transaction fails
+                    }
+                })();
+                
+                return; // Prevent accordion toggle
             }
 
             const header = event.target.closest('.quiz-header');
