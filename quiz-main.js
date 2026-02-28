@@ -79,25 +79,25 @@ function generateParticipationRateHTML(quiz) {
         initialVotes[option.id] = voteData[option.id] || 0;
     });
 
-    const totalVotes = Object.values(initialVotes).reduce((sum, v) => sum + v, 0);
-    const primaryOptionId = quiz.options[0]?.id || 'up'; // Ensure primaryOptionId exists
-    const primaryPercentage = totalVotes > 0 ? ((initialVotes[primaryOptionId] || 0) / totalVotes) * 100 : 0;
+    const totalVotes = Object.values(initialVotes).reduce((sum, val) => sum + val, 0);
 
-    // Find the label for the primary option to display it dynamically
-    const primaryOptionLabel = quiz.options.find(opt => opt.id === primaryOptionId)?.label || 'Primary';
-    const secondaryOptionId = quiz.options[1]?.id || 'down';
-    const secondaryOptionLabel = quiz.options.find(opt => opt.id === secondaryOptionId)?.label || 'Secondary';
-    const secondaryPercentage = totalVotes > 0 ? 100 - primaryPercentage : 0;
+    const barSegments = quiz.options.map(option => {
+        const percentage = totalVotes > 0 ? (initialVotes[option.id] / totalVotes) * 100 : 0;
+        return `<div class="${colorMap[option.color] || 'bg-slate-500'} h-2.5" style="width: ${percentage.toFixed(1)}%"></div>`;
+    }).join('');
 
+    const percentageTexts = quiz.options.map(option => {
+        const percentage = totalVotes > 0 ? ((initialVotes[option.id] / totalVotes) * 100).toFixed(1) : "0.0";
+        return `<span class="font-bold text-${option.color}-500">${option.label}: ${percentage}%</span>`;
+    }).join('');
 
     return `
-        <div class="participation-rate mt-4">
-            <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2.5" data-votes='${JSON.stringify(initialVotes)}'>
-                <div class="progress-bar bg-emerald-500 h-2.5 rounded-full transition-all duration-300" style="width: ${primaryPercentage.toFixed(1)}%"></div>
+        <div class="participation-rate mt-4" data-votes='${JSON.stringify(initialVotes)}'>
+            <div class="multi-bar w-full flex rounded-full overflow-hidden bg-slate-200 dark:bg-slate-700 h-2.5">
+                ${barSegments}
             </div>
-            <div class="text-xs text-slate-500 dark:text-slate-400 mt-2 flex justify-between">
-                <span class="up-percentage font-bold text-emerald-500">${primaryOptionLabel}: ${primaryPercentage.toFixed(1)}%</span>
-                <span class="down-percentage font-bold text-red-500">${secondaryOptionLabel}: ${secondaryPercentage.toFixed(1)}%</span>
+            <div class="percentage-row text-xs text-slate-500 dark:text-slate-400 mt-2 flex justify-between">
+                ${percentageTexts}
             </div>
         </div>
     `;
@@ -148,17 +148,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 participationContainer.dataset.votes = JSON.stringify(votes);
 
                 const totalVotes = Object.values(votes).reduce((sum, v) => sum + v, 0);
-                const primaryOptionId = Object.keys(votes)[0] || 'up'; // Fallback for safety
-                const primaryPercentage = totalVotes > 0 ? ((votes[primaryOptionId] || 0) / totalVotes) * 100 : 0;
-                const secondaryOptionId = Object.keys(votes)[1] || 'down';
-                const secondaryPercentage = totalVotes > 0 ? 100 - primaryPercentage : 0;
 
-                const primaryLabel = card.querySelector(`[data-option-id="${primaryOptionId}"]`).textContent.trim();
-                const secondaryLabel = card.querySelector(`[data-option-id="${secondaryOptionId}"]`).textContent.trim();
+                const options = Array.from(allOptionButtons).map(btn => ({
+                    id: btn.dataset.optionId,
+                    label: btn.textContent.trim(),
+                    color: btn.classList.contains('bg-emerald-500') ? 'emerald' : (btn.classList.contains('bg-red-500') ? 'red' : 'slate')
+                }));
 
-                card.querySelector('.progress-bar').style.width = `${primaryPercentage.toFixed(1)}%`;
-                card.querySelector('.up-percentage').textContent = `${primaryLabel}: ${primaryPercentage.toFixed(1)}%`;
-                card.querySelector('.down-percentage').textContent = `${secondaryLabel}: ${secondaryPercentage.toFixed(1)}%`;
+                const barSegments = options.map(option => {
+                    const percentage = totalVotes > 0 ? (votes[option.id] / totalVotes) * 100 : 0;
+                    return `<div class="${colorMap[option.color] || 'bg-slate-500'} h-2.5" style="width: ${percentage.toFixed(1)}%"></div>`;
+                }).join('');
+
+                const percentageTexts = options.map(option => {
+                    const percentage = totalVotes > 0 ? ((votes[option.id] / totalVotes) * 100).toFixed(1) : "0.0";
+                    return `<span class="font-bold text-${option.color}-500">${option.label}: ${percentage}%</span>`;
+                }).join('');
+
+                card.querySelector('.multi-bar').innerHTML = barSegments;
+                card.querySelector('.percentage-row').innerHTML = percentageTexts;
                 
                 return; // 중요: 아코디언 토글 방지
             }
