@@ -48,8 +48,6 @@
         .bg-teal { background-color: var(--pm-teal); }
         .btn-primary { background-color: var(--pm-teal); color: var(--pm-navy); }
         
-        .tab-button.active { background-color: var(--pm-teal) !important; color: var(--pm-navy) !important; }
-        
         .quiz-details { max-height: 0; overflow: hidden; transition: max-height 0.5s ease-out, padding 0.5s ease-out; padding-top: 0; padding-bottom: 0; }
 
         :root { --nav-height: 61px; }
@@ -65,31 +63,47 @@
 </head>
 <body class="transition-colors duration-300">
 
-    <nav class="border-b border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-black/80 backdrop-blur-sm sticky top-0 z-[100]">
-        <div class="container mx-auto px-4 sm:px-6 py-3 flex justify-between items-center">
-             <a href="index.html" class="flex items-center gap-3">
-                <div class="xylophone-logo"><div class="xy-bar xy-1"></div><div class="xy-bar xy-2"></div><div class="xy-bar xy-3"></div><div class="xy-mallet"></div></div>
-                <h1 class="text-xl font-bold tracking-tight text-slate-900 dark:text-white">딩동댕닷컴</h1>
-            </a>
-            <div class="flex items-center gap-2 md:gap-3">
-                <button id="theme-toggle" class="text-slate-400 hover:text-teal dark:text-slate-500 dark:hover:text-teal transition-colors duration-300 px-2"><i class="fa-solid fa-moon text-lg"></i></button>
-                <button class="btn-primary px-3 py-2 md:px-4 rounded-lg font-bold text-xs md:text-sm transition-all hover:opacity-90 whitespace-nowrap h-[40px] md:h-[42px]">퀴즈 만들기</button>
-                <button id="login-modal-button" class="bg-slate-100 dark:bg-slate-200 border border-slate-200 dark:border-slate-300 px-3 py-2 md:px-4 rounded-lg font-bold text-xs md:text-sm text-slate-700 dark:text-slate-900 transition-all hover:border-teal whitespace-nowrap h-[40px] md:h-[42px]">로그인</button>
-                <button id="logout-button" class="hidden bg-red-500 text-white px-3 py-2 md:px-4 rounded-lg font-bold text-xs md:text-sm transition-all hover:opacity-90 whitespace-nowrap h-[40px] md:h-[42px]">로그아웃</button>
-            </div>
-        </div>
-    </nav>
-    
-    <div class="bg-white dark:bg-slate-800 border-b border-border-light dark:border-border-dark sticky top-[var(--nav-height)] z-50">
-        <div class="container mx-auto px-4 sm:px-6">
-            <div id="category-tabs" class="flex flex-wrap items-center gap-2 py-3 overflow-x-auto">
-                <button class="tab-button active px-4 py-2 text-base font-bold rounded-full transition-colors duration-200 text-slate-700 dark:text-slate-100 whitespace-nowrap">부동산딩동댕</button>
-                <button class="tab-button px-4 py-2 text-base font-bold rounded-full transition-colors duration-200 text-slate-700 dark:text-slate-100 whitespace-nowrap">실시간HOT!</button>
-                <button class="tab-button px-4 py-2 text-base font-bold rounded-full transition-colors duration-200 text-slate-700 dark:text-slate-100 whitespace-nowrap">서울</button>
-                <button class="tab-button px-4 py-2 text-base font-bold rounded-full transition-colors duration-200 text-slate-700 dark:text-slate-100 whitespace-nowrap">경기</button>
-            </div>
-        </div>
+<header>
+    <div class="w-full border-b border-slate-200 dark:border-slate-700 py-2 text-sm">
+      <div class="container mx-auto px-4 flex items-center">
+        <a href="index.html" class="font-semibold text-slate-400 dark:text-slate-500 hover:underline">
+          딩동댕닷컴
+        </a>
+      </div>
     </div>
+    <div class="container mx-auto px-4 py-6 flex items-center justify-between">
+      <a href="quiz.html" class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-emerald-500 rounded-lg flex items-center justify-center text-white font-bold text-lg">
+          딩
+        </div>
+        <span class="text-2xl font-bold text-emerald-500">
+          부동산딩동댕
+        </span>
+      </a>
+      <div class="flex items-center gap-4">
+        <button id="theme-toggle" class="text-slate-400 hover:text-teal dark:text-slate-500 dark:hover:text-teal transition-colors duration-300 px-2"><i class="fa-solid fa-moon text-lg"></i></button>
+        <button class="btn-primary px-3 py-2 md:px-4 rounded-lg font-bold text-xs md:text-sm transition-all hover:opacity-90 whitespace-nowrap h-[40px] md:h-[42px]">퀴즈 만들기</button>
+        <button id="login-modal-button" class="bg-slate-100 dark:bg-slate-200 border border-slate-200 dark:border-slate-300 px-3 py-2 md:px-4 rounded-lg font-bold text-xs md:text-sm text-slate-700 dark:text-slate-900 transition-all hover:border-teal whitespace-nowrap h-[40px] md:h-[42px]">로그인</button>
+        <button id="logout-button" class="hidden bg-red-500 text-white px-3 py-2 md:px-4 rounded-lg font-bold text-xs md:text-sm transition-all hover:opacity-90 whitespace-nowrap h-[40px] md:h-[42px]">로그아웃</button>
+      </div>
+    </div>
+    <div class="border-t border-b border-slate-200 dark:border-slate-700">
+      <div id="category-tabs" class="container mx-auto px-4 flex gap-4 py-3 text-sm">
+        <button class="tab-button active px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 bg-emerald-500 text-white">
+          홈
+        </button>
+        <button class="tab-button px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
+          실시간HOT
+        </button>
+        <button class="tab-button px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
+          서울
+        </button>
+        <button class="tab-button px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
+          경기
+        </button>
+      </div>
+    </div>
+</header>
 
     <main class="container mx-auto px-4 sm:px-6 py-8 md:py-12">
         <div id="quiz-container" class="space-y-4">
@@ -280,9 +294,9 @@
         </div>
     </div>
 
-    <script type="module" src="firebase-config.js"></script>
-    <script type="module" src="auth.js"></script>
-    <script type="module" src="quiz-main.js"></script>
+    <script type="module" src="firebase-config.js" defer></script>
+    <script type="module" src="auth.js" defer></script>
+    <script type="module" src="quiz-main.js" defer></script>
 
     <!-- New script for 2-step registration flow -->
     <script>

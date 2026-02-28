@@ -1,7 +1,57 @@
-import { auth } from './firebase-config.js';
+import { auth, db } from './firebase-config.js';
 import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+import { collection, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+async function loadQuizzes() {
+  const quizContainer = document.getElementById("quiz-container");
+  if (!quizContainer) {
+    console.error("Critical: Quiz container element not found in HTML!");
+    return;
+  }
+
+  quizContainer.innerHTML = `<p class="text-center text-slate-500 dark:text-slate-400">퀴즈를 불러오는 중입니다...</p>`;
+
+  try {
+    // *** 중요: 실제 데이터가 있는 하위 컬렉션 경로로 수정 ***
+    const collectionPath = "quizzes/quiz1/quizzes";
+    const quizSnapshot = await getDocs(collection(db, collectionPath));
+
+    if (quizSnapshot.empty) {
+      quizContainer.innerHTML = `<p class="text-center text-slate-500 dark:text-slate-400">표시할 퀴즈가 없습니다.</p>`;
+      return;
+    }
+
+    quizContainer.innerHTML = "";
+
+    quizSnapshot.forEach((doc) => {
+      const quiz = doc.data();
+      const quizCard = document.createElement("div");
+      quizCard.className = "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm";
+      
+      quizCard.innerHTML = `
+        <h3 class="font-bold text-lg mb-2 text-slate-900 dark:text-white">
+          ${quiz.title}
+        </h3>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">
+          ${quiz.description}
+        </p>
+        <div class="flex gap-3">
+          <button class="px-4 py-2 rounded-lg bg-emerald-500 text-white font-semibold">${quiz.options[0]}</button>
+          <button class="px-4 py-2 rounded-lg bg-red-500 text-white font-semibold">${quiz.options[1]}</button>
+        </div>
+      `;
+      quizContainer.appendChild(quizCard);
+    });
+
+  } catch (error) {
+    console.error("Firestore Error: Failed to load quizzes.", error);
+    quizContainer.innerHTML = `<p class="text-center text-red-500">퀴즈를 불러오는 중 오류가 발생했습니다. 개발자 콘솔을 확인해주세요.</p>`;
+  }
+}
 
 document.addEventListener('DOMContentLoaded', () => {
+    loadQuizzes();
+
     // --- Theme Toggle --- //
     const themeToggle = document.getElementById('theme-toggle');
     if(themeToggle) {
@@ -29,41 +79,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Tab & Accordion Functionality --- //
     const categoryTabs = document.getElementById('category-tabs');
-    const quizContainer = document.getElementById('quiz-container');
-    if(categoryTabs && quizContainer) {
-        const quizItems = quizContainer.querySelectorAll('.quiz-item');
+    if (categoryTabs) {
         categoryTabs.addEventListener('click', (e) => {
-            const targetButton = e.target.closest('.tab-button');
-            if (!targetButton) return;
-            categoryTabs.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-            targetButton.classList.add('active');
-            const category = targetButton.dataset.category;
-            quizItems.forEach(item => {
-                item.style.display = (category === 'all' || item.dataset.category === category) ? 'block' : 'none';
+            if (!e.target.classList.contains('tab-button')) return;
+
+            const buttons = categoryTabs.querySelectorAll('.tab-button');
+            buttons.forEach(btn => {
+                btn.classList.remove('active', 'bg-emerald-500', 'text-white');
+                btn.classList.add('text-slate-600', 'dark:text-slate-300', 'hover:bg-slate-100', 'dark:hover:bg-slate-700');
             });
-        });
-        quizContainer.addEventListener('click', (e) => {
-            const header = e.target.closest('.quiz-header');
-            if (!header || e.target.closest('button')) return;
-            const currentItem = header.parentElement;
-            const details = header.nextElementSibling;
-            const icon = header.querySelector('i.fa-chevron-down');
-            const isOpening = !details.style.maxHeight;
-            quizItems.forEach(item => {
-                if (item !== currentItem) {
-                    const otherDetails = item.querySelector('.quiz-details');
-                    otherDetails.style.maxHeight = null; otherDetails.style.paddingTop = null; otherDetails.style.paddingBottom = null;
-                    const otherIcon = item.querySelector('i.fa-chevron-down');
-                    if (otherIcon) otherIcon.classList.remove('rotate-180');
-                }
-            });
-            if (isOpening) {
-                details.style.maxHeight = details.scrollHeight + "px";
-                if (icon) icon.classList.add('rotate-180');
-            } else {
-                details.style.maxHeight = null;
-                if (icon) icon.classList.remove('rotate-180');
-            }
+            
+            e.target.classList.add('active', 'bg-emerald-500', 'text-white');
+            e.target.classList.remove('text-slate-600', 'dark:text-slate-300', 'hover:bg-slate-100', 'dark:hover:bg-slate-700');
         });
     }
 
