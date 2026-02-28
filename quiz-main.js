@@ -115,6 +115,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 const card = voteButton.closest('.shadow-sm');
                 if (!card) return;
 
+                const auth = getAuth();
+                const user = auth.currentUser;
+
+                if (!user) {
+                    if (confirm("로그인이 필요합니다. 로그인하시겠습니까?")) {
+                        openModal();
+                    }
+                    return; // Stop any further action
+                }
+
                 const allOptionButtons = card.querySelectorAll('.vote-option-btn');
                 const previouslySelectedButton = card.querySelector('.vote-option-btn.ring-2');
                 const clickedOptionId = voteButton.dataset.optionId;
@@ -134,14 +144,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Update Firestore using a transaction
                 (async () => {
                     try {
-                        const auth = getAuth();
-                        const user = auth.currentUser;
-                        if (!user) {
-                            // Optionally, prompt the user to log in
-                            console.log("User not logged in. Vote not recorded.");
-                            return;
-                        }
-
                         const quizRef = doc(db, "quizzes/quiz1/quizzes", card.dataset.quizId);
                         const userVoteRef = doc(db, "quizzes/quiz1/quizzes", card.dataset.quizId, "userVotes", user.uid);
 
@@ -174,7 +176,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 transaction.set(userVoteRef, { selectedOption: clickedOptionId });
                             }
 
-                            transaction.set(quizRef, { vote: updatedVotes }, { merge: true });
+                            transaction.update(quizRef, { vote: updatedVotes });
                         });
 
                     } catch (e) {
