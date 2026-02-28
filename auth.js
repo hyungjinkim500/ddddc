@@ -1,5 +1,4 @@
 import { 
-    getAuth,
     createUserWithEmailAndPassword, 
     signInWithEmailAndPassword, 
     onAuthStateChanged, 
@@ -7,14 +6,12 @@ import {
     GoogleAuthProvider,
     signInWithPopup
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-// FIX: Import the 'auth' instance directly from the config file
-import { auth } from './firebase-config.js';
+import { app, auth } from './firebase-config.js';
+import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// REMOVED: No need to re-create the auth instance
-// const auth = getAuth(app); 
+const db = getFirestore(app);
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Elements
     const loginModal = document.getElementById('login-modal');
     const loginModalButton = document.getElementById('login-modal-button');
     const loginModalCloseButton = document.getElementById('login-modal-close-button');
@@ -22,36 +19,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const registerForm = document.getElementById('register-form');
     const logoutButton = document.getElementById('logout-button');
     const googleLoginButton = document.getElementById('google-login-button');
-    const betUpButton = document.getElementById('bet-up-button');
-    const betDownButton = document.getElementById('bet-down-button');
-
     const loginView = document.getElementById('login-view');
     const registerView = document.getElementById('register-view');
     const showRegisterViewLink = document.getElementById('show-register-view-link');
     const showLoginViewLinkFromTerms = document.getElementById('show-login-view-link-from-terms');
-    
-    // Function to show the modal
-    const showModal = () => loginModal.classList.add('show');
 
-    // Function to hide the modal
+    const showModal = () => loginModal.classList.add('show');
     const hideModal = () => loginModal.classList.remove('show');
 
-    // Show modal when login button is clicked
-    if (loginModalButton) {
-        loginModalButton.addEventListener('click', showModal);
-    }
-    
-    // Hide modal when close button is clicked
-    if (loginModalCloseButton) {
-        loginModalCloseButton.addEventListener('click', hideModal);
-    }
-
-    // Hide modal when clicking outside of it
+    if (loginModalButton) loginModalButton.addEventListener('click', showModal);
+    if (loginModalCloseButton) loginModalCloseButton.addEventListener('click', hideModal);
     if (loginModal) {
         loginModal.addEventListener('click', (e) => {
-            if (e.target === loginModal) {
-                hideModal();
-            }
+            if (e.target === loginModal) hideModal();
         });
     }
 
@@ -81,103 +61,123 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Handle registration
     if (registerForm) {
-        registerForm.addEventListener('submit', (e) => {
+        registerForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            console.log("Sign up clicked"); // DEBUG LOG
-
             const email = registerForm.email.value;
             const password = registerForm.password.value;
+            const nickname = registerForm.nickname.value; // Get nickname from form
+            console.log("Sign up clicked", email);
 
-            createUserWithEmailAndPassword(auth, email, password)
-                .then((userCredential) => {
-                    const user = userCredential.user;
-                    console.log('Registered and signed in:', user);
-                    alert('회원가입이 완료되었습니다.'); // SUCCESS ALERT
-                    hideModal();
-                })
-                .catch((error) => {
-                    console.error('Registration error:', error);
-                    alert(`회원가입에 실패했습니다: ${error.message}`); // FAILURE ALERT
+            try {
+                // 1. Create user in Auth
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                console.log('Registered and signed in:', userCredential.user.uid);
+
+                // 2. Save nickname to Firestore
+                const userRef = doc(db, "users", userCredential.user.uid);
+                await setDoc(userRef, {
+                    nickname: nickname
                 });
+                console.log("Nickname saved to Firestore for user:", userCredential.user.uid);
+
+                alert('회원가입이 완료되었습니다.');
+                hideModal();
+            } catch (error) {
+                console.error('Registration error:', error);
+                alert(`회원가입에 실패했습니다: ${error.message}`);
+            }
         });
     }
 
     // Handle login
     if (loginForm) {
-        loginForm.addEventListener('submit', (e) => {
+        loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            console.log("Login clicked"); // DEBUG LOG
-            
             const email = loginForm.email.value;
             const password = loginForm.password.value;
+            console.log("Email login clicked", email);
 
-            signInWithEmailAndPassword(auth, email, password)
-                .then((userCredential) => {
-                    const user = userCredential.user;
-                    console.log('Signed in:', user);
-                    alert('로그인에 성공했습니다.'); // SUCCESS ALERT
-                    hideModal();
-                })
-                .catch((error) => {
-                    console.error('Login error:', error);
-                    alert(`로그인에 실패했습니다: ${error.message}`); // FAILURE ALERT
-                });
+            try {
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                console.log('Login success', userCredential.user.uid);
+                alert('로그인에 성공했습니다.');
+                hideModal();
+            } catch (error) {
+                console.error('Login error:', error);
+                alert('로그인에 실패했습니다. 콘솔을 확인하세요.');
+            }
         });
     }
 
     // Handle Google Login
     if (googleLoginButton) {
-        googleLoginButton.addEventListener('click', () => {
-            console.log("Google button clicked"); 
+        googleLoginButton.addEventListener('click', async (e) => {
+            e.preventDefault();
+            console.log("Google login clicked");
             const provider = new GoogleAuthProvider();
-            signInWithPopup(auth, provider)
-                .then((result) => {
-                    const user = result.user;
-                    console.log('Google sign-in successful:', user);
-                    hideModal();
-                }).catch((error) => {
-                    console.error('Google sign-in error:', error);
-                });
+            try {
+                const result = await signInWithPopup(auth, provider);
+                console.log('Google sign-in successful:', result.user.uid);
+                hideModal();
+            } catch (error) {
+                console.error('Google sign-in error:', error);
+                alert('Google 로그인에 실패했습니다. 콘솔을 확인하세요.');
+            }
         });
     }
 
     // Handle logout
     if (logoutButton) {
         logoutButton.addEventListener('click', () => {
-            signOut(auth).then(() => {
-                console.log('User signed out');
-            }).catch((error) => {
+            signOut(auth).catch((error) => {
                 console.error('Sign out error:', error);
             });
         });
     }
 
-    if(betUpButton) {
-        betUpButton.addEventListener('click', () => {
-            if (auth.currentUser) {
-                console.log('Up-bet clicked by logged in user. Ready for next step.');
-            } else {
-                alert("로그인을 해주세요");
-            }
-        });
-    }
-
-    if(betDownButton) {
-        betDownButton.addEventListener('click', () => {
-            if (auth.currentUser) {
-                console.log('Down-bet clicked by logged in user. Ready for next step.');
-            } else {
-                alert("로그인을 해주세요");
-            }
-        });
-    }
-
     // Listen for auth state changes
-    onAuthStateChanged(auth, (user) => {
+    onAuthStateChanged(auth, async (user) => {
+        console.log("onAuthStateChanged:", user ? user.uid : "signed out");
+        
+        const themeToggleButton = document.getElementById('theme-toggle');
+        const buttonContainer = themeToggleButton.parentElement;
+        const createQuizButton = buttonContainer.querySelector('.btn-primary'); // '퀴즈 만들기' 버튼
+        const existingNicknameDisplay = document.getElementById('user-nickname-display');
+
+        // 먼저 기존 닉네임 표시를 제거합니다.
+        if (existingNicknameDisplay) {
+            existingNicknameDisplay.remove();
+        }
+
         if (user) {
+            // 사용자가 로그인한 경우
             if (loginModalButton) loginModalButton.classList.add('hidden');
             if (logoutButton) logoutButton.classList.remove('hidden');
+            
+            // Firestore에서 닉네임을 가져와 표시합니다.
+            try {
+                const userRef = doc(db, "users", user.uid);
+                const docSnap = await getDoc(userRef);
+
+                if (docSnap.exists() && docSnap.data().nickname) {
+                    const nickname = docSnap.data().nickname;
+                    
+                    const nicknameDisplayElement = document.createElement('span');
+                    nicknameDisplayElement.id = 'user-nickname-display';
+                    nicknameDisplayElement.textContent = `${nickname}님`;
+                    nicknameDisplayElement.className = 'text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center whitespace-nowrap';
+
+                    // '퀴즈 만들기' 버튼 앞에 닉네임 엘리먼트를 삽입합니다.
+                    if (buttonContainer && createQuizButton) {
+                        buttonContainer.insertBefore(nicknameDisplayElement, createQuizButton);
+                    }
+                }
+            } catch (error) {
+                console.error("Error fetching user nickname:", error);
+            }
+
         } else {
+            // 사용자가 로그아웃한 경우
             if (loginModalButton) loginModalButton.classList.remove('hidden');
             if (logoutButton) logoutButton.classList.add('hidden');
         }
