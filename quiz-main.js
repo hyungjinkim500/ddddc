@@ -388,7 +388,7 @@ document.addEventListener('DOMContentLoaded', () => {
             userProfileInfo.classList.remove('hidden');
             userProfileInfo.classList.add('flex');
 
-            const userRef = doc(db, "users", user.uid);
+            const userRef = doc(db, "userProfiles", user.uid);
             onSnapshot(userRef, (doc) => {
                 if (doc.exists()) {
                     const userData = doc.data();

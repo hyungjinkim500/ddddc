@@ -8,7 +8,29 @@ import {
     updateProfile
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { app, auth, db } from './firebase-config.js';
-import { doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { doc, setDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// Helper function to ensure a user profile exists
+const createUserProfileIfNotExists = async (user) => {
+    const userProfileRef = doc(db, "userProfiles", user.uid);
+    try {
+        const docSnap = await getDoc(userProfileRef);
+        if (!docSnap.exists()) {
+            await setDoc(userProfileRef, {
+                displayName: user.displayName || '신규 사용자',
+                photoURL: user.photoURL || null,
+                points: 0,
+                winCount: 0,
+                totalParticipation: 0,
+                role: "user",
+                isBanned: false,
+                createdAt: serverTimestamp()
+            });
+        }
+    } catch (error) {
+        console.error("Error ensuring user profile exists:", error);
+    }
+};
 
 document.addEventListener('DOMContentLoaded', () => {
     const loginModal = document.getElementById('login-modal');
@@ -64,22 +86,14 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const email = registerForm.email.value;
             const password = registerForm.password.value;
-            const displayName = registerForm.nickname.value; // Get nickname from form
+            const displayName = registerForm.nickname.value;
 
             try {
-                // 1. Create user in Auth
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
-
-                // 2. Update Auth profile
                 await updateProfile(user, { displayName });
-
-                // 3. Create user document in Firestore
-                const userRef = doc(db, "users", user.uid);
-                await setDoc(userRef, {
-                    displayName: displayName,
-                    points: 0
-                });
+                
+                // User profile creation is now handled by onAuthStateChanged listener
 
                 alert('회원가입이 완료되었습니다.');
                 hideModal();
@@ -98,7 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const password = loginForm.password.value;
 
             try {
-                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                await signInWithEmailAndPassword(auth, email, password);
                 alert('로그인에 성공했습니다.');
                 hideModal();
             } catch (error) {
@@ -114,7 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const provider = new GoogleAuthProvider();
             try {
-                const result = await signInWithPopup(auth, provider);
+                await signInWithPopup(auth, provider);
                 hideModal();
             } catch (error) {
                 console.error('Google sign-in error:', error);
@@ -136,42 +150,41 @@ document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, async (user) => {
         const themeToggleButton = document.getElementById('theme-toggle');
         const buttonContainer = themeToggleButton.parentElement;
-        const createQuizButton = buttonContainer.querySelector('.btn-primary'); // '퀴즈 만들기' 버튼
+        const createQuizButton = buttonContainer.querySelector('.btn-primary');
         const existingNicknameDisplay = document.getElementById('user-nickname-display');
 
-        // 먼저 기존 닉네임 표시를 제거합니다.
         if (existingNicknameDisplay) {
             existingNicknameDisplay.remove();
         }
 
         if (user) {
-            // 사용자가 로그인한 경우
+            // Ensure user profile exists on any successful login/signup
+            await createUserProfileIfNotExists(user);
+
             if (loginModalButton) loginModalButton.classList.add('hidden');
             if (logoutButton) logoutButton.classList.remove('hidden');
             
-            // Firestore에서 닉네임을 가져와 표시합니다.
             try {
-                const userRef = doc(db, "users", user.uid);
+                // Read from the new 'userProfiles' collection
+                const userRef = doc(db, "userProfiles", user.uid);
                 const docSnap = await getDoc(userRef);
 
-                const displayName = user.displayName || (docSnap.exists() ? docSnap.data().displayName : "사용자");
+                const displayName = docSnap.exists() ? docSnap.data().displayName : (user.displayName || "사용자");
 
                 const nicknameDisplayElement = document.createElement('span');
                 nicknameDisplayElement.id = 'user-nickname-display';
                 nicknameDisplayElement.textContent = `${displayName}님`;
                 nicknameDisplayElement.className = 'text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center whitespace-nowrap';
 
-                // '퀴즈 만들기' 버튼 앞에 닉네임 엘리먼트를 삽입합니다.
                 if (buttonContainer && createQuizButton) {
                     buttonContainer.insertBefore(nicknameDisplayElement, createQuizButton);
                 }
 
             } catch (error) {
-                console.error("Error fetching user displayName:", error);
+                console.error("Error fetching user profile:", error);
             }
 
         } else {
-            // 사용자가 로그아웃한 경우
             if (loginModalButton) loginModalButton.classList.remove('hidden');
             if (logoutButton) logoutButton.classList.add('hidden');
         }
