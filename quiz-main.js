@@ -18,8 +18,7 @@ function loadQuizzes() {
   quizContainer.innerHTML = `<p class="text-center text-slate-500 dark:text-slate-400">퀴즈를 불러오는 중입니다...</p>`;
 
   const collectionPath = "quizzes/quiz1/quizzes";
-  // Added orderBy to ensure consistent ordering
-  const q = query(collection(db, collectionPath), orderBy('createdAt', 'desc'));
+  const q = collection(db, collectionPath);
 
   onSnapshot(q, 
     (snapshot) => {
@@ -34,13 +33,15 @@ function loadQuizzes() {
 
       // 3. Iterate over all documents in the snapshot and create cards.
       snapshot.docs.forEach((doc) => {
+        console.log("RAW QUIZ DATA:", doc.id);
+        console.log("DATA OBJECT:", doc.data());
         const quiz = doc.data();
         const quizId = doc.id;
 
-        if (!quiz.title || !Array.isArray(quiz.options) || quiz.options.length < 2) {
-            console.warn('Skipping invalid quiz data:', quizId, quiz);
-            return; // equivalent to 'continue' in a forEach loop
-        }
+        // if (!quiz.title) { // Simplified check as options are now handled defensively
+        //     console.warn('Skipping invalid quiz data (no title):', quizId, quiz);
+        //     return;
+        // }
 
         // createQuizCard will now be called for every document, on every update.
         const quizCard = createQuizCard(quizId, quiz);
@@ -48,9 +49,14 @@ function loadQuizzes() {
 
         // Setup listeners for the newly created card
         const user = auth.currentUser;
-        setupLikeListener(quizId, user ? user.uid : null);
-        setupCommentListener(quizId);
-        updateCommentFormVisibility(quizId, user);
+        // Safely check for elements before setting up listeners
+        if (quizCard.querySelector('.like-button')) {
+          setupLikeListener(quizId, user ? user.uid : null);
+        }
+        if (quizCard.querySelector('.comment-toggle-button')) {
+          setupCommentListener(quizId);
+        }
+        // updateCommentFormVisibility(quizId, user);
       });
 
       // After re-rendering all cards, restore user-specific states
@@ -67,12 +73,18 @@ function loadQuizzes() {
 }
 
 function createQuizCard(quizId, quiz) {
+    console.log("createQuizCard RUNNING for:", quizId);
+
+    // Defensive code for options
+    if (!quiz.options || !Array.isArray(quiz.options)) {
+        console.warn("INVALID OPTIONS STRUCTURE:", quiz);
+        quiz.options = [];
+    }
+
     const quizCard = document.createElement("div");
-    // quizCard 자체에 overflow-hidden이 있어, 내부 요소의 구조가 중요합니다.
     quizCard.className = "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm overflow-hidden w-full max-w-4xl mx-auto mb-4";
     quizCard.dataset.quizId = quizId;
 
-    // 1. 헤더와 아코디언 Body 부분을 먼저 삽입합니다.
     quizCard.innerHTML = `
       <div class="quiz-header p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 cursor-pointer">
           <div class="flex items-center gap-4">
@@ -98,44 +110,30 @@ function createQuizCard(quizId, quiz) {
       </div>
     `;
 
-    // 2. 그 다음, template을 복제하여 quizCard의 최하단에 자식으로 추가합니다.
-    // 이 위치는 quiz-body와 형제(sibling) 관계가 되며, 아코디언 효과에 영향을 받지 않습니다.
+    // Restore the template logic but keep it safe
     const template = document.getElementById('quiz-card-extra-template');
     if (template) {
         const clone = template.content.cloneNode(true);
-        quizCard.appendChild(clone); // quizCard의 마지막 자식으로 추가
-
-        // 3. (요청사항) DOM에 요소가 실제로 존재하는지 확인하는 로그
-        const likeButton = quizCard.querySelector('.like-button');
-        console.log(`[Quiz Card Created] ID: ${quizId}. Like Button Element:`, likeButton);
-
-        // 동적 ID 할당
-        if (likeButton) likeButton.id = `like-btn-${quizId}`;
-        const commentToggleButton = quizCard.querySelector('.comment-toggle-button');
-        if (commentToggleButton) commentToggleButton.id = `comment-toggle-${quizId}`;
+        quizCard.appendChild(clone);
     } else {
         console.error('CRITICAL: quiz-card-extra-template not found!');
+        const debugDiv = document.createElement("div");
+        debugDiv.style.background = "red";
+        debugDiv.style.color = "white";
+        debugDiv.style.padding = "10px";
+        debugDiv.innerText = "DEBUG: TEMPLATE NOT FOUND!";
+        quizCard.appendChild(debugDiv);
     }
 
     return quizCard;
 }
 
-function updateParticipationUI(quizCard, quiz) {
-    const participationRateElement = quizCard.querySelector('.participation-rate');
-    if (participationRateElement) {
-        const newParticipationHTML = generateParticipationRateHTML(quiz);
-        // Create a temporary element to hold the new HTML
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = newParticipationHTML;
-        const newElement = tempDiv.firstElementChild;
-
-        if (newElement) {
-            participationRateElement.replaceWith(newElement);
-        }       
-    }
-}
-
 function generateParticipationRateHTML(quiz) {
+    // Defensive code for options
+    if (!quiz.options || !Array.isArray(quiz.options)) {
+        quiz.options = [];
+    }
+
     const voteData = quiz.vote ?? {};
     const initialVotes = {};
     quiz.options.forEach(option => {
@@ -165,6 +163,7 @@ function generateParticipationRateHTML(quiz) {
         </div>
     `;
 }
+
 
 async function restoreUserVotes(user) {
     const quizCards = document.querySelectorAll('[data-quiz-id]');
@@ -201,17 +200,16 @@ async function restoreUserVotes(user) {
 // --- Like and Comment Functions ---
 
 function setupLikeListener(quizId, currentUserId) {
-    const likesCollectionRef = collection(db, `quizzes/quiz1/quizzes/${quizId}/likes`);
     const quizCard = document.querySelector(`[data-quiz-id="${quizId}"]`);
     if (!quizCard) return;
 
     const likeButton = quizCard.querySelector('.like-button');
+    if (!likeButton) return;
     const likeCountSpan = quizCard.querySelector('.like-count');
     const likeIcon = likeButton.querySelector('i');
 
-    onSnapshot(likesCollectionRef, (snapshot) => {
-        const likeCount = snapshot.size;
-        likeCountSpan.textContent = likeCount;
+    onSnapshot(collection(db, `quizzes/quiz1/quizzes/${quizId}/likes`), (snapshot) => {
+        if(likeCountSpan) likeCountSpan.textContent = snapshot.size;
 
         let userHasLiked = false;
         if (currentUserId) {
@@ -222,24 +220,27 @@ function setupLikeListener(quizId, currentUserId) {
             });
         }
 
-        if (userHasLiked) {
-            likeIcon.classList.remove('far', 'fa-heart');
-            likeIcon.classList.add('fas', 'fa-heart', 'text-red-500');
-        } else {
-            likeIcon.classList.remove('fas', 'fa-heart', 'text-red-500');
-            likeIcon.classList.add('far', 'fa-heart');
+        if (likeIcon) {
+            if (userHasLiked) {
+                likeIcon.classList.remove('far', 'fa-heart');
+                likeIcon.classList.add('fas', 'fa-heart', 'text-red-500');
+            } else {
+                likeIcon.classList.remove('fas', 'fa-heart', 'text-red-500');
+                likeIcon.classList.add('far', 'fa-heart');
+            }
         }
     });
 }
 
 function setupCommentListener(quizId) {
-    const commentsQuery = query(collection(db, `quizzes/quiz1/quizzes/${quizId}/comments`), orderBy('createdAt', 'desc'), limit(20));
     const quizCard = document.querySelector(`[data-quiz-id="${quizId}"]`);
     if (!quizCard) return;
 
     const commentsList = quizCard.querySelector('.comments-list');
     const commentCountSpan = quizCard.querySelector('.comment-count');
+    if (!commentsList || !commentCountSpan) return;
 
+    const commentsQuery = query(collection(db, `quizzes/quiz1/quizzes/${quizId}/comments`), orderBy('createdAt', 'desc'), limit(20));
     onSnapshot(commentsQuery, (snapshot) => {
         commentCountSpan.textContent = snapshot.size;
         commentsList.innerHTML = ''; // Clear old comments
@@ -262,10 +263,10 @@ function createCommentElement(commentId, comment) {
 
     div.innerHTML = `
         <div class="flex-shrink-0 w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center font-bold text-xs text-slate-500 dark:text-slate-400">
-            ${comment.authorDisplayName.charAt(0)}
+            ${(comment.authorDisplayName || 'U').charAt(0)}
         </div>
         <div class="flex-1">
-            <p class="font-semibold text-slate-800 dark:text-slate-200">${comment.authorDisplayName} <span class="text-xs font-normal text-slate-400 dark:text-slate-500 ml-1">${createdAt}</span></p>
+            <p class="font-semibold text-slate-800 dark:text-slate-200">${comment.authorDisplayName || 'Anonymous'} <span class="text-xs font-normal text-slate-400 dark:text-slate-500 ml-1">${createdAt}</span></p>
             <p class="text-slate-600 dark:text-slate-300 mt-0.5 whitespace-pre-wrap">${comment.content}</p>
         </div>
     `;
@@ -353,7 +354,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (commentToggleButton) {
                 const commentsSection = commentToggleButton.closest('.shadow-sm').querySelector('.comments-section');
-                commentsSection.style.display = commentsSection.style.display === 'none' ? 'block' : 'none';
+                if (commentsSection) {
+                    commentsSection.style.display = commentsSection.style.display === 'none' || commentsSection.style.display === '' ? 'block' : 'none';
+                }
                 return;
             }
 
@@ -540,6 +543,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const quizCard = document.querySelector(`[data-quiz-id="${quizId}"]`);
         if (!quizCard) return;
         const container = quizCard.querySelector('.comment-form-container');
+        if (!container) return;
         container.innerHTML = '';
         if (user) {
             container.appendChild(createCommentForm(quizId));
