@@ -38,12 +38,6 @@ function loadQuizzes() {
         const quiz = doc.data();
         const quizId = doc.id;
 
-        // if (!quiz.title) { // Simplified check as options are now handled defensively
-        //     console.warn('Skipping invalid quiz data (no title):', quizId, quiz);
-        //     return;
-        // }
-
-        // createQuizCard will now be called for every document, on every update.
         const quizCard = createQuizCard(quizId, quiz);
         quizContainer.appendChild(quizCard);
 
@@ -56,7 +50,6 @@ function loadQuizzes() {
         if (quizCard.querySelector('.comment-toggle-button')) {
           setupCommentListener(quizId);
         }
-        // updateCommentFormVisibility(quizId, user);
       });
 
       // After re-rendering all cards, restore user-specific states
