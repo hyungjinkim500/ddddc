@@ -1,3 +1,4 @@
+console.log("🚀 AUTH JS VERSION 2026-03-02-TEST");
 import { 
     createUserWithEmailAndPassword, 
     signInWithEmailAndPassword, 
@@ -9,28 +10,6 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { app, auth, db } from './firebase-config.js';
 import { doc, setDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-// Helper function to ensure a user profile exists
-const createUserProfileIfNotExists = async (user) => {
-    const userProfileRef = doc(db, "userProfiles", user.uid);
-    try {
-        const docSnap = await getDoc(userProfileRef);
-        if (!docSnap.exists()) {
-            await setDoc(userProfileRef, {
-                displayName: user.displayName || '신규 사용자',
-                photoURL: user.photoURL || null,
-                points: 0,
-                winCount: 0,
-                totalParticipation: 0,
-                role: "user",
-                isBanned: false,
-                createdAt: serverTimestamp()
-            });
-        }
-    } catch (error) {
-        console.error("Error ensuring user profile exists:", error);
-    }
-};
 
 document.addEventListener('DOMContentLoaded', () => {
     const loginModal = document.getElementById('login-modal');
@@ -92,8 +71,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
                 await updateProfile(user, { displayName });
-                
-                // User profile creation is now handled by onAuthStateChanged listener
 
                 alert('회원가입이 완료되었습니다.');
                 hideModal();
@@ -158,32 +135,37 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (user) {
-            // Ensure user profile exists on any successful login/signup
-            await createUserProfileIfNotExists(user);
-
             if (loginModalButton) loginModalButton.classList.add('hidden');
             if (logoutButton) logoutButton.classList.remove('hidden');
-            
-            try {
-                // Read from the new 'userProfiles' collection
-                const userRef = doc(db, "userProfiles", user.uid);
-                const docSnap = await getDoc(userRef);
 
-                const displayName = docSnap.exists() ? docSnap.data().displayName : (user.displayName || "사용자");
+            const userRef = doc(db, "userProfiles", user.uid);
+            const snap = await getDoc(userRef);
 
-                const nicknameDisplayElement = document.createElement('span');
-                nicknameDisplayElement.id = 'user-nickname-display';
-                nicknameDisplayElement.textContent = `${displayName}님`;
-                nicknameDisplayElement.className = 'text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center whitespace-nowrap';
-
-                if (buttonContainer && createQuizButton) {
-                    buttonContainer.insertBefore(nicknameDisplayElement, createQuizButton);
-                }
-
-            } catch (error) {
-                console.error("Error fetching user profile:", error);
+            if (!snap.exists()) {
+                await setDoc(userRef, {
+                    displayName: user.displayName || "사용자",
+                    photoURL: user.photoURL || null,
+                    points: 100,
+                    winCount: 0,
+                    totalParticipation: 0,
+                    role: "user",
+                    isBanned: false,
+                    createdAt: serverTimestamp()
+                });
             }
 
+            const finalSnap = await getDoc(userRef);
+            const displayName = finalSnap.data().displayName;
+
+            const nicknameDisplayElement = document.createElement('span');
+            nicknameDisplayElement.id = 'user-nickname-display';
+            nicknameDisplayElement.textContent = `${displayName}님`;
+            nicknameDisplayElement.className =
+                'text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center whitespace-nowrap';
+
+            if (buttonContainer && createQuizButton) {
+                buttonContainer.insertBefore(nicknameDisplayElement, createQuizButton);
+            }
         } else {
             if (loginModalButton) loginModalButton.classList.remove('hidden');
             if (logoutButton) logoutButton.classList.add('hidden');

@@ -62,7 +62,7 @@ function loadQuizzes() {
       // After re-rendering all cards, restore user-specific states
       const user = auth.currentUser;
       if(user) {
-        restoreUserVotes(user);
+        // restoreUserVotes(user);
       }
     },
     (error) => {
@@ -165,37 +165,37 @@ function generateParticipationRateHTML(quiz) {
 }
 
 
-async function restoreUserVotes(user) {
-    const quizCards = document.querySelectorAll('[data-quiz-id]');
-    for (const card of quizCards) {
-        const quizId = card.dataset.quizId;
-        const userVoteRef = doc(db, `quizzes/quiz1/quizzes/${quizId}/userVotes/${user.uid}`);
+// async function restoreUserVotes(user) {
+//     const quizCards = document.querySelectorAll('[data-quiz-id]');
+//     for (const card of quizCards) {
+//         const quizId = card.dataset.quizId;
+//         const userVoteRef = doc(db, `quizzes/quiz1/quizzes/${quizId}/userVotes/${user.uid}`);
         
-        try {
-            const userVoteSnap = await getDoc(userVoteRef);
-            const buttons = card.querySelectorAll('.vote-option-btn');
+//         try {
+//             const userVoteSnap = await getDoc(userVoteRef);
+//             const buttons = card.querySelectorAll('.vote-option-btn');
 
-            // Reset all buttons first
-            buttons.forEach(btn => {
-                btn.classList.remove('opacity-50', 'ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', 'ring-emerald-400', 'ring-red-400', 'ring-slate-400');
-            });
+//             // Reset all buttons first
+//             buttons.forEach(btn => {
+//                 btn.classList.remove('opacity-50', 'ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', 'ring-emerald-400', 'ring-red-400', 'ring-slate-400');
+//             });
 
-            if (userVoteSnap.exists()) {
-                const selectedOptionId = userVoteSnap.data().selectedOption;
-                buttons.forEach(btn => {
-                    if (btn.dataset.optionId === selectedOptionId) {
-                        let ringColorClass = btn.classList.contains('bg-emerald-500') ? 'ring-emerald-400' : (btn.classList.contains('bg-red-500') ? 'ring-red-400' : 'ring-slate-400');
-                        btn.classList.add('ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', ringColorClass);
-                    } else {
-                        btn.classList.add('opacity-50');
-                    }
-                });
-            }
-        } catch (error) {
-            console.error(`Failed to restore vote for quiz ${quizId}:`, error);
-        }
-    }
-}
+//             if (userVoteSnap.exists()) {
+//                 const selectedOptionId = userVoteSnap.data().selectedOption;
+//                 buttons.forEach(btn => {
+//                     if (btn.dataset.optionId === selectedOptionId) {
+//                         let ringColorClass = btn.classList.contains('bg-emerald-500') ? 'ring-emerald-400' : (btn.classList.contains('bg-red-500') ? 'ring-red-400' : 'ring-slate-400');
+//                         btn.classList.add('ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', ringColorClass);
+//                     } else {
+//                         btn.classList.add('opacity-50');
+//                     }
+//                 });
+//             }
+//         } catch (error) {
+//             console.error(`Failed to restore vote for quiz ${quizId}:`, error);
+//         }
+//     }
+// }
 
 // --- Like and Comment Functions ---
 
@@ -575,7 +575,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     userPoints.textContent = "0 P";
                 }
             });
-            restoreUserVotes(user);
+            // restoreUserVotes(user);
             
             // Update all cards for new auth state
             document.querySelectorAll('[data-quiz-id]').forEach(card => {
