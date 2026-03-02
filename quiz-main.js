@@ -1,14 +1,12 @@
 import { auth, db } from './firebase-config.js';
 import { onAuthStateChanged, signOut, getAuth } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { collection, doc, runTransaction, onSnapshot, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { collection, doc, runTransaction, onSnapshot, getDoc, setDoc, deleteDoc, addDoc, serverTimestamp, query, orderBy, limit } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const colorMap = {
   emerald: "bg-emerald-500 hover:bg-emerald-600",
   red: "bg-red-500 hover:bg-red-600",
   slate: "bg-slate-500 hover:bg-slate-600"
 };
-
-let isInitialLoad = true;
 
 function loadQuizzes() {
   const quizContainer = document.getElementById("quiz-container");
@@ -20,50 +18,42 @@ function loadQuizzes() {
   quizContainer.innerHTML = `<p class="text-center text-slate-500 dark:text-slate-400">퀴즈를 불러오는 중입니다...</p>`;
 
   const collectionPath = "quizzes/quiz1/quizzes";
-  const q = collection(db, collectionPath);
+  // Added orderBy to ensure consistent ordering
+  const q = query(collection(db, collectionPath), orderBy('createdAt', 'desc'));
 
   onSnapshot(q, 
     (snapshot) => {
-      if (isInitialLoad && snapshot.empty) {
+      // 1. Handle the case where there are no quizzes at all.
+      if (snapshot.empty) {
         quizContainer.innerHTML = `<p class="text-center text-slate-500 dark:text-slate-400">표시할 퀴즈가 없습니다.</p>`;
-        isInitialLoad = false;
         return;
       }
 
-      if (isInitialLoad) {
-          quizContainer.innerHTML = ""; // Clear "Loading..." message only on initial load
-          isInitialLoad = false;
-      }
+      // 2. Clear the container before re-rendering the entire list.
+      quizContainer.innerHTML = ""; 
 
-      snapshot.docChanges().forEach((change) => {
-        const quiz = change.doc.data();
-        const quizId = change.doc.id;
+      // 3. Iterate over all documents in the snapshot and create cards.
+      snapshot.docs.forEach((doc) => {
+        const quiz = doc.data();
+        const quizId = doc.id;
 
-        if (change.type === "added") {
-            if (!quiz.title || !Array.isArray(quiz.options) || quiz.options.length < 2) {
-                console.warn('Skipping invalid quiz data:', quizId, quiz);
-                return;
-            }
-            const quizCard = createQuizCard(quizId, quiz);
-            quizContainer.appendChild(quizCard);
+        if (!quiz.title || !Array.isArray(quiz.options) || quiz.options.length < 2) {
+            console.warn('Skipping invalid quiz data:', quizId, quiz);
+            return; // equivalent to 'continue' in a forEach loop
         }
 
-        if (change.type === "modified") {
-            const quizCard = quizContainer.querySelector(`[data-quiz-id="${quizId}"]`);
-            if (quizCard) {
-                updateParticipationUI(quizCard, quiz);
-            }
-        }
+        // createQuizCard will now be called for every document, on every update.
+        const quizCard = createQuizCard(quizId, quiz);
+        quizContainer.appendChild(quizCard);
 
-        if (change.type === "removed") {
-            const quizCard = quizContainer.querySelector(`[data-quiz-id="${quizId}"]`);
-            if (quizCard) {
-                quizCard.remove();
-            }
-        }
+        // Setup listeners for the newly created card
+        const user = auth.currentUser;
+        setupLikeListener(quizId, user ? user.uid : null);
+        setupCommentListener(quizId);
+        updateCommentFormVisibility(quizId, user);
       });
 
-      // After initial load or changes, restore user votes if logged in
+      // After re-rendering all cards, restore user-specific states
       const user = auth.currentUser;
       if(user) {
         restoreUserVotes(user);
@@ -72,17 +62,17 @@ function loadQuizzes() {
     (error) => {
       console.error("Realtime subscription error:", error);
       quizContainer.innerHTML = `<p class="text-center text-red-500">퀴즈를 실시간으로 불러오는 중 오류가 발생했습니다. 개발자 콘솔을 확인해주세요.</p>`;
-      isInitialLoad = false;
     }
   );
 }
 
 function createQuizCard(quizId, quiz) {
     const quizCard = document.createElement("div");
-    // Added responsive width, centering, and margin for spacing.
+    // quizCard 자체에 overflow-hidden이 있어, 내부 요소의 구조가 중요합니다.
     quizCard.className = "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm overflow-hidden w-full max-w-4xl mx-auto mb-4";
     quizCard.dataset.quizId = quizId;
 
+    // 1. 헤더와 아코디언 Body 부분을 먼저 삽입합니다.
     quizCard.innerHTML = `
       <div class="quiz-header p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 cursor-pointer">
           <div class="flex items-center gap-4">
@@ -107,6 +97,26 @@ function createQuizCard(quizId, quiz) {
           </div>
       </div>
     `;
+
+    // 2. 그 다음, template을 복제하여 quizCard의 최하단에 자식으로 추가합니다.
+    // 이 위치는 quiz-body와 형제(sibling) 관계가 되며, 아코디언 효과에 영향을 받지 않습니다.
+    const template = document.getElementById('quiz-card-extra-template');
+    if (template) {
+        const clone = template.content.cloneNode(true);
+        quizCard.appendChild(clone); // quizCard의 마지막 자식으로 추가
+
+        // 3. (요청사항) DOM에 요소가 실제로 존재하는지 확인하는 로그
+        const likeButton = quizCard.querySelector('.like-button');
+        console.log(`[Quiz Card Created] ID: ${quizId}. Like Button Element:`, likeButton);
+
+        // 동적 ID 할당
+        if (likeButton) likeButton.id = `like-btn-${quizId}`;
+        const commentToggleButton = quizCard.querySelector('.comment-toggle-button');
+        if (commentToggleButton) commentToggleButton.id = `comment-toggle-${quizId}`;
+    } else {
+        console.error('CRITICAL: quiz-card-extra-template not found!');
+    }
+
     return quizCard;
 }
 
@@ -188,6 +198,143 @@ async function restoreUserVotes(user) {
     }
 }
 
+// --- Like and Comment Functions ---
+
+function setupLikeListener(quizId, currentUserId) {
+    const likesCollectionRef = collection(db, `quizzes/quiz1/quizzes/${quizId}/likes`);
+    const quizCard = document.querySelector(`[data-quiz-id="${quizId}"]`);
+    if (!quizCard) return;
+
+    const likeButton = quizCard.querySelector('.like-button');
+    const likeCountSpan = quizCard.querySelector('.like-count');
+    const likeIcon = likeButton.querySelector('i');
+
+    onSnapshot(likesCollectionRef, (snapshot) => {
+        const likeCount = snapshot.size;
+        likeCountSpan.textContent = likeCount;
+
+        let userHasLiked = false;
+        if (currentUserId) {
+            snapshot.forEach(doc => {
+                if (doc.id === currentUserId) {
+                    userHasLiked = true;
+                }
+            });
+        }
+
+        if (userHasLiked) {
+            likeIcon.classList.remove('far', 'fa-heart');
+            likeIcon.classList.add('fas', 'fa-heart', 'text-red-500');
+        } else {
+            likeIcon.classList.remove('fas', 'fa-heart', 'text-red-500');
+            likeIcon.classList.add('far', 'fa-heart');
+        }
+    });
+}
+
+function setupCommentListener(quizId) {
+    const commentsQuery = query(collection(db, `quizzes/quiz1/quizzes/${quizId}/comments`), orderBy('createdAt', 'desc'), limit(20));
+    const quizCard = document.querySelector(`[data-quiz-id="${quizId}"]`);
+    if (!quizCard) return;
+
+    const commentsList = quizCard.querySelector('.comments-list');
+    const commentCountSpan = quizCard.querySelector('.comment-count');
+
+    onSnapshot(commentsQuery, (snapshot) => {
+        commentCountSpan.textContent = snapshot.size;
+        commentsList.innerHTML = ''; // Clear old comments
+        if (snapshot.empty) {
+            commentsList.innerHTML = `<p class="text-xs text-slate-400 dark:text-slate-500 text-center">아직 댓글이 없습니다.</p>`;
+        } else {
+            snapshot.forEach(doc => {
+                const comment = doc.data();
+                const commentElement = createCommentElement(doc.id, comment);
+                commentsList.appendChild(commentElement);
+            });
+        }
+    });
+}
+
+function createCommentElement(commentId, comment) {
+    const div = document.createElement('div');
+    div.className = 'flex items-start gap-3 text-sm';
+    const createdAt = comment.createdAt?.toDate().toLocaleString('ko-KR', { dateStyle: 'short', timeStyle: 'short'}) || '';
+
+    div.innerHTML = `
+        <div class="flex-shrink-0 w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center font-bold text-xs text-slate-500 dark:text-slate-400">
+            ${comment.authorDisplayName.charAt(0)}
+        </div>
+        <div class="flex-1">
+            <p class="font-semibold text-slate-800 dark:text-slate-200">${comment.authorDisplayName} <span class="text-xs font-normal text-slate-400 dark:text-slate-500 ml-1">${createdAt}</span></p>
+            <p class="text-slate-600 dark:text-slate-300 mt-0.5 whitespace-pre-wrap">${comment.content}</p>
+        </div>
+    `;
+    return div;
+}
+
+function createCommentForm(quizId) {
+    const form = document.createElement('form');
+    form.className = 'comment-form flex items-start gap-2';
+    form.innerHTML = `
+        <textarea name="comment" placeholder="댓글을 입력하세요..." class="flex-1 px-3 py-2 text-sm rounded-md bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-teal transition" rows="1"></textarea>
+        <button type="submit" class="px-3 py-2 rounded-md bg-teal text-pm-navy font-semibold text-sm transition-opacity hover:opacity-90">등록</button>
+    `;
+    form.addEventListener('submit', (e) => handleCommentSubmit(e, quizId));
+    return form;
+}
+
+async function handleCommentSubmit(e, quizId) {
+    e.preventDefault();
+    const form = e.target;
+    const textarea = form.querySelector('textarea');
+    const content = textarea.value.trim();
+
+    if (!content) return;
+
+    const user = auth.currentUser;
+    if (!user) {
+        alert('댓글을 작성하려면 로그인이 필요합니다.');
+        return;
+    }
+
+    try {
+        await addDoc(collection(db, `quizzes/quiz1/quizzes/${quizId}/comments`), {
+            content: content,
+            authorUid: user.uid,
+            authorDisplayName: user.displayName || '익명',
+            createdAt: serverTimestamp()
+        });
+        textarea.value = '';
+        textarea.style.height = 'auto';
+    } catch (error) {
+        console.error("Error adding comment: ", error);
+        alert('댓글 등록에 실패했습니다.');
+    }
+}
+
+async function handleLike(quizId) {
+    const user = auth.currentUser;
+    if (!user) {
+        alert('좋아요를 누르려면 로그인이 필요합니다.');
+        return;
+    }
+
+    const likeRef = doc(db, `quizzes/quiz1/quizzes/${quizId}/likes`, user.uid);
+
+    try {
+        const docSnap = await getDoc(likeRef);
+        if (docSnap.exists()) {
+            await deleteDoc(likeRef);
+        } else {
+            await setDoc(likeRef, {
+                createdAt: serverTimestamp()
+            });
+        }
+    } catch (error) {
+        console.error("Error toggling like: ", error);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     loadQuizzes();
 
@@ -195,6 +342,21 @@ document.addEventListener('DOMContentLoaded', () => {
     if (quizContainer) {
         quizContainer.addEventListener('click', (event) => {
             const voteButton = event.target.closest('.vote-option-btn');
+            const likeButton = event.target.closest('.like-button');
+            const commentToggleButton = event.target.closest('.comment-toggle-button');
+
+            if (likeButton) {
+                const quizId = likeButton.closest('[data-quiz-id]').dataset.quizId;
+                handleLike(quizId);
+                return;
+            }
+
+            if (commentToggleButton) {
+                const commentsSection = commentToggleButton.closest('.shadow-sm').querySelector('.comments-section');
+                commentsSection.style.display = commentsSection.style.display === 'none' ? 'block' : 'none';
+                return;
+            }
+
             if (voteButton) {
                 const card = voteButton.closest('.shadow-sm');
                 if (!card) return;
@@ -374,6 +536,16 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function updateCommentFormVisibility(quizId, user) {
+        const quizCard = document.querySelector(`[data-quiz-id="${quizId}"]`);
+        if (!quizCard) return;
+        const container = quizCard.querySelector('.comment-form-container');
+        container.innerHTML = '';
+        if (user) {
+            container.appendChild(createCommentForm(quizId));
+        }
+    }
+
     // --- Auth State Listener & UI Update ---
     onAuthStateChanged(auth, (user) => {
         const loginButton = document.getElementById('login-modal-button');
@@ -400,6 +572,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
             restoreUserVotes(user);
+            
+            // Update all cards for new auth state
+            document.querySelectorAll('[data-quiz-id]').forEach(card => {
+                const quizId = card.dataset.quizId;
+                updateCommentFormVisibility(quizId, user);
+                // Re-initialize like listeners with the user's UID
+                setupLikeListener(quizId, user.uid);
+            });
 
         } else {
             loginButton.classList.remove('hidden');
@@ -409,6 +589,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
             document.querySelectorAll('.vote-option-btn').forEach(btn => {
                 btn.classList.remove('opacity-50', 'ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', 'ring-emerald-400', 'ring-red-400', 'ring-slate-400');
+            });
+
+            document.querySelectorAll('.comment-form-container').forEach(container => {
+                container.innerHTML = '';
+            });
+
+            // Re-initialize like listeners without a user UID
+            document.querySelectorAll('[data-quiz-id]').forEach(card => {
+                const quizId = card.dataset.quizId;
+                setupLikeListener(quizId, null);
             });
         }
     });

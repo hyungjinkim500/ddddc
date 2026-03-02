@@ -3,43 +3,66 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Helper function to check user role from the new userProfiles collection.
+    // Safely returns false if the profile or role does not exist.
     function isUserAdmin(userId) {
       return get(/databases/$(database)/documents/userProfiles/$(userId)).data.role == 'admin';
     }
 
+    // Deprecated: The old /users collection is now completely locked.
     match /users/{userId} {
       allow read, write: if false;
     }
 
+    // New, secure user profile collection for v0.5 and beyond.
     match /userProfiles/{userId} {
+      // Publicly readable for features like profiles and leaderboards.
       allow read: if true;
 
+      // A user can create their own profile document.
       allow create: if request.auth.uid == userId;
 
+      // A user can update their own document, but CANNOT change protected fields.
+      // This is enforced by ensuring the new value matches the existing one.
       allow update: if request.auth.uid == userId
-        && request.resource.data.points == resource.data.points
-        && request.resource.data.winCount == resource.data.winCount
-        && request.resource.data.totalParticipation == resource.data.totalParticipation
-        && request.resource.data.role == resource.data.role
-        && request.resource.data.isBanned == resource.data.isBanned;
+                      && request.resource.data.points == resource.data.points
+                      && request.resource.data.winCount == resource.data.winCount
+                      && request.resource.data.totalParticipation == resource.data.totalParticipation
+                      && request.resource.data.role == resource.data.role
+                      && request.resource.data.isBanned == resource.data.isBanned;
     }
 
+    // Main quiz collection.
     match /quizzes/{quizDocId}/quizzes/{quizId} {
-
+      // Quizzes are publicly readable.
       allow get, list: if true;
 
+      // Corrected update logic for authenticated users.
       allow update: if request.auth != null && (
-        // admin은 모든 필드 수정 가능
-        isUserAdmin(request.auth.uid)
+        // Rule 1: Any authenticated user can update ONLY the 'vote' field.
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['vote']))
         ||
-        // 일반 유저는 vote만 수정 가능
-        request.resource.data.diff(resource.data)
-          .affectedKeys()
-          .hasOnly(['vote'])
+        // Rule 2: ONLY admins can update the quiz lifecycle fields.
+        (isUserAdmin(request.auth.uid) && request.resource.data.diff(resource.data).hasAny(['status', 'endAt', 'correctOptionId', 'settledAt']))
       );
 
+      // Subcollection for tracking individual user votes.
       match /userVotes/{userId} {
+        // A user can only create, read, update, or delete their own vote document.
         allow read, write: if request.auth.uid == userId;
+      }
+
+      // Subcollection for likes.
+      match /likes/{userId} {
+        allow read: if true;
+        allow create, delete: if request.auth.uid == userId;
+      }
+
+      // Subcollection for comments.
+      match /comments/{commentId} {
+        allow read: if true;
+        allow create: if request.auth != null;
+        allow update, delete: if request.auth.uid == resource.data.authorUid || isUserAdmin(request.auth.uid);
       }
     }
   }
