@@ -20,10 +20,35 @@ onSnapshot(q, (snapshot) => {
 
   console.log("RANK DATA STRUCTURE:", rankingData);
 
+  const filteredData = rankingData.filter(user => !user.isBanned);
+
+  const currentUser = auth.currentUser;
+
+  if (currentUser) {
+    const myIndex = filteredData.findIndex(user => user.id === currentUser.uid);
+
+    if (myIndex !== -1) {
+      const myRank = myIndex + 1;
+      const myPoints = filteredData[myIndex].points || 0;
+
+      const myRankBox = document.querySelector(".mt-10 .font-semibold");
+
+      if (myRankBox) {
+        myRankBox.innerHTML = `
+          <div class="flex items-center gap-4">
+            <span>내 순위: ${myRank}</span>
+            <span>사용자: ${filteredData[myIndex].displayName || "익명"}</span>
+          </div>
+          <span>포인트: ${myPoints} P</span>
+        `;
+      }
+    }
+  }
+
   const rankingBody = document.getElementById("ranking-body");
   rankingBody.innerHTML = "";
 
-  rankingData.forEach((user, index) => {
+  filteredData.forEach((user, index) => {
     const row = document.createElement("div");
     row.className = "flex justify-between items-center py-4 border-b border-slate-200 dark:border-slate-700";
 
