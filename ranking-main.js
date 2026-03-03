@@ -54,7 +54,27 @@ onSnapshot(q, (snapshot) => {
 
     row.innerHTML = `
       <div class="flex items-center">
-        <span class="w-12 text-center font-bold">${index + 1}</span>
+        <span class="w-12 text-center font-bold ${
+          index === 0
+            ? "text-3xl"
+            : index === 1
+            ? "text-3xl"
+            : index === 2
+            ? "text-3xl"
+            : ""
+        }" style="
+          color: ${
+            index === 0
+              ? '#D4AF37'
+              : index === 1
+              ? '#C0C0C0'
+              : index === 2
+              ? '#CD7F32'
+              : ''
+          };
+        ">
+          ${index + 1}
+        </span>
         <span class="ml-2 font-semibold">${user.displayName || "익명"}</span>
       </div>
       <span class="font-semibold">${user.points || 0} P</span>
