@@ -83,8 +83,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     createdAt: serverTimestamp()
                 });
 
-                alert('회원가입이 완료되었습니다.');
-                hideModal();
+                if (confirm("회원가입이 완료되었습니다.")) {
+                    location.reload();
+                }
+                
             } catch (error) {
                 console.error('Registration error:', error);
                 alert(`회원가입에 실패했습니다: ${error.message}`);
@@ -166,16 +168,18 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const finalSnap = await getDoc(userRef);
-            const displayName = finalSnap.data().displayName;
+            if (finalSnap.exists()) {
+              const displayName = finalSnap.data().displayName;
 
-            const nicknameDisplayElement = document.createElement('span');
-            nicknameDisplayElement.id = 'user-nickname-display';
-            nicknameDisplayElement.textContent = `${displayName}님`;
-            nicknameDisplayElement.className =
-                'text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center whitespace-nowrap';
+              const nicknameDisplayElement = document.createElement('span');
+              nicknameDisplayElement.id = 'user-nickname-display';
+              nicknameDisplayElement.textContent = `${displayName}님`;
+              nicknameDisplayElement.className =
+                  'text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center whitespace-nowrap';
 
-            if (buttonContainer && createQuizButton) {
-                buttonContainer.insertBefore(nicknameDisplayElement, createQuizButton);
+              if (buttonContainer && createQuizButton) {
+                  buttonContainer.insertBefore(nicknameDisplayElement, createQuizButton);
+              }
             }
         } else {
             if (loginModalButton) loginModalButton.classList.remove('hidden');
