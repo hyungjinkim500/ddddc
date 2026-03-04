@@ -56,41 +56,54 @@ function renderRanking(data) {
   const filteredData = dataToSort.filter((user) => !user.isBanned);
 
   const currentUser = auth.currentUser;
+  const myRankingSection = document.getElementById("my-ranking");
+
   if (!currentUser) {
-    const myRankingSection = document.getElementById("my-ranking");
     if (myRankingSection) {
-        myRankingSection.style.display = "none";
+        myRankingSection.innerHTML = `
+            <h3 class="text-sm text-slate-500 dark:text-slate-400 mb-2">내 랭킹</h3>
+            <div class="bg-slate-100 dark:bg-slate-800 rounded-xl px-6 py-4 shadow-sm text-center font-semibold text-slate-500 dark:text-slate-400">
+                로그인 후 내 랭킹을 확인할 수 있습니다.
+            </div>
+        `;
     }
 } else {
-    const myRankingSection = document.getElementById("my-ranking");
-    if (myRankingSection) {
-        myRankingSection.style.display = "block";
-    }
     const myIndex = filteredData.findIndex((user) => user.id === currentUser.uid);
-    if (myIndex !== -1) {
-      const myUserData = filteredData[myIndex];
-      const myRank = myIndex + 1;
-      const myPoints = myUserData.points || 0;
-      const myWins = myUserData.winCount || 0;
-      const myTotal = myUserData.totalParticipation || 0;
-      const myWinRate = myTotal > 0 ? Math.round((myWins / myTotal) * 100) : 0;
+    if (myRankingSection) {
+        if (myIndex !== -1) {
+            const myUserData = filteredData[myIndex];
+            const myRank = myIndex + 1;
+            const myPoints = myUserData.points || 0;
+            const myWins = myUserData.winCount || 0;
+            const myTotal = myUserData.totalParticipation || 0;
+            const myWinRate = myTotal > 0 ? Math.round((myWins / myTotal) * 100) : 0;
 
-      const myRankBox = document.querySelector("#my-ranking .font-semibold");
-      if (myRankBox) {
-        myRankBox.innerHTML = `
-          <div class="flex items-center gap-4">
-            <span>내 순위: ${myRank}</span>
-            <span>사용자: ${myUserData.displayName || "익명"}</span>
-          </div>
-          <div class="flex items-baseline gap-2 text-sm font-semibold">
-            <span class="text-base text-slate-800 dark:text-slate-200">${myPoints} P</span>
-            <span class="text-slate-300 dark:text-slate-600">|</span>
-            <span>${myWins} 승</span>
-            <span class="text-slate-300 dark:text-slate-600">|</span>
-            <span>${myWinRate}%</span>
-          </div>
-        `;
-      }
+            myRankingSection.innerHTML = `
+                <h3 class="text-sm text-slate-500 dark:text-slate-400 mb-2">내 랭킹</h3>
+                <div class="bg-slate-100 dark:bg-slate-800 rounded-xl px-6 py-4 shadow-sm">
+                    <div class="flex justify-between items-center font-semibold">
+                        <div class="flex items-center gap-4">
+                            <span>내 순위: ${myRank}</span>
+                            <span>사용자: ${myUserData.displayName || "익명"}</span>
+                        </div>
+                        <div class="flex items-baseline gap-2 text-sm font-semibold">
+                            <span class="text-base text-slate-800 dark:text-slate-200">${myPoints} P</span>
+                            <span class="text-slate-300 dark:text-slate-600">|</span>
+                            <span>${myWins} 승</span>
+                            <span class="text-slate-300 dark:text-slate-600">|</span>
+                            <span>${myWinRate}%</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else {
+            myRankingSection.innerHTML = `
+                <h3 class="text-sm text-slate-500 dark:text-slate-400 mb-2">내 랭킹</h3>
+                <div class="bg-slate-100 dark:bg-slate-800 rounded-xl px-6 py-4 shadow-sm text-center font-semibold text-slate-500 dark:text-slate-400">
+                    아직 랭킹에 등록되지 않았습니다.
+                </div>
+            `;
+        }
     }
   }
 
