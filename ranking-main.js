@@ -96,6 +96,15 @@ function renderRanking(data) {
     const row = document.createElement("div");
     row.className = "flex justify-between items-center py-4 border-b border-slate-200 dark:border-slate-700";
 
+    if (currentUser && user.id === currentUser.uid) {
+      row.classList.add(
+        "bg-emerald-50",
+        "dark:bg-emerald-900/20",
+        "border-l-4",
+        "border-emerald-500"
+      );
+    }
+
     row.innerHTML = `
       <div class="flex items-center">
         <span class="w-12 text-center font-bold ${
