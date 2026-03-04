@@ -72,6 +72,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 const user = userCredential.user;
                 await updateProfile(user, { displayName });
 
+                await setDoc(doc(db, "userProfiles", user.uid), {
+                    displayName: displayName,
+                    photoURL: null,
+                    points: 100,
+                    winCount: 0,
+                    totalParticipation: 0,
+                    role: "user",
+                    isBanned: false,
+                    createdAt: serverTimestamp()
+                });
+
                 alert('회원가입이 완료되었습니다.');
                 hideModal();
             } catch (error) {
@@ -141,7 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const userRef = doc(db, "userProfiles", user.uid);
             const snap = await getDoc(userRef);
 
-            if (!snap.exists()) {
+            if (!snap.exists() && user.displayName) {
                 await setDoc(userRef, {
                     displayName: user.displayName || "사용자",
                     photoURL: user.photoURL || null,
