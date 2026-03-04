@@ -78,6 +78,7 @@
               <div>
                 <label class="block text-sm font-semibold mb-1">보상 포인트</label>
                 <select name="rewardPoints" class="w-full px-4 py-3 rounded-md bg-slate-100 dark:bg-slate-700">
+                  <option value="" selected disabled>선택</option>
                   <option value="100">100</option>
                   <option value="200">200</option>
                   <option value="300">300</option>
@@ -93,7 +94,7 @@
                 </p>
               </div>
             
-              <div>
+              <div id="participant-limit-container" style="display:none;">
                 <label class="block text-sm font-semibold mb-1">참가자 제한</label>
                 <input type="number" name="participantLimit" placeholder="10 이상 입력" class="w-full px-4 py-3 rounded-md bg-slate-100 dark:bg-slate-700">
               </div>
@@ -118,7 +119,8 @@
             </div>
             <div>
                 <label for="quiz-description" class="block text-sm font-semibold mb-2 text-slate-700 dark:text-slate-200">설명 (선택)</label>
-                <textarea id="quiz-description" name="description" rows="3" placeholder="퀴즈에 대한 추가적인 정보를 입력하세요。" class="w-full px-4 py-3 rounded-md bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-teal transition"></textarea>
+                <textarea id="quiz-description" name="description" rows="3" placeholder="퀴즈에 대한 추가적인 정보를 입력하세요。"
+                  class="w-full px-4 py-3 rounded-md bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-teal transition"></textarea>
             </div>
             <div id="options-container">
                 <label class="block text-sm font-semibold mb-2 text-slate-700 dark:text-slate-200">선택지</label>
@@ -181,6 +183,19 @@
 
         superquizRadio.addEventListener('change', () => {
             superSettings.style.display = 'block';
+        });
+
+        const rewardSelect = document.querySelector('select[name="rewardPoints"]');
+        const participantContainer = document.getElementById('participant-limit-container');
+        const participantInput = document.querySelector('input[name="participantLimit"]');
+
+        rewardSelect.addEventListener('change', () => {
+            if (rewardSelect.value !== "") {
+                participantContainer.style.display = "block";
+                const reward = parseInt(rewardSelect.value);
+                const maxParticipants = reward / 2;
+                participantInput.placeholder = `최소 10명 ~ ${maxParticipants}명 설정 가능합니다`;
+            }
         });
     });
 </script>
