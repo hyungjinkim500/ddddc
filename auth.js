@@ -83,9 +83,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     createdAt: serverTimestamp()
                 });
 
-                if (confirm("회원가입이 완료되었습니다.")) {
-                    location.reload();
-                }
+                alert("회원가입이 완료되었습니다.");
+                location.reload();
                 
             } catch (error) {
                 console.error('Registration error:', error);

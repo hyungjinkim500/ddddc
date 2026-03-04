@@ -56,7 +56,16 @@ function renderRanking(data) {
   const filteredData = dataToSort.filter((user) => !user.isBanned);
 
   const currentUser = auth.currentUser;
-  if (currentUser) {
+  if (!currentUser) {
+    const myRankingSection = document.getElementById("my-ranking");
+    if (myRankingSection) {
+        myRankingSection.style.display = "none";
+    }
+} else {
+    const myRankingSection = document.getElementById("my-ranking");
+    if (myRankingSection) {
+        myRankingSection.style.display = "block";
+    }
     const myIndex = filteredData.findIndex((user) => user.id === currentUser.uid);
     if (myIndex !== -1) {
       const myUserData = filteredData[myIndex];
@@ -66,7 +75,7 @@ function renderRanking(data) {
       const myTotal = myUserData.totalParticipation || 0;
       const myWinRate = myTotal > 0 ? Math.round((myWins / myTotal) * 100) : 0;
 
-      const myRankBox = document.querySelector(".mt-10 .font-semibold");
+      const myRankBox = document.querySelector("#my-ranking .font-semibold");
       if (myRankBox) {
         myRankBox.innerHTML = `
           <div class="flex items-center gap-4">
