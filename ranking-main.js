@@ -6,12 +6,20 @@ let currentSortOrder = 'points'; // Default sort order
 let unsubscribe;
 let lastFetchedData = []; // Cache the last fetched data
 
-function subscribeToRanking() {
+const myRankingSection = document.getElementById("my-ranking");
+if (myRankingSection) {
+    myRankingSection.style.visibility = "hidden";
+}
+
+onAuthStateChanged(auth, (user) => {
+    subscribeToRanking(user);
+});
+
+function subscribeToRanking(user) {
   if (unsubscribe) {
     unsubscribe();
   }
 
-  // For 'rate', we fetch by a more stable field like points and sort client-side
   const fetchOrder = (currentSortOrder === 'rate' || currentSortOrder === 'winCount') ? 'points' : currentSortOrder;
 
   const q = query(
@@ -28,11 +36,11 @@ function subscribeToRanking() {
         ...doc.data(),
       });
     });
-    renderRanking(lastFetchedData);
+    renderRanking(lastFetchedData, user);
   });
 }
 
-function renderRanking(data) {
+function renderRanking(data, user) {
   const dataToSort = [...data];
 
   // Client-side sorting for win rate or win count
@@ -51,14 +59,10 @@ function renderRanking(data) {
         return (b.points || 0) - (a.points || 0); // Secondary sort by points
     });
   }
-  // 'points' sorting is handled by the query, but we can rely on the initial fetch order
 
-  const filteredData = dataToSort.filter((user) => !user.isBanned);
+  const filteredData = dataToSort.filter((u) => !u.isBanned);
 
-  const currentUser = auth.currentUser;
-  const myRankingSection = document.getElementById("my-ranking");
-
-  if (!currentUser) {
+  if (!user) {
     if (myRankingSection) {
         myRankingSection.innerHTML = `
             <h3 class="text-sm text-slate-500 dark:text-slate-400 mb-2">내 랭킹</h3>
@@ -66,9 +70,10 @@ function renderRanking(data) {
                 로그인 후 내 랭킹을 확인할 수 있습니다.
             </div>
         `;
+        myRankingSection.style.visibility = "visible";
     }
 } else {
-    const myIndex = filteredData.findIndex((user) => user.id === currentUser.uid);
+    const myIndex = filteredData.findIndex((u) => u.id === user.uid);
     if (myRankingSection) {
         if (myIndex !== -1) {
             const myUserData = filteredData[myIndex];
@@ -104,21 +109,22 @@ function renderRanking(data) {
                 </div>
             `;
         }
+        myRankingSection.style.visibility = "visible";
     }
   }
 
   const rankingBody = document.getElementById("ranking-body");
   rankingBody.innerHTML = "";
 
-  filteredData.forEach((user, index) => {
-    const wins = user.winCount || 0;
-    const total = user.totalParticipation || 0;
+  filteredData.forEach((item, index) => {
+    const wins = item.winCount || 0;
+    const total = item.totalParticipation || 0;
     const winRate = total > 0 ? Math.round((wins / total) * 100) : 0;
     
     const row = document.createElement("div");
     row.className = "flex justify-between items-center py-4 border-b border-slate-200 dark:border-slate-700";
 
-    if (currentUser && user.id === currentUser.uid) {
+    if (user && item.id === user.uid) {
       row.classList.add(
         "bg-emerald-50",
         "dark:bg-emerald-900/20",
@@ -136,10 +142,10 @@ function renderRanking(data) {
         };">
           ${index + 1}
         </span>
-        <span class="ml-2 font-semibold">${user.displayName || "익명"}</span>
+        <span class="ml-2 font-semibold">${item.displayName || "익명"}</span>
       </div>
       <div class="flex items-baseline gap-2 text-sm font-semibold">
-        <span class="text-base text-slate-800 dark:text-slate-200">${user.points || 0} P</span>
+        <span class="text-base text-slate-800 dark:text-slate-200">${item.points || 0} P</span>
         <span class="text-slate-300 dark:text-slate-600">|</span>
         <span>${wins} 승</span>
         <span class="text-slate-300 dark:text-slate-600">|</span>
@@ -171,20 +177,18 @@ function setActiveSortButton(activeButtonId) {
 document.getElementById('sort-points').addEventListener('click', () => {
     currentSortOrder = 'points';
     setActiveSortButton('sort-points');
-    subscribeToRanking();
+    subscribeToRanking(auth.currentUser);
 });
 document.getElementById('sort-wins').addEventListener('click', () => {
     currentSortOrder = 'winCount';
     setActiveSortButton('sort-wins');
-    // We can re-render the cached data for wins and rate, no need to re-fetch
-    renderRanking(lastFetchedData);
+    renderRanking(lastFetchedData, auth.currentUser);
 });
 document.getElementById('sort-rate').addEventListener('click', () => {
     currentSortOrder = 'rate';
     setActiveSortButton('sort-rate');
-    renderRanking(lastFetchedData);
+    renderRanking(lastFetchedData, auth.currentUser);
 });
 
 // Initial load
 setActiveSortButton('sort-points');
-subscribeToRanking();
