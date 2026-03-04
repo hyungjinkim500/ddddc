@@ -17,7 +17,7 @@ function loadQuizzes() {
 
   quizContainer.innerHTML = `<p class="text-center text-slate-500 dark:text-slate-400">퀴즈를 불러오는 중입니다...</p>`;
 
-  const collectionPath = "quizzes/quiz1/quizzes";
+  const collectionPath = "questions";
   const q = collection(db, collectionPath);
 
   onSnapshot(q, 
@@ -162,7 +162,7 @@ function generateParticipationRateHTML(quiz) {
 //     const quizCards = document.querySelectorAll('[data-quiz-id]');
 //     for (const card of quizCards) {
 //         const quizId = card.dataset.quizId;
-//         const userVoteRef = doc(db, `quizzes/quiz1/quizzes/${quizId}/userVotes/${user.uid}`);
+//         const userVoteRef = doc(db, `questions/${quizId}/userVotes/${user.uid}`);
         
 //         try {
 //             const userVoteSnap = await getDoc(userVoteRef);
@@ -201,7 +201,7 @@ function setupLikeListener(quizId, currentUserId) {
     const likeCountSpan = quizCard.querySelector('.like-count');
     const likeIcon = likeButton.querySelector('i');
 
-    onSnapshot(collection(db, `quizzes/quiz1/quizzes/${quizId}/likes`), (snapshot) => {
+    onSnapshot(collection(db, `questions/${quizId}/likes`), (snapshot) => {
         if(likeCountSpan) likeCountSpan.textContent = snapshot.size;
 
         let userHasLiked = false;
@@ -233,7 +233,7 @@ function setupCommentListener(quizId) {
     const commentCountSpan = quizCard.querySelector('.comment-count');
     if (!commentsList || !commentCountSpan) return;
 
-    const commentsQuery = query(collection(db, `quizzes/quiz1/quizzes/${quizId}/comments`), orderBy('createdAt', 'desc'), limit(20));
+    const commentsQuery = query(collection(db, `questions/${quizId}/comments`), orderBy('createdAt', 'desc'), limit(20));
     onSnapshot(commentsQuery, (snapshot) => {
         commentCountSpan.textContent = snapshot.size;
         commentsList.innerHTML = ''; // Clear old comments
@@ -292,7 +292,7 @@ async function handleCommentSubmit(e, quizId) {
     }
 
     try {
-        await addDoc(collection(db, `quizzes/quiz1/quizzes/${quizId}/comments`), {
+        await addDoc(collection(db, `questions/${quizId}/comments`), {
             content: content,
             authorUid: user.uid,
             authorDisplayName: user.displayName || '익명',
@@ -313,7 +313,7 @@ async function handleLike(quizId) {
         return;
     }
 
-    const likeRef = doc(db, `quizzes/quiz1/quizzes/${quizId}/likes`, user.uid);
+    const likeRef = doc(db, `questions/${quizId}/likes`, user.uid);
 
     try {
         const docSnap = await getDoc(likeRef);
@@ -386,8 +386,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Update Firestore using a transaction
                 (async () => {
                     try {
-                        const quizRef = doc(db, "quizzes/quiz1/quizzes", card.dataset.quizId);
-                        const userVoteRef = doc(db, "quizzes/quiz1/quizzes", card.dataset.quizId, "userVotes", user.uid);
+                        const quizRef = doc(db, "questions", card.dataset.quizId);
+                        const userVoteRef = doc(db, "questions", card.dataset.quizId, "userVotes", user.uid);
 
                         await runTransaction(db, async (transaction) => {
                             const quizDoc = await transaction.get(quizRef);

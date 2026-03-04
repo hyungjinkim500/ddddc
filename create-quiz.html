@@ -1,0 +1,131 @@
+
+<!DOCTYPE html>
+<html lang="ko" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Quiz | 딩동댕닷컴</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="tailwind.config.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Pretendard:wght@400;600;700&display=swap');
+        
+        :root {
+            --pm-navy: #0e1117;
+            --pm-teal: #00d395; 
+            --pm-teal-dark: #00a876;
+            --bg-primary-light: #f1f5f9;
+            --bg-primary-dark: #020617;
+            --text-primary-light: #1e293b;
+            --text-primary-dark: #e2e8f0;
+            --card-bg-light: white;
+            --card-bg-dark: #0f172a;
+            --border-light: #e2e8f0;
+            --border-dark: #1e293b;
+        }
+
+        body {
+            font-family: 'Pretendard', sans-serif;
+            letter-spacing: -0.025em;
+            word-break: keep-all;
+            background-color: var(--bg-primary-light);
+            color: var(--text-primary-light);
+        }
+        html.dark body {
+            background-color: var(--bg-primary-dark);
+            color: var(--text-primary-dark);
+        }
+        
+        .btn-primary { background-color: var(--pm-teal); color: var(--pm-navy); }
+    </style>
+</head>
+<body class="transition-colors duration-300">
+
+<header class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
+    <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+        <a href="index.html" class="text-2xl font-bold text-teal">딩동댕닷컴</a>
+        <div class="flex items-center gap-4">
+            <button id="theme-toggle" class="text-slate-400 hover:text-teal dark:text-slate-500 dark:hover:text-teal transition-colors duration-300 px-2"><i class="fa-solid fa-moon text-lg"></i></button>
+            <a href="quiz.html" class="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-teal">퀴즈 목록</a>
+        </div>
+    </div>
+</header>
+
+<main class="container mx-auto px-4 sm:px-6 py-8 md:py-12">
+    <div class="max-w-2xl mx-auto bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-md">
+        <h1 class="text-3xl font-bold text-slate-900 dark:text-white mb-6">퀴즈 만들기</h1>
+        <form id="create-quiz-form" class="space-y-6">
+            <div>
+              <label class="block text-sm font-semibold mb-2 text-slate-700 dark:text-slate-200">퀴즈 유형</label>
+              <div class="flex gap-4">
+                <label class="flex items-center gap-2">
+                  <input type="radio" name="quiz-type" value="quiz" checked>
+                  <span>퀴즈</span>
+                </label>
+                <label class="flex items-center gap-2">
+                  <input type="radio" name="quiz-type" value="superquiz">
+                  <span>슈퍼퀴즈</span>
+                </label>
+              </div>
+            </div>
+            <div>
+                <label for="quiz-title" class="block text-sm font-semibold mb-2 text-slate-700 dark:text-slate-200">퀴즈 제목</label>
+                <input type="text" id="quiz-title" name="title" required placeholder="예: 2024년 미국 대선 승자는?" class="w-full px-4 py-3 rounded-md bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-teal transition">
+            </div>
+            <div>
+                <label for="quiz-description" class="block text-sm font-semibold mb-2 text-slate-700 dark:text-slate-200">설명 (선택)</label>
+                <textarea id="quiz-description" name="description" rows="3" placeholder="퀴즈에 대한 추가적인 정보를 입력하세요." class="w-full px-4 py-3 rounded-md bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-teal transition"></textarea>
+            </div>
+            <div id="options-container">
+                <label class="block text-sm font-semibold mb-2 text-slate-700 dark:text-slate-200">선택지</label>
+                <div class="space-y-3">
+                    <div class="flex items-center gap-2">
+                        <input type="text" name="option" required placeholder="선택지 1" class="w-full px-4 py-3 rounded-md bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-teal transition">
+                         <select name="option-color" class="rounded-md bg-slate-100 dark:bg-slate-700 border-slate-200 dark:border-slate-600 h-12">
+                            <option value="emerald">초록</option>
+                            <option value="red">빨강</option>
+                            <option value="slate">회색</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <input type="text" name="option" required placeholder="선택지 2" class="w-full px-4 py-3 rounded-md bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-teal transition">
+                         <select name="option-color" class="rounded-md bg-slate-100 dark:bg-slate-700 border-slate-200 dark:border-slate-600 h-12">
+                            <option value="red">빨강</option>
+                            <option value="emerald">초록</option>
+                            <option value="slate">회색</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <button type="button" id="add-option-btn" class="text-sm font-semibold text-teal hover:underline">+ 선택지 추가</button>
+            
+            <div class="pt-4">
+                <button type="submit" class="w-full btn-primary px-6 py-4 rounded-lg font-bold text-lg transition-all hover:opacity-90">퀴즈 생성하기</button>
+            </div>
+        </form>
+    </div>
+</main>
+
+<script type="module" src="firebase-config.js"></script>
+<script type="module" src="create-quiz.js"></script>
+<script>
+    // Basic theme toggle for consistency
+    document.getElementById('theme-toggle').addEventListener('click', () => {
+        const html = document.documentElement;
+        if (html.classList.contains('dark')) {
+            html.classList.remove('dark');
+            html.classList.add('light');
+            localStorage.setItem('theme', 'light');
+        } else {
+            html.classList.remove('light');
+            html.classList.add('dark');
+            localStorage.setItem('theme', 'dark');
+        }
+    });
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.classList.add(savedTheme);
+</script>
+
+</body>
+</html>
