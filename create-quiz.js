@@ -41,6 +41,15 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
+        const quizType = form.querySelector('input[name="quiz-type"]:checked').value;
+        const participantInput = form.querySelector('input[name="participantLimit"]');
+        const participantLimit = parseInt(participantInput.value || "0");
+
+        if (quizType === "superquiz" && participantLimit < 10) {
+            alert("참가자 제한은 최소 10명 이상이어야 합니다.");
+            return;
+        }
+
         try {
             await addDoc(collection(db, 'questions'), {
                 title: title,
@@ -48,12 +57,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 options: options,
                 createdAt: serverTimestamp(),
                 vote: {},
-                type: 'quiz',
+                type: quizType,
                 status: 'active',
                 creatorId: user ? user.uid : null,
                 creatorName: user ? (user.displayName || "사용자") : null,
                 rewardPoints: 0,
-                participantLimit: null,
+                participantLimit: participantLimit,
                 participants: [],
                 entryFee: 0,
                 hasCorrectAnswer: false,
