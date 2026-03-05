@@ -1,6 +1,6 @@
 import { auth, db } from './firebase-config.js';
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { collection, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { collection, addDoc, serverTimestamp, getDoc, doc, updateDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, (user) => {
@@ -150,6 +150,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 try {
+                    const uid = user.uid;
+                    const userProfileRef = doc(db, "userProfiles", uid);
+                    const userProfileSnap = await getDoc(userProfileRef);
+
+                    let points = 0;
+                    if (userProfileSnap.exists()) {
+                        points = userProfileSnap.data().points || 0;
+                        console.log("User points:", points);
+                    } else {
+                        console.log("User profile not found, assuming 0 points.");
+                    }
+
+                    let cost = 0;
+                    if (quizType === "quiz") {
+                        cost = 20;
+                    } else if (quizType === "superquiz") {
+                        cost = rewardPoints;
+                    }
+
+                    if (points < cost) {
+                        alert("포인트가 부족합니다.");
+                        return;
+                    }
+
                     await addDoc(collection(db, 'questions'), {
                         title: title,
                         description: description,
@@ -160,15 +184,21 @@ document.addEventListener('DOMContentLoaded', () => {
                         status: 'active',
                         creatorId: user.uid,
                         creatorName: user.displayName || "사용자",
-                        rewardPoints: 0,
+                        rewardPoints: rewardPoints,
                         participantLimit: participantLimit,
                         participants: [],
-                        entryFee: 0,
+                        entryFee: quizType === "superquiz" ? 1 : 0,
                         hasCorrectAnswer: false,
                         correctOption: null,
                         expiresAt: null,
                         resolvedAt: null
                     });
+
+                    const newPoints = points - cost;
+                    await updateDoc(userProfileRef, {
+                        points: newPoints
+                    });
+
                     alert('퀴즈가 성공적으로 생성되었습니다!');
                     window.location.href = 'quiz.html';
                 } catch (error) {

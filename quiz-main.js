@@ -397,8 +397,16 @@ document.addEventListener('DOMContentLoaded', () => {
                                 throw "Quiz document does not exist!";
                             }
 
-                            const userVoteDoc = await transaction.get(userVoteRef);
                             const data = quizDoc.data();
+                            const entryFee = data.entryFee || 0;
+                            const participantLimit = data.participantLimit || 0;
+                            const participants = data.participants || [];
+
+                            if (participantLimit > 0 && participants.length >= participantLimit && !participants.includes(user.uid)) {
+                                throw "Participant limit reached";
+                            }
+
+                            const userVoteDoc = await transaction.get(userVoteRef);
                             const voteData = data.vote ?? {};
                             const updatedVotes = { ...voteData };
 
@@ -420,7 +428,16 @@ document.addEventListener('DOMContentLoaded', () => {
                                 transaction.set(userVoteRef, { selectedOption: clickedOptionId });
                             }
 
-                            transaction.update(quizRef, { vote: updatedVotes });
+                            let updatedParticipants = [...participants];
+
+                            if (!updatedParticipants.includes(user.uid)) {
+                                updatedParticipants.push(user.uid);
+                            }
+
+                            transaction.update(quizRef, { 
+                                vote: updatedVotes,
+                                participants: updatedParticipants
+                            });
                         });
 
                     } catch (e) {
