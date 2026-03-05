@@ -10,7 +10,33 @@ document.addEventListener('DOMContentLoaded', () => {
             const addOptionBtn = document.getElementById('add-option-btn');
             const optionsContainer = document.getElementById('options-container').querySelector('.space-y-3');
 
+            const quizTypeRadios = document.querySelectorAll('input[name="quiz-type"]');
+
+            quizTypeRadios.forEach(radio => {
+                radio.addEventListener('change', () => {
+
+                    const quizType = radio.value;
+                    const maxOptions = quizType === "superquiz" ? 3 : 5;
+
+                    while (optionsContainer.children.length > maxOptions) {
+                        optionsContainer.removeChild(optionsContainer.lastElementChild);
+                    }
+
+                });
+            });
+
             addOptionBtn.addEventListener('click', () => {
+                const currentOptionCount = optionsContainer.children.length;
+
+                const quizTypeInput = document.querySelector('input[name="quiz-type"]:checked');
+                const quizType = quizTypeInput ? quizTypeInput.value : "quiz";
+
+                const maxOptions = quizType === "superquiz" ? 3 : 5;
+
+                if (currentOptionCount >= maxOptions) {
+                    return;
+                }
+
                 const optionIndex = optionsContainer.children.length + 1;
                 const newOption = document.createElement('div');
                 newOption.className = 'flex items-center gap-2';
@@ -31,6 +57,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 const title = form.title.value;
                 const description = form.description.value;
                 const optionInputs = form.querySelectorAll('input[name="option"]');
+
+                const filledOptions = Array.from(optionInputs).filter(input => input.value.trim() !== "");
+
+                if (filledOptions.length < 2) {
+                    alert("선택지는 최소 2개 이상 입력해야 합니다.");
+                    return;
+                }
+
                 const colorSelects = form.querySelectorAll('select[name="option-color"]');
 
                 const options = [];
