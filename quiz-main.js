@@ -5,7 +5,9 @@ import { collection, doc, runTransaction, onSnapshot, getDoc, setDoc, deleteDoc,
 const colorMap = {
   emerald: "bg-emerald-500 hover:bg-emerald-600",
   red: "bg-red-500 hover:bg-red-600",
-  slate: "bg-slate-500 hover:bg-slate-600"
+  slate: "bg-slate-500 hover:bg-slate-600",
+  yellow: "bg-yellow-400 hover:bg-yellow-500",
+  sky: "bg-sky-400 hover:bg-sky-500"
 };
 
 function loadQuizzes() {

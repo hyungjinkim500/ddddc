@@ -14,13 +14,44 @@ document.addEventListener('DOMContentLoaded', () => {
 
             quizTypeRadios.forEach(radio => {
                 radio.addEventListener('change', () => {
+                    console.log("quiz type changed:", radio.value);
+                    const optionInputs = optionsContainer.querySelectorAll('input[name="option"]');
+                    const hasInput = Array.from(optionInputs).some(input => input.value.trim() !== "");
 
+                    console.log("options have input:", hasInput);
+
+                    if (hasInput) {
+                        const confirmChange = confirm("퀴즈 모드를 변경하면 선택지가 초기화됩니다. 계속하시겠습니까?");
+                        if (!confirmChange) {
+                            return;
+                        }
+                    }
                     const quizType = radio.value;
+
                     const maxOptions = quizType === "superquiz" ? 3 : 5;
 
-                    while (optionsContainer.children.length > maxOptions) {
-                        optionsContainer.removeChild(optionsContainer.lastElementChild);
-                    }
+                    optionsContainer.innerHTML = "";
+
+                    const option1 = document.createElement("div");
+                    option1.className = "flex items-center gap-2";
+                    option1.innerHTML = `
+                    <input type="text" name="option" required placeholder="선택지 1"
+                    class="w-full px-4 py-3 rounded-md bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-teal transition">
+
+                    <select name="option-color"
+                    class="rounded-md bg-slate-100 dark:bg-slate-700 border-slate-200 dark:border-slate-600 h-12">
+                    <option value="emerald">초록</option>
+                    <option value="red">빨강</option>
+                    <option value="slate">회색</option>
+                    </select>
+                    `;
+
+                    const option2 = document.createElement("div");
+                    option2.className = "flex items-center gap-2";
+                    option2.innerHTML = option1.innerHTML.replace("선택지 1", "선택지 2");
+
+                    optionsContainer.appendChild(option1);
+                    optionsContainer.appendChild(option2);
 
                 });
             });
