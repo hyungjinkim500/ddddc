@@ -41,12 +41,22 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        const quizType = form.querySelector('input[name="quiz-type"]:checked').value;
+        const quizTypeInput = form.querySelector('input[name="quiz-type"]:checked');
+        const quizType = quizTypeInput ? quizTypeInput.value : "quiz";
         const participantInput = form.querySelector('input[name="participantLimit"]');
-        const participantLimit = parseInt(participantInput.value || "0");
+        const participantLimit = participantInput ? parseInt(participantInput.value || "0") : 0;
 
         if (quizType === "superquiz" && participantLimit < 10) {
             alert("참가자 제한은 최소 10명 이상이어야 합니다.");
+            return;
+        }
+
+        const rewardSelect = form.querySelector('select[name="rewardPoints"]');
+        const rewardPoints = parseInt(rewardSelect?.value || "0");
+        const maxParticipants = rewardPoints / 2;
+
+        if (quizType === "superquiz" && participantLimit > maxParticipants) {
+            alert(`참가자 제한은 최대 ${maxParticipants}명까지 가능합니다.`);
             return;
         }
 
