@@ -32,18 +32,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     optionsContainer.innerHTML = "";
 
+                    let colorSelectorHtml;
+                    if (quizType === 'superquiz') {
+                        colorSelectorHtml = `
+                        <select name="option-color"
+                        class="rounded-md bg-slate-100 dark:bg-slate-700 border-slate-200 dark:border-slate-600 h-12">
+                        <option value="emerald">초록</option>
+                        <option value="red">빨강</option>
+                        <option value="slate">회색</option>
+                        </select>
+                        `;
+                    } else {
+                        colorSelectorHtml = '<input type="hidden" name="option-color" value="slate">';
+                    }
+
                     const option1 = document.createElement("div");
                     option1.className = "flex items-center gap-2";
                     option1.innerHTML = `
                     <input type="text" name="option" required placeholder="선택지 1"
                     class="w-full px-4 py-3 rounded-md bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-teal transition">
-
-                    <select name="option-color"
-                    class="rounded-md bg-slate-100 dark:bg-slate-700 border-slate-200 dark:border-slate-600 h-12">
-                    <option value="emerald">초록</option>
-                    <option value="red">빨강</option>
-                    <option value="slate">회색</option>
-                    </select>
+                    ${colorSelectorHtml.trim()}
                     `;
 
                     const option2 = document.createElement("div");
@@ -55,6 +63,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 });
             });
+
+            const initialQuizTypeInput = document.querySelector('input[name="quiz-type"]:checked');
+            if (initialQuizTypeInput) {
+                initialQuizTypeInput.dispatchEvent(new Event('change'));
+            }
 
             addOptionBtn.addEventListener('click', () => {
                 const currentOptionCount = optionsContainer.children.length;
@@ -68,16 +81,25 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
+                let colorSelectorHtml;
+                if (quizType === 'superquiz') {
+                    colorSelectorHtml = `
+                        <select name="option-color" class="rounded-md bg-slate-100 dark:bg-slate-700 border-slate-200 dark:border-slate-600 h-12">
+                            <option value="slate">회색</option>
+                            <option value="emerald">초록</option>
+                            <option value="red">빨강</option>
+                        </select>
+                    `;
+                } else {
+                    colorSelectorHtml = '<input type="hidden" name="option-color" value="slate">';
+                }
+
                 const optionIndex = optionsContainer.children.length + 1;
                 const newOption = document.createElement('div');
                 newOption.className = 'flex items-center gap-2';
                 newOption.innerHTML = `
                     <input type="text" name="option" required placeholder="선택지 ${optionIndex}" class="w-full px-4 py-3 rounded-md bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-teal transition">
-                    <select name="option-color" class="rounded-md bg-slate-100 dark:bg-slate-700 border-slate-200 dark:border-slate-600 h-12">
-                        <option value="slate">회색</option>
-                        <option value="emerald">초록</option>
-                        <option value="red">빨강</option>
-                    </select>
+                    ${colorSelectorHtml.trim()}
                 `;
                 optionsContainer.appendChild(newOption);
             });
@@ -96,19 +118,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
-                const colorSelects = form.querySelectorAll('select[name="option-color"]');
+                const quizTypeInput = form.querySelector('input[name="quiz-type"]:checked');
+                const quizType = quizTypeInput ? quizTypeInput.value : "quiz";
+
+                const colorInputs = form.querySelectorAll('[name="option-color"]');
 
                 const options = [];
                 for (let i = 0; i < optionInputs.length; i++) {
                     options.push({
                         id: `option_${i + 1}`,
                         label: optionInputs[i].value,
-                        color: colorSelects[i].value
+                        color: quizType === "quiz" ? "slate" : colorInputs[i].value
                     });
                 }
 
-                const quizTypeInput = form.querySelector('input[name="quiz-type"]:checked');
-                const quizType = quizTypeInput ? quizTypeInput.value : "quiz";
                 const participantInput = form.querySelector('input[name="participantLimit"]');
                 const participantLimit = participantInput ? parseInt(participantInput.value || "0") : 0;
 
