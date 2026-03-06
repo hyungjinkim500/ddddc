@@ -402,6 +402,10 @@ document.addEventListener('DOMContentLoaded', () => {
                             const participantLimit = data.participantLimit || 0;
                             const participants = data.participants || [];
 
+                            const userProfileRef = doc(db, "userProfiles", user.uid);
+                            const userProfileDoc = await transaction.get(userProfileRef);
+                            const userPoints = userProfileDoc.data()?.points || 0;
+
                             if (participantLimit > 0 && participants.length >= participantLimit && !participants.includes(user.uid)) {
                                 throw "Participant limit reached";
                             }
@@ -415,10 +419,21 @@ document.addEventListener('DOMContentLoaded', () => {
                                 previousOptionId = userVoteDoc.data().selectedOption;
                             }
 
+                            let updatedParticipants = [...participants];
+
                             if (previousOptionId === clickedOptionId) {
                                 // Deselecting the same option
                                 updatedVotes[clickedOptionId] = Math.max(0, (updatedVotes[clickedOptionId] || 0) - 1);
                                 transaction.delete(userVoteRef);
+
+                                if (entryFee > 0 && participants.includes(user.uid)) {
+                                    transaction.update(userProfileRef, {
+                                        points: userPoints + entryFee
+                                    });
+                                }
+                                // Remove user from participants
+                                updatedParticipants = updatedParticipants.filter(uid => uid !== user.uid);
+
                             } else {
                                 // Selecting a new option or switching vote
                                 if (previousOptionId) {
@@ -426,12 +441,20 @@ document.addEventListener('DOMContentLoaded', () => {
                                 }
                                 updatedVotes[clickedOptionId] = (updatedVotes[clickedOptionId] || 0) + 1;
                                 transaction.set(userVoteRef, { selectedOption: clickedOptionId });
-                            }
 
-                            let updatedParticipants = [...participants];
+                                if (entryFee > 0 && !participants.includes(user.uid)) {
+                                    if (userPoints < entryFee) {
+                                        throw "Not enough points";
+                                    }
+                                    transaction.update(userProfileRef, {
+                                        points: userPoints - entryFee
+                                    });
+                                }
 
-                            if (!updatedParticipants.includes(user.uid)) {
-                                updatedParticipants.push(user.uid);
+                                // Add user to participants if not already there
+                                if (!updatedParticipants.includes(user.uid)) {
+                                    updatedParticipants.push(user.uid);
+                                }
                             }
 
                             transaction.update(quizRef, { 
