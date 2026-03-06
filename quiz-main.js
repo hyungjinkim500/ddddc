@@ -426,7 +426,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 updatedVotes[clickedOptionId] = Math.max(0, (updatedVotes[clickedOptionId] || 0) - 1);
                                 transaction.delete(userVoteRef);
 
-                                if (entryFee > 0 && participants.includes(user.uid)) {
+                                if (entryFee > 0 && previousOptionId) {
                                     transaction.update(userProfileRef, {
                                         points: userPoints + entryFee
                                     });
