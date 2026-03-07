@@ -394,10 +394,13 @@ function createQuizCard(quizId, quiz) {
       </div>
     `;
 
-    // Restore the template logic but keep it safe
     const template = document.getElementById('quiz-card-extra-template');
     if (template) {
         const clone = template.content.cloneNode(true);
+        const detailLink = clone.querySelector('.detail-link');
+        if (detailLink) {
+            detailLink.href = `quiz.html?id=${quizId}`;
+        }
         quizCard.appendChild(clone);
     } else {
         console.error('CRITICAL: quiz-card-extra-template not found!');
