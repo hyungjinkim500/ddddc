@@ -230,37 +230,41 @@ function generateParticipationRateHTML(quiz) {
     `;
 }
 
-
 async function restoreUserVotes(user) {
     const quizCards = document.querySelectorAll('[data-quiz-id]');
-    for (const card of quizCards) {
+    const votePromises = [];
+
+    quizCards.forEach(card => {
         const quizId = card.dataset.quizId;
         const userVoteRef = doc(db, `questions/${quizId}/userVotes/${user.uid}`);
-        
-        try {
-            const userVoteSnap = await getDoc(userVoteRef);
-            const buttons = card.querySelectorAll('.vote-option-btn');
 
-            // Reset all buttons first
-            buttons.forEach(btn => {
-                btn.classList.remove('opacity-50', 'ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', 'ring-emerald-400', 'ring-red-400', 'ring-slate-400');
-            });
+        votePromises.push(
+            getDoc(userVoteRef).then(userVoteSnap => {
+                const buttons = card.querySelectorAll('.vote-option-btn');
 
-            if (userVoteSnap.exists()) {
-                const selectedOptionId = userVoteSnap.data().selectedOption;
+                // Reset all buttons first
                 buttons.forEach(btn => {
-                    if (btn.dataset.optionId === selectedOptionId) {
-                        let ringColorClass = btn.classList.contains('bg-emerald-500') ? 'ring-emerald-400' : (btn.classList.contains('bg-red-500') ? 'ring-red-400' : 'ring-slate-400');
-                        btn.classList.add('ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', ringColorClass);
-                    } else {
-                        btn.classList.add('opacity-50');
-                    }
+                    btn.classList.remove('opacity-50', 'ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', 'ring-emerald-400', 'ring-red-400', 'ring-slate-400');
                 });
-            }
-        } catch (error) {
-            console.error(`Failed to restore vote for quiz ${quizId}:`, error);
-        }
-    }
+
+                if (userVoteSnap.exists()) {
+                    const selectedOptionId = userVoteSnap.data().selectedOption;
+                    buttons.forEach(btn => {
+                        if (btn.dataset.optionId === selectedOptionId) {
+                            let ringColorClass = btn.classList.contains('bg-emerald-500') ? 'ring-emerald-400' : (btn.classList.contains('bg-red-500') ? 'ring-red-400' : 'ring-slate-400');
+                            btn.classList.add('ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', ringColorClass);
+                        } else {
+                            btn.classList.add('opacity-50');
+                        }
+                    });
+                }
+            }).catch(error => {
+                console.error(`Failed to restore vote for quiz ${quizId}:`, error);
+            })
+        );
+    });
+
+    await Promise.all(votePromises);
 }
 
 // --- Like and Comment Functions ---
