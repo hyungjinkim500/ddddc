@@ -41,37 +41,60 @@ function loadQuizzes() {
 
   onSnapshot(q, 
     (snapshot) => {
-      // 1. Handle the case where there are no quizzes at all.
+      snapshot.docChanges().forEach((change, index) => {
+        console.log("Firestore change:", change.type, change.doc.id);
+
+        if (index === 0 && quizContainer.querySelector('p')?.textContent.includes('퀴즈를 불러오는 중입니다...')) {
+            quizContainer.innerHTML = '';
+        }
+
+        const quiz = change.doc.data();
+        const quizId = change.doc.id;
+        const user = auth.currentUser;
+
+        if (change.type === "added") {
+            const existingCard = document.querySelector(`[data-quiz-id="${quizId}"]`);
+            if (!existingCard) {
+                const quizCard = createQuizCard(quizId, quiz);
+                quizContainer.appendChild(quizCard);
+
+                if (quizCard.querySelector('.like-button')) {
+                  setupLikeListener(quizId, user ? user.uid : null);
+                }
+                if (quizCard.querySelector('.comment-toggle-button')) {
+                  setupCommentListener(quizId);
+                }
+            }
+        }
+
+        if (change.type === "modified") {
+            const existingCard = document.querySelector(`[data-quiz-id="${quizId}"]`);
+            if (existingCard) {
+                const newCard = createQuizCard(quizId, quiz);
+                quizContainer.replaceChild(newCard, existingCard);
+
+                if (newCard.querySelector('.like-button')) {
+                  setupLikeListener(quizId, user ? user.uid : null);
+                }
+                if (newCard.querySelector('.comment-toggle-button')) {
+                  setupCommentListener(quizId);
+                }
+            }
+        }
+
+        if (change.type === "removed") {
+            const existingCard = document.querySelector(`[data-quiz-id="${quizId}"]`);
+            if (existingCard) {
+                quizContainer.removeChild(existingCard);
+            }
+        }
+      });
+
       if (snapshot.empty) {
         quizContainer.innerHTML = `<p class="text-center text-slate-500 dark:text-slate-400">표시할 퀴즈가 없습니다.</p>`;
         return;
       }
 
-      // 2. Clear the container before re-rendering the entire list.
-      quizContainer.innerHTML = ""; 
-
-      // 3. Iterate over all documents in the snapshot and create cards.
-      snapshot.docs.forEach((doc) => {
-        console.log("RAW QUIZ DATA:", doc.id);
-        console.log("DATA OBJECT:", doc.data());
-        const quiz = doc.data();
-        const quizId = doc.id;
-
-        const quizCard = createQuizCard(quizId, quiz);
-        quizContainer.appendChild(quizCard);
-
-        // Setup listeners for the newly created card
-        const user = auth.currentUser;
-        // Safely check for elements before setting up listeners
-        if (quizCard.querySelector('.like-button')) {
-          setupLikeListener(quizId, user ? user.uid : null);
-        }
-        if (quizCard.querySelector('.comment-toggle-button')) {
-          setupCommentListener(quizId);
-        }
-      });
-
-      // After re-rendering all cards, restore user-specific states
       const user = auth.currentUser;
       if(user) {
         restoreUserVotes(user);
