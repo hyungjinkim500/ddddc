@@ -496,6 +496,11 @@ async function loadComments(quizId) {
     const snapshot = await getDocs(q);
     const auth = getAuth();
 
+    const commentCountEl = document.getElementById("comment-count");
+    if (commentCountEl) {
+        commentCountEl.textContent = snapshot.size;
+    }
+
     snapshot.forEach(docSnap => {
         const data = docSnap.data();
         const commentEl = document.createElement("div");
@@ -510,11 +515,30 @@ async function loadComments(quizId) {
             `;
         }
 
+        let timeText = "";
+        if (data.createdAt && data.createdAt.toDate) {
+            const created = data.createdAt.toDate();
+            const now = new Date();
+            const diff = Math.floor((now - created) / 1000);
+
+            if (diff < 60) {
+                timeText = "방금 전";
+            } else if (diff < 3600) {
+                timeText = Math.floor(diff / 60) + "분 전";
+            } else if (diff < 86400) {
+                timeText = Math.floor(diff / 3600) + "시간 전";
+            } else {
+                timeText = Math.floor(diff / 86400) + "일 전";
+            }
+        }
+
         commentEl.innerHTML = `
             <div class="flex justify-between items-start">
                 <div>
-                    <div class="text-slate-800">${data.text}</div>
-                    <div class="text-xs text-slate-400 mt-1">${data.nickname || "익명"}</div>
+                    <div class="text-slate-800 break-all">${data.text}</div>
+                    <div class="text-xs text-slate-400 mt-1">
+                        ${data.nickname || "익명"} · ${timeText}
+                    </div>
                 </div>
                 ${deleteButtonHTML}
             </div>
@@ -688,6 +712,18 @@ document.addEventListener('DOMContentLoaded', () => {
         loadComments(quizIdFromUrl);
 
         const commentInput = document.getElementById("comment-input");
+        if (commentInput) {
+            commentInput.addEventListener("keydown", async (e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    const submitBtn = document.getElementById("comment-submit");
+                    if (submitBtn) {
+                        submitBtn.click();
+                    }
+                }
+            });
+        }
+
         const commentSubmit = document.getElementById("comment-submit");
 
         if (commentSubmit) {
@@ -701,6 +737,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 const text = commentInput.value.trim();
+                if (text.length > 200) {
+                    alert("댓글은 200자 까지만 입력 가능합니다.");
+                    return;
+                }
                 if (!text) return;
 
                 const commentsRef = collection(db, "questions", quizIdFromUrl, "comments");
