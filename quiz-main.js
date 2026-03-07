@@ -596,31 +596,34 @@ async function loadComments(quizId) {
 
     commentList.querySelectorAll(".comment-reply").forEach(btn => {
         btn.addEventListener("click", () => {
-            const existingReplyBox = btn.parentElement.querySelector(".reply-input");
+            const existingReplyBox = btn.closest(".border").querySelector(".reply-input");
             if (existingReplyBox) {
-              existingReplyBox.parentElement.remove();
+              existingReplyBox.closest(".mt-2").remove();
               return;
             }
 
             const commentId = btn.dataset.commentId;
 
             const replyBox = document.createElement("div");
-            replyBox.className = "mt-2 ml-4 flex gap-2";
+            replyBox.style.width = "100%";
+            replyBox.className = "mt-2 w-full";
 
             replyBox.innerHTML = `
-                <input
-                    type="text"
-                    placeholder="답글을 입력하세요"
-                    class="reply-input flex-1 border rounded-lg px-3 py-1 text-sm"
-                />
-                <button
-                    class="reply-submit bg-sky-500 text-white px-3 py-1 rounded text-sm"
-                >
-                    작성
-                </button>
-            `;
+<div class="flex gap-2 w-full pr-2">
+<input
+ type="text"
+ placeholder="답글을 입력하세요"
+ class="reply-input flex-1 border rounded-lg px-3 py-1 text-sm"
+/>
+<button
+ class="reply-submit bg-sky-500 text-white px-3 py-1 rounded text-sm"
+>
+작성
+</button>
+</div>
+`;
 
-            btn.parentElement.appendChild(replyBox);
+            btn.closest(".border").appendChild(replyBox);
 
             const replyInput = replyBox.querySelector(".reply-input");
             const replySubmit = replyBox.querySelector(".reply-submit");
