@@ -2,6 +2,23 @@ import { auth, db } from './firebase-config.js';
 import { onAuthStateChanged, signOut, getAuth } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { collection, doc, runTransaction, onSnapshot, getDoc, setDoc, deleteDoc, addDoc, serverTimestamp, query, orderBy, limit } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
+const params = new URLSearchParams(window.location.search);
+const quizIdFromUrl = params.get("id");
+
+console.log("Quiz ID from URL:", quizIdFromUrl);
+
+if (quizIdFromUrl) {
+    const listContainer = document.getElementById("quiz-container");
+    if (listContainer) {
+        listContainer.style.display = "none";
+    }
+
+    const singleContainer = document.getElementById("single-quiz-container");
+    if (singleContainer) {
+        singleContainer.classList.remove("hidden");
+    }
+}
+
 const colorMap = {
   emerald: "bg-emerald-500 hover:bg-emerald-600",
   red: "bg-red-500 hover:bg-red-600",
@@ -65,6 +82,37 @@ function loadQuizzes() {
       quizContainer.innerHTML = `<p class="text-center text-red-500">퀴즈를 실시간으로 불러오는 중 오류가 발생했습니다. 개발자 콘솔을 확인해주세요.</p>`;
     }
   );
+}
+
+async function loadSingleQuiz(quizId) {
+    console.log("Loading single quiz:", quizId);
+
+    const container = document.getElementById("single-quiz-container");
+
+    if (!container) {
+        console.error("Single quiz container not found");
+        return;
+    }
+
+    const quizRef = doc(db, "questions", quizId);
+    const quizSnap = await getDoc(quizRef);
+
+    console.log("Quiz snapshot:", quizSnap);
+
+    if (!quizSnap.exists()) {
+        container.innerHTML = "<p class='text-center text-red-500'>퀴즈를 찾을 수 없습니다.</p>";
+        return;
+    }
+
+    const quiz = quizSnap.data();
+
+    console.log("Quiz data:", quiz);
+
+    container.innerHTML = "";
+
+    const quizCard = createQuizCard(quizId, quiz);
+
+    container.appendChild(quizCard);
 }
 
 function createQuizCard(quizId, quiz) {
@@ -332,7 +380,11 @@ async function handleLike(quizId) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    loadQuizzes();
+    if (quizIdFromUrl) {
+        loadSingleQuiz(quizIdFromUrl);
+    } else {
+        loadQuizzes();
+    }
 
     const quizContainer = document.getElementById('quiz-container');
     if (quizContainer) {
