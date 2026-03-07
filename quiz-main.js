@@ -501,7 +501,7 @@ async function loadComments(quizId) {
         commentCountEl.textContent = snapshot.size;
     }
 
-    snapshot.forEach(docSnap => {
+    for (const docSnap of snapshot.docs) {
         const data = docSnap.data();
         const commentEl = document.createElement("div");
         commentEl.className = "border rounded-lg p-3 text-sm";
@@ -539,12 +539,43 @@ async function loadComments(quizId) {
                     <div class="text-xs text-slate-400 mt-1">
                         ${data.nickname || "익명"} · ${timeText}
                     </div>
+                    <button 
+                      class="comment-reply text-xs text-sky-500 mt-1"
+                      data-comment-id="${docSnap.id}"
+                    >
+                    답글
+                    </button>
                 </div>
                 ${deleteButtonHTML}
             </div>
         `;
         commentList.appendChild(commentEl);
-    });
+
+        const repliesRef = collection(
+            db,
+            "questions",
+            quizId,
+            "comments",
+            docSnap.id,
+            "replies"
+        );
+
+        const repliesQuery = query(repliesRef, orderBy("createdAt", "asc"));
+        const repliesSnapshot = await getDocs(repliesQuery);
+
+        repliesSnapshot.forEach(replyDoc => {
+            const replyData = replyDoc.data();
+            const replyEl = document.createElement("div");
+            replyEl.className = "ml-6 mt-2 text-sm border-l-2 border-slate-200 pl-3";
+            replyEl.innerHTML = `
+                <div class="text-slate-800 break-all">${replyData.text}</div>
+                <div class="text-xs text-slate-400 mt-1">
+                    ${replyData.nickname || "익명"}
+                </div>
+            `;
+            commentEl.appendChild(replyEl);
+        });
+    }
 
     commentList.querySelectorAll(".comment-delete").forEach(btn => {
         btn.addEventListener("click", async () => {
@@ -552,6 +583,70 @@ async function loadComments(quizId) {
             const commentRef = doc(db, "questions", quizId, "comments", commentId);
             await deleteDoc(commentRef);
             await loadComments(quizId);
+        });
+    });
+
+    commentList.querySelectorAll(".comment-reply").forEach(btn => {
+        btn.addEventListener("click", () => {
+            const commentId = btn.dataset.commentId;
+
+            const replyBox = document.createElement("div");
+            replyBox.className = "mt-2 ml-4 flex gap-2";
+
+            replyBox.innerHTML = `
+                <input
+                    type="text"
+                    placeholder="답글을 입력하세요"
+                    class="reply-input flex-1 border rounded-lg px-3 py-1 text-sm"
+                />
+                <button
+                    class="reply-submit bg-sky-500 text-white px-3 py-1 rounded text-sm"
+                >
+                    작성
+                </button>
+            `;
+
+            btn.parentElement.appendChild(replyBox);
+
+            const replyInput = replyBox.querySelector(".reply-input");
+            const replySubmit = replyBox.querySelector(".reply-submit");
+
+            replySubmit.addEventListener("click", async () => {
+                const auth = getAuth();
+                const user = auth.currentUser;
+
+                if (!user) {
+                    alert("로그인이 필요합니다.");
+                    return;
+                }
+
+                const text = replyInput.value.trim();
+
+                if (!text) return;
+
+                if (text.length > 200) {
+                    alert("답글은 200자까지 입력 가능합니다.");
+                    return;
+                }
+
+                const repliesRef = collection(
+                    db,
+                    "questions",
+                    quizId,
+                    "comments",
+                    commentId,
+                    "replies"
+                );
+
+                await addDoc(repliesRef, {
+                    text: text,
+                    uid: user.uid,
+                    nickname: user.displayName || "익명",
+                    createdAt: serverTimestamp()
+                });
+
+                await loadComments(quizId);
+            });
         });
     });
 }
@@ -712,6 +807,15 @@ document.addEventListener('DOMContentLoaded', () => {
         loadComments(quizIdFromUrl);
 
         const commentInput = document.getElementById("comment-input");
+        const commentLength = document.getElementById("comment-length");
+
+        if (commentInput && commentLength) {
+            commentInput.addEventListener("input", () => {
+                const length = commentInput.value.length;
+                commentLength.textContent = length + " / 200";
+            });
+        }
+
         if (commentInput) {
             commentInput.addEventListener("keydown", async (e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
