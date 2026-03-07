@@ -1,6 +1,6 @@
 import { auth, db } from './firebase-config.js';
 import { onAuthStateChanged, signOut, getAuth } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { collection, doc, runTransaction, onSnapshot, getDoc, setDoc, deleteDoc, addDoc, serverTimestamp, query, orderBy, limit } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { collection, doc, runTransaction, onSnapshot, getDoc, setDoc, deleteDoc, addDoc, serverTimestamp, query, orderBy, limit, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const params = new URLSearchParams(window.location.search);
 const quizIdFromUrl = params.get("id");
@@ -485,6 +485,53 @@ async function restoreUserVotes(user) {
     await Promise.all(votePromises);
 }
 
+async function loadComments(quizId) {
+    const commentList = document.getElementById("comment-list");
+    if (!commentList) return;
+
+    commentList.innerHTML = "";
+
+    const commentsRef = collection(db, "questions", quizId, "comments");
+    const q = query(commentsRef, orderBy("createdAt", "desc"));
+    const snapshot = await getDocs(q);
+    const auth = getAuth();
+
+    snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        const commentEl = document.createElement("div");
+        commentEl.className = "border rounded-lg p-3 text-sm";
+
+        let deleteButtonHTML = "";
+        if (auth.currentUser && data.uid === auth.currentUser.uid) {
+            deleteButtonHTML = `
+                <button class="comment-delete text-xs text-red-500" data-comment-id="${docSnap.id}">
+                    삭제
+                </button>
+            `;
+        }
+
+        commentEl.innerHTML = `
+            <div class="flex justify-between items-start">
+                <div>
+                    <div class="text-slate-800">${data.text}</div>
+                    <div class="text-xs text-slate-400 mt-1">${data.nickname || "익명"}</div>
+                </div>
+                ${deleteButtonHTML}
+            </div>
+        `;
+        commentList.appendChild(commentEl);
+    });
+
+    commentList.querySelectorAll(".comment-delete").forEach(btn => {
+        btn.addEventListener("click", async () => {
+            const commentId = btn.dataset.commentId;
+            const commentRef = doc(db, "questions", quizId, "comments", commentId);
+            await deleteDoc(commentRef);
+            await loadComments(quizId);
+        });
+    });
+}
+
 // --- Like and Comment Functions ---
 
 function setupLikeListener(quizId, currentUserId) {
@@ -638,6 +685,38 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         loadSingleQuiz(quizIdFromUrl);
+        loadComments(quizIdFromUrl);
+
+        const commentInput = document.getElementById("comment-input");
+        const commentSubmit = document.getElementById("comment-submit");
+
+        if (commentSubmit) {
+            commentSubmit.addEventListener("click", async () => {
+                const auth = getAuth();
+                const user = auth.currentUser;
+
+                if (!user) {
+                    alert("로그인이 필요합니다.");
+                    return;
+                }
+
+                const text = commentInput.value.trim();
+                if (!text) return;
+
+                const commentsRef = collection(db, "questions", quizIdFromUrl, "comments");
+
+                await addDoc(commentsRef, {
+                    text: text,
+                    uid: user.uid,
+                    nickname: user.displayName || "익명",
+                    createdAt: serverTimestamp()
+                });
+
+                commentInput.value = "";
+
+                await loadComments(quizIdFromUrl);
+            });
+        }
     } else {
         loadQuizzes();
     }
