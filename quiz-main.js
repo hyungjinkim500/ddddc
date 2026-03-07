@@ -95,6 +95,108 @@ function loadQuizzes() {
   );
 }
 
+async function handleVote(quizId, optionId) {
+    const auth = getAuth();
+    const user = auth.currentUser;
+
+    if (!user) {
+        if (confirm("로그인이 필요합니다. 로그인하시겠습니까?")) {
+            openModal();
+        }
+        return;
+    }
+
+    try {
+        const quizRef = doc(db, "questions", quizId);
+        const userVoteRef = doc(db, "questions", quizId, "userVotes", user.uid);
+
+        await runTransaction(db, async (transaction) => {
+            const quizDoc = await transaction.get(quizRef);
+            if (!quizDoc.exists()) {
+                throw "Quiz document does not exist!";
+            }
+
+            const data = quizDoc.data();
+            const entryFee = data.entryFee || 0;
+            const participantLimit = data.participantLimit || 0;
+            const participants = data.participants || [];
+
+            const userProfileRef = doc(db, "userProfiles", user.uid);
+            const userProfileDoc = await transaction.get(userProfileRef);
+            const userPoints = userProfileDoc.data()?.points || 0;
+
+            if (participantLimit > 0 && participants.length >= participantLimit && !participants.includes(user.uid)) {
+                throw "Participant limit reached";
+            }
+
+            const userVoteDoc = await transaction.get(userVoteRef);
+            const voteData = data.vote ?? {};
+            const updatedVotes = { ...voteData };
+
+            let previousOptionId = null;
+            if (userVoteDoc.exists()) {
+                previousOptionId = userVoteDoc.data().selectedOption;
+            }
+
+            let updatedParticipants = [...participants];
+            const clickedOptionId = optionId;
+
+            if (previousOptionId === clickedOptionId) {
+                // Deselecting the same option
+                updatedVotes[clickedOptionId] = Math.max(0, (updatedVotes[clickedOptionId] || 0) - 1);
+                transaction.delete(userVoteRef);
+
+                if (entryFee > 0 && previousOptionId) {
+                    transaction.update(userProfileRef, {
+                        points: userPoints + entryFee
+                    });
+                }
+                // Remove user from participants
+                updatedParticipants = updatedParticipants.filter(uid => uid !== user.uid);
+
+            } else {
+                // Selecting a new option or switching vote
+                if (previousOptionId) {
+                    updatedVotes[previousOptionId] = Math.max(0, (updatedVotes[previousOptionId] || 0) - 1);
+                }
+                updatedVotes[clickedOptionId] = (updatedVotes[clickedOptionId] || 0) + 1;
+                transaction.set(userVoteRef, { selectedOption: clickedOptionId });
+
+                if (entryFee > 0 && !participants.includes(user.uid)) {
+                    if (userPoints < entryFee) {
+                        throw "Not enough points";
+                    }
+                    transaction.update(userProfileRef, {
+                        points: userPoints - entryFee
+                    });
+                }
+
+                // Add user to participants if not already there
+                if (!updatedParticipants.includes(user.uid)) {
+                    updatedParticipants.push(user.uid);
+                }
+            }
+
+            transaction.update(quizRef, { 
+                vote: updatedVotes,
+                participants: updatedParticipants
+            });
+        });
+
+        if (quizIdFromUrl) {
+            await loadSingleQuiz(quizIdFromUrl);
+        }
+
+        if (auth.currentUser) {
+            restoreUserVotes(auth.currentUser);
+        }
+
+    } catch (e) {
+        console.error("Transaction failed: ", e);
+        alert(`투표 처리 중 오류가 발생했습니다: ${e}`);
+    }
+}
+
 async function loadSingleQuiz(quizId) {
     console.log("Loading single quiz:", quizId);
 
@@ -136,8 +238,39 @@ async function loadSingleQuiz(quizId) {
             button.dataset.optionId = option.id;
             button.dataset.quizId = quizId;
             button.textContent = option.label;
+            button.addEventListener("click", async () => {
+                const quizId = button.dataset.quizId;
+                const optionId = button.dataset.optionId;
+
+                const allButtons = optionsContainer.querySelectorAll(".vote-option-btn");
+                allButtons.forEach(btn => {
+                    btn.classList.remove("ring-2","ring-emerald-500","ring-offset-2");
+                });
+                button.classList.add("ring-2","ring-emerald-500","ring-offset-2");
+
+                await handleVote(quizId, optionId);
+            });
             optionsContainer.appendChild(button);
         });
+
+        const auth = getAuth();
+        const user = auth.currentUser;
+
+        if (user) {
+            const voteRef = doc(db, "questions", quizId, "userVotes", user.uid);
+            const voteSnap = await getDoc(voteRef);
+
+            if (voteSnap.exists()) {
+                const selectedOption = voteSnap.data().selectedOption;
+                const selectedBtn = optionsContainer.querySelector(
+                    `[data-option-id="${selectedOption}"]`
+                );
+
+                if (selectedBtn) {
+                    selectedBtn.classList.add("ring-2","ring-emerald-500","ring-offset-2");
+                }
+            }
+        }
     }
 
     const resultsContainer = document.getElementById("detail-results");
