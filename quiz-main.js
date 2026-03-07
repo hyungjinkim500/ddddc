@@ -7,18 +7,6 @@ const quizIdFromUrl = params.get("id");
 
 console.log("Quiz ID from URL:", quizIdFromUrl);
 
-if (quizIdFromUrl) {
-    const listContainer = document.getElementById("quiz-container");
-    if (listContainer) {
-        listContainer.style.display = "none";
-    }
-
-    const singleContainer = document.getElementById("single-quiz-container");
-    if (singleContainer) {
-        singleContainer.classList.remove("hidden");
-    }
-}
-
 const colorMap = {
   emerald: "bg-emerald-500 hover:bg-emerald-600",
   red: "bg-red-500 hover:bg-red-600",
@@ -130,6 +118,103 @@ async function loadSingleQuiz(quizId) {
     const quiz = quizSnap.data();
 
     console.log("Quiz data:", quiz);
+
+    const titleElement = document.getElementById("detail-title");
+
+    if (titleElement && quiz.title) {
+        titleElement.textContent = quiz.title;
+    }
+
+    const optionsContainer = document.getElementById("detail-options");
+
+    if (optionsContainer && Array.isArray(quiz.options)) {
+        optionsContainer.innerHTML = "";
+        quiz.options.forEach((option) => {
+            const button = document.createElement("button");
+            button.className =
+                "vote-option-btn w-full text-left px-4 py-3 rounded-lg border border-slate-300 hover:bg-slate-50 transition";
+            button.dataset.optionId = option.id;
+            button.dataset.quizId = quizId;
+            button.textContent = option.label;
+            optionsContainer.appendChild(button);
+        });
+    }
+
+    const resultsContainer = document.getElementById("detail-results");
+
+    if (resultsContainer && Array.isArray(quiz.options)) {
+
+        resultsContainer.innerHTML = "";
+
+        const votes = quiz.vote || {};
+
+        const totalVotes = Object.values(votes).reduce((a, b) => a + b, 0);
+
+        quiz.options.forEach(option => {
+
+            const count = votes[option.id] || 0;
+
+            const percent = totalVotes === 0 ? 0 : Math.round((count / totalVotes) * 100);
+
+            const wrapper = document.createElement("div");
+            wrapper.className = "space-y-1";
+
+            const label = document.createElement("div");
+            label.className = "flex justify-between text-sm text-slate-600";
+
+            label.innerHTML = `
+                <span>${option.label}</span>
+                <span>${percent}% (${count})</span>
+            `;
+
+            const bar = document.createElement("div");
+            bar.className = "w-full bg-slate-200 rounded h-3";
+
+            const fill = document.createElement("div");
+            fill.className = "bg-emerald-500 h-3 rounded";
+            fill.style.width = percent + "%";
+
+            bar.appendChild(fill);
+
+            wrapper.appendChild(label);
+            wrapper.appendChild(bar);
+
+            resultsContainer.appendChild(wrapper);
+
+        });
+
+    }
+
+    const participationContainer = document.getElementById("detail-participation");
+
+    if (participationContainer) {
+
+        const participants = quiz.participants || [];
+
+        const maxParticipants = quiz.participantLimit || 0;
+
+        const current = participants.length;
+
+        const percent = maxParticipants === 0 ? 0 : Math.round((current / maxParticipants) * 100);
+
+        const bar = document.getElementById("participation-bar");
+        const text = document.getElementById("participation-text");
+
+        if (bar) {
+            bar.style.width = percent + "%";
+        }
+
+        if (text) {
+            text.textContent = `${current} / ${maxParticipants} 참여`;
+        }
+
+        if (maxParticipants === 0) {
+            participationContainer.classList.add("hidden");
+        } else {
+            participationContainer.classList.remove("hidden");
+        }
+
+    }
 
     container.innerHTML = "";
 
@@ -408,6 +493,17 @@ async function handleLike(quizId) {
 
 document.addEventListener('DOMContentLoaded', () => {
     if (quizIdFromUrl) {
+        const listContainer = document.getElementById("quiz-container");
+        const detailContainer = document.getElementById("quiz-detail-container");
+
+        if (listContainer) {
+            listContainer.style.display = "none";
+        }
+
+        if (detailContainer) {
+            detailContainer.classList.remove("hidden");
+        }
+
         loadSingleQuiz(quizIdFromUrl);
     } else {
         loadQuizzes();
