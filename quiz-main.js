@@ -573,13 +573,53 @@ async function loadComments(quizId) {
 
         repliesSnapshot.forEach(replyDoc => {
             const replyData = replyDoc.data();
+
+            let replyTimeText = "";
+            if (replyData.createdAt && replyData.createdAt.toDate) {
+              const created = replyData.createdAt.toDate();
+              const now = new Date();
+              const diff = Math.floor((now - created) / 1000);
+            
+              if (diff < 60) {
+                replyTimeText = "방금 전";
+              } else if (diff < 3600) {
+                replyTimeText = Math.floor(diff / 60) + "분 전";
+              } else if (diff < 86400) {
+                replyTimeText = Math.floor(diff / 3600) + "시간 전";
+              } else {
+                replyTimeText = Math.floor(diff / 86400) + "일 전";
+              }
+            }
+
             const replyEl = document.createElement("div");
             replyEl.className = "ml-6 mt-2 text-sm border-l-2 border-slate-200 pl-3";
+
+            let replyDeleteButtonHTML = "";
+
+            if (auth.currentUser && replyData.uid === auth.currentUser.uid) {
+              replyDeleteButtonHTML = `
+                <button
+                  class="reply-delete text-xs text-red-500"
+                  data-reply-id="${replyDoc.id}"
+                  data-comment-id="${docSnap.id}"
+                >
+                  삭제
+                </button>
+              `;
+            }
+
             replyEl.innerHTML = `
+            <div class="flex justify-between items-start">
+              <div>
                 <div class="text-slate-800 break-all">${replyData.text}</div>
                 <div class="text-xs text-slate-400 mt-1">
-                    ${replyData.nickname || "익명"}
+                  ${replyData.nickname || "익명"} · ${replyTimeText}
                 </div>
+              </div>
+            
+              ${replyDeleteButtonHTML}
+            
+            </div>
             `;
             repliesContainer.appendChild(replyEl);
         });
@@ -590,6 +630,28 @@ async function loadComments(quizId) {
             const commentId = btn.dataset.commentId;
             const commentRef = doc(db, "questions", quizId, "comments", commentId);
             await deleteDoc(commentRef);
+            await loadComments(quizId);
+        });
+    });
+
+    commentList.querySelectorAll(".reply-delete").forEach(btn => {
+        btn.addEventListener("click", async () => {
+    
+            const replyId = btn.dataset.replyId;
+            const commentId = btn.dataset.commentId;
+    
+            const replyRef = doc(
+                db,
+                "questions",
+                quizId,
+                "comments",
+                commentId,
+                "replies",
+                replyId
+            );
+    
+            await deleteDoc(replyRef);
+    
             await loadComments(quizId);
         });
     });
