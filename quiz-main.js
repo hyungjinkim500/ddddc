@@ -551,6 +551,10 @@ async function loadComments(quizId) {
         `;
         commentList.appendChild(commentEl);
 
+        const repliesContainer = document.createElement("div");
+        repliesContainer.className = "mt-2 hidden";
+        commentEl.appendChild(repliesContainer);
+
         const repliesRef = collection(
             db,
             "questions",
@@ -563,6 +567,10 @@ async function loadComments(quizId) {
         const repliesQuery = query(repliesRef, orderBy("createdAt", "asc"));
         const repliesSnapshot = await getDocs(repliesQuery);
 
+        if (!repliesSnapshot.empty) {
+          repliesContainer.classList.remove("hidden");
+        }
+
         repliesSnapshot.forEach(replyDoc => {
             const replyData = replyDoc.data();
             const replyEl = document.createElement("div");
@@ -573,7 +581,7 @@ async function loadComments(quizId) {
                     ${replyData.nickname || "익명"}
                 </div>
             `;
-            commentEl.appendChild(replyEl);
+            repliesContainer.appendChild(replyEl);
         });
     }
 
@@ -588,6 +596,12 @@ async function loadComments(quizId) {
 
     commentList.querySelectorAll(".comment-reply").forEach(btn => {
         btn.addEventListener("click", () => {
+            const existingReplyBox = btn.parentElement.querySelector(".reply-input");
+            if (existingReplyBox) {
+              existingReplyBox.parentElement.remove();
+              return;
+            }
+
             const commentId = btn.dataset.commentId;
 
             const replyBox = document.createElement("div");
