@@ -671,24 +671,45 @@ async function loadComments(quizId) {
             replyBox.className = "mt-2 w-full";
 
             replyBox.innerHTML = `
-<div class="flex gap-2 w-full pr-2">
-<input
- type="text"
- placeholder="답글을 입력하세요"
- class="reply-input flex-1 border rounded-lg px-3 py-1 text-sm"
-/>
-<button
- class="reply-submit bg-sky-500 text-white px-3 py-1 rounded text-sm"
->
-작성
-</button>
-</div>
-`;
+            <div class="w-full">
+              <div class="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="답글을 입력하세요"
+                  class="reply-input flex-1 border rounded-lg px-3 py-1 text-sm"
+                />
+                <button
+                  class="reply-submit bg-sky-500 text-white px-3 py-1 rounded text-sm"
+                >
+                  작성
+                </button>
+              </div>
+            
+              <div class="text-xs text-slate-400 mt-1 text-right reply-char-count">
+                0 / 200
+              </div>
+            </div>
+            `;
 
             btn.closest(".border").appendChild(replyBox);
 
             const replyInput = replyBox.querySelector(".reply-input");
             const replySubmit = replyBox.querySelector(".reply-submit");
+            const replyCharCount = replyBox.querySelector(".reply-char-count");
+
+            replyInput.addEventListener("input", () => {
+              const length = replyInput.value.length;
+            
+              if (replyCharCount) {
+                replyCharCount.textContent = `${length} / 200`;
+              }
+            
+              if (length > 200) {
+                replyCharCount.classList.add("text-red-500");
+              } else {
+                replyCharCount.classList.remove("text-red-500");
+              }
+            });
 
             replySubmit.addEventListener("click", async () => {
                 const auth = getAuth();
