@@ -109,6 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const title = form.title.value;
                 const description = form.description.value;
+                const category = form.category.value;
                 const optionInputs = form.querySelectorAll('input[name="option"]');
 
                 const filledOptions = Array.from(optionInputs).filter(input => input.value.trim() !== "");
@@ -177,6 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     await addDoc(collection(db, 'questions'), {
                         title: title,
                         description: description,
+                        category: category,
                         options: options,
                         createdAt: serverTimestamp(),
                         vote: {},
