@@ -1,11 +1,90 @@
 import { auth, db } from './firebase-config.js';
 import { onAuthStateChanged, signOut, getAuth } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { collection, doc, runTransaction, onSnapshot, getDoc, setDoc, deleteDoc, addDoc, serverTimestamp, query, orderBy, limit, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { collection, doc, runTransaction, onSnapshot, getDoc, setDoc, deleteDoc, addDoc, serverTimestamp, query, orderBy, limit, getDocs, where } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const params = new URLSearchParams(window.location.search);
 const quizIdFromUrl = params.get("id");
 
 console.log("Quiz ID from URL:", quizIdFromUrl);
+
+async function loadCategories() {
+    const q = query(
+        collection(db, "categories"),
+        orderBy("order")
+    );
+
+    const snapshot = await getDocs(q);
+
+    const categories = [];
+
+    snapshot.forEach(doc => {
+        categories.push({
+            id: doc.id,
+            ...doc.data()
+        });
+    });
+
+    console.log("Loaded categories:", categories);
+
+    return categories;
+}
+
+async function renderCategorySections() {
+    const categories = await loadCategories();
+    const container = document.getElementById("category-sections");
+    if (!container) return;
+
+    container.innerHTML = "";
+
+    for (const category of categories) {
+        const section = document.createElement("section");
+        section.className = "mb-12";
+
+        const title = document.createElement("h2");
+        title.className = "text-xl font-bold mb-4";
+        title.textContent = category.name + " 퀴즈";
+
+        const slider = document.createElement("div");
+        slider.className = "flex gap-4 overflow-x-auto pb-2 scrollbar-hide";
+        slider.id = "category-slider-" + category.id;
+
+        const quizzes = await loadQuizzesByCategory(category.id);
+        quizzes.forEach(quiz => {
+            const card = createQuizCard(quiz.id, quiz);
+            card.style.width = "300px";
+            card.style.flexShrink = "0";
+            slider.appendChild(card);
+        });
+
+        section.appendChild(title);
+        section.appendChild(slider);
+
+        container.appendChild(section);
+    }
+}
+
+async function loadQuizzesByCategory(categoryId) {
+    const q = query(
+      collection(db, "questions"),
+      where("category", "==", categoryId),
+      limit(6)
+    );
+  
+    const snapshot = await getDocs(q);
+  
+    const quizzes = [];
+  
+    snapshot.forEach(doc => {
+      quizzes.push({
+        id: doc.id,
+        ...doc.data()
+      });
+    });
+  
+    console.log("Loaded quizzes for category:", categoryId, quizzes.length);
+  
+    return quizzes;
+}
 
 const colorMap = {
   emerald: "bg-emerald-500 hover:bg-emerald-600",
@@ -966,6 +1045,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     } else {
         loadQuizzes();
+        renderCategorySections();
     }
 
     const quizContainer = document.getElementById('quiz-container');
