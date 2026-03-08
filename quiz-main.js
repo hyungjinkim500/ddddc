@@ -40,12 +40,32 @@ async function renderCategorySections() {
         const section = document.createElement("section");
         section.className = "mb-12";
 
+        const header = document.createElement("div");
+        header.className = "flex items-center justify-between mb-4";
+
         const title = document.createElement("h2");
-        title.className = "text-xl font-bold mb-4";
+        title.className = "text-xl font-bold";
         title.textContent = category.name + " 퀴즈";
 
+        const controls = document.createElement("div");
+        controls.className = "flex gap-2";
+
+        const leftBtn = document.createElement("button");
+        leftBtn.className = "slider-left w-8 h-8 rounded-full border flex items-center justify-center";
+        leftBtn.innerHTML = "‹";
+
+        const rightBtn = document.createElement("button");
+        rightBtn.className = "slider-right w-8 h-8 rounded-full border flex items-center justify-center";
+        rightBtn.innerHTML = "›";
+
+        controls.appendChild(leftBtn);
+        controls.appendChild(rightBtn);
+
+        header.appendChild(title);
+        header.appendChild(controls);
+
         const slider = document.createElement("div");
-        slider.className = "flex gap-4 overflow-x-auto pb-2 scrollbar-hide";
+        slider.className = "flex gap-4 overflow-hidden pb-2";
         slider.id = "category-slider-" + category.id;
 
         const quizzes = await loadQuizzesByCategory(category.id);
@@ -56,7 +76,27 @@ async function renderCategorySections() {
             slider.appendChild(card);
         });
 
-        section.appendChild(title);
+        let currentIndex = 0;
+        const moveStep = 2;
+        const cardWidth = 316;
+
+        rightBtn.onclick = () => {
+            currentIndex += moveStep;
+            slider.scrollTo({
+                left: currentIndex * cardWidth,
+                behavior: "smooth"
+            });
+        };
+
+        leftBtn.onclick = () => {
+            currentIndex = Math.max(0, currentIndex - moveStep);
+            slider.scrollTo({
+                left: currentIndex * cardWidth,
+                behavior: "smooth"
+            });
+        };
+
+        section.appendChild(header);
         section.appendChild(slider);
 
         container.appendChild(section);
@@ -67,7 +107,7 @@ async function loadQuizzesByCategory(categoryId) {
     const q = query(
       collection(db, "questions"),
       where("category", "==", categoryId),
-      limit(6)
+      limit(15)
     );
   
     const snapshot = await getDocs(q);
@@ -93,86 +133,6 @@ const colorMap = {
   yellow: "bg-yellow-400 hover:bg-yellow-500",
   sky: "bg-sky-400 hover:bg-sky-500"
 };
-
-function loadQuizzes() {
-  const quizContainer = document.getElementById("quiz-container");
-  if (!quizContainer) {
-    console.error("Critical: Quiz container element not found in HTML!");
-    return;
-  }
-
-  quizContainer.innerHTML = `<p class="text-center text-slate-500 dark:text-slate-400">퀴즈를 불러오는 중입니다...</p>`;
-
-  const collectionPath = "questions";
-  const q = collection(db, collectionPath);
-
-  onSnapshot(q, 
-    (snapshot) => {
-      snapshot.docChanges().forEach((change, index) => {
-        console.log("Firestore change:", change.type, change.doc.id);
-
-        if (index === 0 && quizContainer.querySelector('p')?.textContent.includes('퀴즈를 불러오는 중입니다...')) {
-            quizContainer.innerHTML = '';
-        }
-
-        const quiz = change.doc.data();
-        const quizId = change.doc.id;
-        const user = auth.currentUser;
-
-        if (change.type === "added") {
-            const existingCard = document.querySelector(`[data-quiz-id="${quizId}"]`);
-            if (!existingCard) {
-                const quizCard = createQuizCard(quizId, quiz);
-                quizContainer.appendChild(quizCard);
-
-                if (quizCard.querySelector('.like-button')) {
-                  setupLikeListener(quizId, user ? user.uid : null);
-                }
-                if (quizCard.querySelector('.comment-toggle-button')) {
-                  setupCommentListener(quizId);
-                }
-            }
-        }
-
-        if (change.type === "modified") {
-            const existingCard = document.querySelector(`[data-quiz-id="${quizId}"]`);
-            if (existingCard) {
-                const newCard = createQuizCard(quizId, quiz);
-                quizContainer.replaceChild(newCard, existingCard);
-
-                if (newCard.querySelector('.like-button')) {
-                  setupLikeListener(quizId, user ? user.uid : null);
-                }
-                if (newCard.querySelector('.comment-toggle-button')) {
-                  setupCommentListener(quizId);
-                }
-            }
-        }
-
-        if (change.type === "removed") {
-            const existingCard = document.querySelector(`[data-quiz-id="${quizId}"]`);
-            if (existingCard) {
-                quizContainer.removeChild(existingCard);
-            }
-        }
-      });
-
-      if (snapshot.empty) {
-        quizContainer.innerHTML = `<p class="text-center text-slate-500 dark:text-slate-400">표시할 퀴즈가 없습니다.</p>`;
-        return;
-      }
-
-      const user = auth.currentUser;
-      if(user) {
-        restoreUserVotes(user);
-      }
-    },
-    (error) => {
-      console.error("Realtime subscription error:", error);
-      quizContainer.innerHTML = `<p class="text-center text-red-500">퀴즈를 실시간으로 불러오는 중 오류가 발생했습니다. 개발자 콘솔을 확인해주세요.</p>`;
-    }
-  );
-}
 
 async function handleVote(quizId, optionId) {
     const auth = getAuth();
@@ -1044,11 +1004,10 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
     } else {
-        loadQuizzes();
         renderCategorySections();
     }
 
-    const quizContainer = document.getElementById('quiz-container');
+    const quizContainer = document.getElementById('category-sections');
     if (quizContainer) {
         quizContainer.addEventListener('click', (event) => {
             const voteButton = event.target.closest('.vote-option-btn');
