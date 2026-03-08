@@ -59,6 +59,15 @@
         .modal-overlay.show .modal-content { transform: translateY(0); }
         .modal-close-button { position: absolute; top: 1rem; right: 1rem; font-size: 1.5rem; line-height: 1; color: #9ca3af; cursor: pointer; border: none; background: none; }
         html.dark .modal-close-button { color: #6b7280; }
+
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
     </style>
 </head>
 <body class="transition-colors duration-300">
@@ -149,8 +158,14 @@
         </section>
 
 <section id="realtime-quiz-section" class="mb-12">
-  <h2 class="text-xl font-bold mb-4">실시간 퀴즈</h2>
-  <div id="realtime-quiz-slider" class="flex gap-4 overflow-x-auto"></div>
+    <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-bold">실시간 퀴즈</h2>
+        <div class="flex gap-2">
+            <button id="realtime-slider-left" class="w-8 h-8 rounded-full border flex items-center justify-center">‹</button>
+            <button id="realtime-slider-right" class="w-8 h-8 rounded-full border flex items-center justify-center">›</button>
+        </div>
+    </div>
+    <div id="realtime-slider" class="grid grid-rows-2 grid-flow-col gap-4 overflow-x-auto scrollbar-hide"></div>
 </section>
 
 <div id="category-sections" class="space-y-12"></div>
