@@ -1,6 +1,14 @@
 import { auth, db } from './firebase-config.js';
 import { onAuthStateChanged, signOut, getAuth } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { collection, doc, runTransaction, onSnapshot, getDoc, setDoc, deleteDoc, addDoc, serverTimestamp, query, orderBy, limit, getDocs, where } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { collection, doc, runTransaction, onSnapshot, getDoc, setDoc, deleteDoc, addDoc, serverTimestamp, query, orderBy, limit, getDocs, where, startAfter } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+const categoryPageState = {};
+
+const realtimePageState = {
+  lastDoc: null,
+  loading: false,
+  hasMore: true
+};
 
 const params = new URLSearchParams(window.location.search);
 const quizIdFromUrl = params.get("id");
@@ -70,22 +78,38 @@ async function renderCategorySections() {
 
         const quizzes = await loadQuizzesByCategory(category.id);
         quizzes.forEach(quiz => {
-            const card = createQuizCard(quiz.id, quiz);
-            card.style.width = "300px";
-            card.style.flexShrink = "0";
-            slider.appendChild(card);
+            if (!slider.querySelector(`[data-quiz-id="${quiz.id}"]`)) {
+                const card = createQuizCard(quiz.id, quiz);
+                card.dataset.quizId = quiz.id;
+                card.style.width = "300px";
+                card.style.flexShrink = "0";
+                slider.appendChild(card);
+            }
         });
 
         let currentIndex = 0;
         const moveStep = 2;
         const cardWidth = 316;
 
-        rightBtn.onclick = () => {
+        rightBtn.onclick = async () => {
             currentIndex += moveStep;
             slider.scrollTo({
                 left: currentIndex * cardWidth,
                 behavior: "smooth"
             });
+
+            if (slider.scrollLeft + slider.clientWidth >= slider.scrollWidth - 400 && categoryPageState[category.id].hasMore) {
+                const newQuizzes = await loadQuizzesByCategory(category.id);
+                newQuizzes.forEach(quiz => {
+                    if (!slider.querySelector(`[data-quiz-id="${quiz.id}"]`)) {
+                        const card = createQuizCard(quiz.id, quiz);
+                        card.dataset.quizId = quiz.id;
+                        card.style.width = "300px";
+                        card.style.flexShrink = "0";
+                        slider.appendChild(card);
+                    }
+                });
+            }
         };
 
         leftBtn.onclick = () => {
@@ -104,26 +128,122 @@ async function renderCategorySections() {
 }
 
 async function loadQuizzesByCategory(categoryId) {
-    const q = query(
-      collection(db, "questions"),
-      where("category", "==", categoryId),
-      limit(15)
-    );
-  
+    if (!categoryPageState[categoryId]) {
+        categoryPageState[categoryId] = {
+            lastDoc: null,
+            loading: false,
+            hasMore: true
+        };
+    }
+
+    const state = categoryPageState[categoryId];
+
+    if (state.loading || !state.hasMore) return [];
+
+    state.loading = true;
+
+    let q;
+    if (state.lastDoc) {
+        q = query(
+            collection(db, "questions"),
+            where("category", "==", categoryId),
+            startAfter(state.lastDoc),
+            limit(6)
+        );
+    } else {
+        q = query(
+            collection(db, "questions"),
+            where("category", "==", categoryId),
+            limit(6)
+        );
+    }
+
     const snapshot = await getDocs(q);
-  
+
     const quizzes = [];
-  
+
     snapshot.forEach(doc => {
-      quizzes.push({
-        id: doc.id,
-        ...doc.data()
-      });
+        quizzes.push({
+            id: doc.id,
+            ...doc.data()
+        });
     });
-  
+
+    if (snapshot.size < 6) {
+        state.hasMore = false;
+    }
+
+    if (snapshot.docs.length > 0) {
+        state.lastDoc = snapshot.docs[snapshot.docs.length - 1];
+    }
+
+    state.loading = false;
+
     console.log("Loaded quizzes for category:", categoryId, quizzes.length);
-  
+
     return quizzes;
+}
+
+async function loadRealtimeQuizzes() {
+    if (realtimePageState.loading || !realtimePageState.hasMore) return [];
+
+    realtimePageState.loading = true;
+
+    let q;
+    if (realtimePageState.lastDoc) {
+        q = query(
+            collection(db, "questions"),
+            orderBy("createdAt", "desc"),
+            startAfter(realtimePageState.lastDoc),
+            limit(8)
+        );
+    } else {
+        q = query(
+            collection(db, "questions"),
+            orderBy("createdAt", "desc"),
+            limit(8)
+        );
+    }
+
+    const snapshot = await getDocs(q);
+
+    const quizzes = [];
+
+    snapshot.forEach(doc => {
+        quizzes.push({
+            id: doc.id,
+            ...doc.data()
+        });
+    });
+
+    if (snapshot.size < 8) {
+        realtimePageState.hasMore = false;
+    }
+
+    if (snapshot.docs.length > 0) {
+        realtimePageState.lastDoc = snapshot.docs[snapshot.docs.length - 1];
+    }
+
+    realtimePageState.loading = false;
+
+    return quizzes;
+}
+
+async function renderRealtimeSection() {
+    const slider = document.getElementById("realtime-slider");
+    if (!slider) return;
+
+    const quizzes = await loadRealtimeQuizzes();
+
+    quizzes.forEach(quiz => {
+        if (!slider.querySelector(`[data-quiz-id="${quiz.id}"]`)) {
+            const card = createQuizCard(quiz.id, quiz);
+            card.dataset.quizId = quiz.id;
+            card.style.width = "300px";
+            card.style.flexShrink = "0";
+            slider.appendChild(card);
+        }
+    });
 }
 
 const colorMap = {
@@ -1005,6 +1125,46 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     } else {
         renderCategorySections();
+        renderRealtimeSection();
+
+        const realtimeSlider = document.getElementById('realtime-slider');
+        const realtimeLeftBtn = document.getElementById('realtime-slider-left');
+        const realtimeRightBtn = document.getElementById('realtime-slider-right');
+
+        if (realtimeSlider && realtimeLeftBtn && realtimeRightBtn) {
+            let currentIndex = 0;
+            const moveStep = 2;
+            const cardWidth = 316;
+
+            realtimeRightBtn.onclick = async () => {
+                currentIndex += moveStep;
+                realtimeSlider.scrollTo({
+                    left: currentIndex * cardWidth,
+                    behavior: "smooth"
+                });
+
+                if (realtimeSlider.scrollLeft + realtimeSlider.clientWidth >= realtimeSlider.scrollWidth - 400 && realtimePageState.hasMore) {
+                    const newQuizzes = await loadRealtimeQuizzes();
+                    newQuizzes.forEach(quiz => {
+                        if (!realtimeSlider.querySelector(`[data-quiz-id="${quiz.id}"]`)) {
+                            const card = createQuizCard(quiz.id, quiz);
+                            card.dataset.quizId = quiz.id;
+                            card.style.width = "300px";
+                            card.style.flexShrink = "0";
+                            realtimeSlider.appendChild(card);
+                        }
+                    });
+                }
+            };
+
+            realtimeLeftBtn.onclick = () => {
+                currentIndex = Math.max(0, currentIndex - moveStep);
+                realtimeSlider.scrollTo({
+                    left: currentIndex * cardWidth,
+                    behavior: "smooth"
+                });
+            };
+        }
     }
 
     const quizContainer = document.getElementById('category-sections');
