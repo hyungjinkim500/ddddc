@@ -195,6 +195,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         expiresAt: null,
                         resolvedAt: null,
                         views: 0,
+                        likesCount: 0,
+                        commentsCount: 0,
                         popularityScore: 0,
                         isSuper: quizType === "superquiz" ? true : false
                     });

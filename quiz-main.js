@@ -722,14 +722,8 @@ async function updatePopularityScore(quizId) {
 
     const quizData = quizSnap.data();
 
-    const likesCol = collection(db, "questions", quizId, "likes");
-    const commentsCol = collection(db, "questions",quizId, "comments");
-
-    const likesSnap = await getDocs(likesCol);
-    const commentsSnap = await getDocs(commentsCol);
-
-    const likes = likesSnap.size;
-    const comments = commentsSnap.size;
+    const likes = quizData.likesCount || 0;
+    const comments = quizData.commentsCount || 0;
     const views = quizData.views || 0;
     const votes = Object.values(quizData.vote || {}).reduce((sum, current) => sum + current, 0);
 
@@ -924,8 +918,11 @@ async function loadComments(quizId) {
         btn.addEventListener("click", async () => {
             const commentId = btn.dataset.commentId;
             const commentRef = doc(db, "questions", quizId, "comments", commentId);
+            const quizRef = doc(db, "questions", quizId);
             await deleteDoc(commentRef);
+            await updateDoc(quizRef, { commentsCount: increment(-1) });
             await loadComments(quizId);
+            await updatePopularityScore(quizId);
         });
     });
 
@@ -1057,25 +1054,26 @@ function setupLikeListener(quizId, currentUserId) {
     const likeCountSpan = quizCard.querySelector('.like-count');
     const likeIcon = likeButton.querySelector('i');
 
-    onSnapshot(collection(db, `questions/${quizId}/likes`), (snapshot) => {
-        if(likeCountSpan) likeCountSpan.textContent = snapshot.size;
+    onSnapshot(doc(db, "questions", quizId), async (docSnap) => {
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            if (likeCountSpan) likeCountSpan.textContent = data.likesCount || 0;
 
-        let userHasLiked = false;
-        if (currentUserId) {
-            snapshot.forEach(doc => {
-                if (doc.id === currentUserId) {
-                    userHasLiked = true;
+            let userHasLiked = false;
+            if (currentUserId) {
+                const likeRef = doc(db, `questions/${quizId}/likes`, currentUserId);
+                const userLikeSnap = await getDoc(likeRef);
+                userHasLiked = userLikeSnap.exists();
+            }
+
+            if (likeIcon) {
+                if (userHasLiked) {
+                    likeIcon.classList.remove('far', 'fa-heart');
+                    likeIcon.classList.add('fas', 'fa-heart', 'text-red-500');
+                } else {
+                    likeIcon.classList.remove('fas', 'fa-heart', 'text-red-500');
+                    likeIcon.classList.add('far', 'fa-heart');
                 }
-            });
-        }
-
-        if (likeIcon) {
-            if (userHasLiked) {
-                likeIcon.classList.remove('far', 'fa-heart');
-                likeIcon.classList.add('fas', 'fa-heart', 'text-red-500');
-            } else {
-                likeIcon.classList.remove('fas', 'fa-heart', 'text-red-500');
-                likeIcon.classList.add('far', 'fa-heart');
             }
         }
     });
@@ -1090,17 +1088,25 @@ function setupCommentListener(quizId) {
     if (!commentsList || !commentCountSpan) return;
 
     const commentsQuery = query(collection(db, `questions/${quizId}/comments`), orderBy('createdAt', 'desc'), limit(20));
-    onSnapshot(commentsQuery, (snapshot) => {
-        commentCountSpan.textContent = snapshot.size;
-        commentsList.innerHTML = ''; // Clear old comments
-        if (snapshot.empty) {
-            commentsList.innerHTML = `<p class="text-xs text-slate-400 dark:text-slate-500 text-center">아직 댓글이 없습니다.</p>`;
-        } else {
-            snapshot.forEach(doc => {
-                const comment = doc.data();
-                const commentElement = createCommentElement(doc.id, comment);
-                commentsList.appendChild(commentElement);
-            });
+
+    onSnapshot(doc(db, "questions", quizId), (docSnap) => {
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            if (commentCountSpan) commentCountSpan.textContent = data.commentsCount || 0;
+
+            (async () => {
+                const snapshot = await getDocs(commentsQuery);
+                commentsList.innerHTML = '';
+                if (snapshot.empty) {
+                    commentsList.innerHTML = `<p class="text-xs text-slate-400 dark:text-slate-500 text-center">아직 댓글이 없습니다.</p>`;
+                } else {
+                    snapshot.forEach(doc => {
+                        const comment = doc.data();
+                        const commentElement = createCommentElement(doc.id, comment);
+                        commentsList.appendChild(commentElement);
+                    });
+                }
+            })();
         }
     });
 }
@@ -1148,12 +1154,14 @@ async function handleCommentSubmit(e, quizId) {
     }
 
     try {
+        const quizRef = doc(db, `questions/${quizId}`);
         await addDoc(collection(db, `questions/${quizId}/comments`), {
             content: content,
             authorUid: user.uid,
             authorDisplayName: user.displayName || '익명',
             createdAt: serverTimestamp()
         });
+        await updateDoc(quizRef, { commentsCount: increment(1) });
         textarea.value = '';
         textarea.style.height = 'auto';
         await updatePopularityScore(quizId);
@@ -1170,16 +1178,19 @@ async function handleLike(quizId) {
         return;
     }
 
+    const quizRef = doc(db, "questions", quizId);
     const likeRef = doc(db, `questions/${quizId}/likes`, user.uid);
 
     try {
         const docSnap = await getDoc(likeRef);
         if (docSnap.exists()) {
             await deleteDoc(likeRef);
+            await updateDoc(quizRef, { likesCount: increment(-1) });
         } else {
             await setDoc(likeRef, {
                 createdAt: serverTimestamp()
             });
+            await updateDoc(quizRef, { likesCount: increment(1) });
         }
         await updatePopularityScore(quizId);
     } catch (error) {
@@ -1245,6 +1256,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!text) return;
 
                 const commentsRef = collection(db, "questions", quizIdFromUrl, "comments");
+                const quizRef = doc(db, "questions", quizIdFromUrl);
 
                 await addDoc(commentsRef, {
                     text: text,
@@ -1252,10 +1264,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     nickname: user.displayName || "익명",
                     createdAt: serverTimestamp()
                 });
+                await updateDoc(quizRef, { commentsCount: increment(1) });
 
                 commentInput.value = "";
 
                 await loadComments(quizIdFromUrl);
+                await updatePopularityScore(quizIdFromUrl);
             });
         }
     } else {
