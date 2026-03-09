@@ -500,19 +500,69 @@ async function handleVote(quizId, optionId) {
 }
 
 async function loadSingleQuiz(quizId) {
-    if (DEBUG) console.log("Loading single quiz:", quizId);
+    const container = document.getElementById("quiz-detail-container");
+    if (!container) return;
 
-    const container = document.getElementById("single-quiz-container");
-
-    if (!container) {
-        if (DEBUG) console.error("Single quiz container not found");
-        return;
+    // Ensure stable UI structure
+    if (!document.getElementById("detail-title")) {
+        const title = document.createElement("div");
+        title.id = "detail-title";
+        container.appendChild(title);
+    }
+    if (!document.getElementById("detail-description")) {
+        const description = document.createElement("div");
+        description.id = "detail-description";
+        container.appendChild(description);
+    }
+    if (!document.getElementById("detail-participation")) {
+        const participation = document.createElement("div");
+        participation.id = "detail-participation";
+        const bar = document.createElement("div");
+        bar.id = "participation-bar";
+        const text = document.createElement("div");
+        text.id = "participation-text";
+        participation.appendChild(bar);
+        participation.appendChild(text);
+        container.appendChild(participation);
+    }
+    if (!document.getElementById("detail-results")) {
+        const results = document.createElement("div");
+        results.id = "detail-results";
+        container.appendChild(results);
+    }
+    if (!document.getElementById("detail-options")) {
+        const options = document.createElement("div");
+        options.id = "detail-options";
+        container.appendChild(options);
+    }
+    if (!document.getElementById("detail-actions")) {
+        const actions = document.createElement("div");
+        actions.id = "detail-actions";
+        const likeButton = document.createElement("button");
+        likeButton.id = "detail-like-button";
+        const shareButton = document.createElement("button");
+        shareButton.id = "detail-share-button";
+        actions.appendChild(likeButton);
+        actions.appendChild(shareButton);
+        container.appendChild(actions);
+    }
+    if (!document.getElementById("comments-section")) {
+        const comments = document.createElement("div");
+        comments.id = "comments-section";
+        const input = document.createElement("input");
+        input.id = "comment-input";
+        const submit = document.createElement("button");
+        submit.id = "comment-submit";
+        const list = document.createElement("div");
+        list.id = "comment-list";
+        comments.appendChild(input);
+        comments.appendChild(submit);
+        comments.appendChild(list);
+        container.appendChild(comments);
     }
 
     const quizRef = doc(db, "questions", quizId);
     const quizSnap = await getDoc(quizRef);
-
-    if (DEBUG) console.log("Quiz snapshot:", quizSnap);
 
     if (!quizSnap.exists()) {
         container.innerHTML = "<p class='text-center text-red-500'>퀴즈를 찾을 수 없습니다.</p>";
@@ -528,141 +578,107 @@ async function loadSingleQuiz(quizId) {
 
     const quiz = quizSnap.data();
 
-    if (DEBUG) console.log("Quiz data:", quiz);
-
     const titleElement = document.getElementById("detail-title");
-
-    if (titleElement && quiz.title) {
+    if (titleElement) {
         titleElement.textContent = quiz.title;
     }
 
-    const optionsContainer = document.getElementById("detail-options");
+    const descriptionElement = document.getElementById("detail-description");
+    if (descriptionElement) {
+        descriptionElement.textContent = quiz.description;
+    }
 
+    const optionsContainer = document.getElementById("detail-options");
     if (optionsContainer && Array.isArray(quiz.options)) {
         optionsContainer.innerHTML = "";
         quiz.options.forEach((option) => {
             const button = document.createElement("button");
-            button.className =
-                "vote-option-btn w-full text-left px-4 py-3 rounded-lg border border-slate-300 hover:bg-slate-50 transition";
+            button.className = "vote-option-btn w-full text-left px-4 py-3 rounded-lg border border-slate-300 hover:bg-slate-50 transition";
             button.dataset.optionId = option.id;
             button.dataset.quizId = quizId;
             button.textContent = option.label;
             button.addEventListener("click", async () => {
-                const quizId = button.dataset.quizId;
-                const optionId = button.dataset.optionId;
-
                 const allButtons = optionsContainer.querySelectorAll(".vote-option-btn");
                 allButtons.forEach(btn => {
-                    btn.classList.remove("ring-2","ring-emerald-500","ring-offset-2");
+                    btn.classList.remove("ring-2", "ring-emerald-500", "ring-offset-2");
                 });
-                button.classList.add("ring-2","ring-emerald-500","ring-offset-2");
-
-                await handleVote(quizId, optionId);
+                button.classList.add("ring-2", "ring-emerald-500", "ring-offset-2");
+                await handleVote(quizId, option.id);
             });
             optionsContainer.appendChild(button);
         });
-
-        const auth = getAuth();
-        const user = auth.currentUser;
-
-        if (user) {
-            const voteRef = doc(db, "questions", quizId, "userVotes", user.uid);
-            const voteSnap = await getDoc(voteRef);
-
-            if (voteSnap.exists()) {
-                const selectedOption = voteSnap.data().selectedOption;
-                const selectedBtn = optionsContainer.querySelector(
-                    `[data-option-id="${selectedOption}"]`
-                );
-
-                if (selectedBtn) {
-                    selectedBtn.classList.add("ring-2","ring-emerald-500","ring-offset-2");
-                }
-            }
-        }
     }
 
     const resultsContainer = document.getElementById("detail-results");
-
     if (resultsContainer && Array.isArray(quiz.options)) {
-
         resultsContainer.innerHTML = "";
-
         const votes = quiz.vote || {};
-
         const totalVotes = Object.values(votes).reduce((a, b) => a + b, 0);
-
         quiz.options.forEach(option => {
-
             const count = votes[option.id] || 0;
-
             const percent = totalVotes === 0 ? 0 : Math.round((count / totalVotes) * 100);
-
             const wrapper = document.createElement("div");
             wrapper.className = "space-y-1";
-
             const label = document.createElement("div");
             label.className = "flex justify-between text-sm text-slate-600";
-
             label.innerHTML = `
                 <span>${option.label}</span>
                 <span>${percent}% (${count})</span>
             `;
-
             const bar = document.createElement("div");
             bar.className = "w-full bg-slate-200 rounded h-3";
-
             const fill = document.createElement("div");
             fill.className = "bg-emerald-500 h-3 rounded";
             fill.style.width = percent + "%";
-
             bar.appendChild(fill);
-
             wrapper.appendChild(label);
             wrapper.appendChild(bar);
-
             resultsContainer.appendChild(wrapper);
-
         });
-
     }
 
     const participationContainer = document.getElementById("detail-participation");
-
     if (participationContainer) {
-
         const participants = quiz.participants || [];
-
         const maxParticipants = quiz.participantLimit || 0;
-
         const current = participants.length;
-
         const percent = maxParticipants === 0 ? 0 : Math.round((current / maxParticipants) * 100);
-
         const bar = document.getElementById("participation-bar");
-        const text = document.getElementById("participation-text");
-
         if (bar) {
             bar.style.width = percent + "%";
         }
-
+        const text = document.getElementById("participation-text");
         if (text) {
             text.textContent = `${current} / ${maxParticipants} 참여`;
         }
-
         if (maxParticipants === 0) {
             participationContainer.classList.add("hidden");
         } else {
             participationContainer.classList.remove("hidden");
         }
-
     }
 
-    container.innerHTML = "";
+    const auth = getAuth();
+    if (auth.currentUser) {
+        restoreUserVotes(auth.currentUser);
+    }
+    
+    const likeButton = document.getElementById("detail-like-button");
+    if(likeButton) {
+        likeButton.onclick = () => handleLike(quizId);
+    }
 
-    const quizCard = createQuizCard(quizId, quiz);
-
-    container.appendChild(quizCard);
+    const shareButton = document.getElementById("detail-share-button");
+    if(shareButton) {
+        shareButton.onclick = () => {
+            const url = window.location.href;
+            navigator.clipboard.writeText(url).then(() => {
+                alert("퀴즈 링크가 복사되었습니다!");
+            }, () => {
+                alert("링크 복사에 실패했습니다.");
+            });
+        };
+    }
 }
 
 function formatTimeAgo(timestamp) {
@@ -813,6 +829,7 @@ async function updatePopularityScore(quizId) {
 }
 
 async function restoreUserVotes(user) {
+    if (!user) return;
     const quizCards = document.querySelectorAll('[data-quiz-id]');
     const votePromises = [];
 
@@ -826,15 +843,14 @@ async function restoreUserVotes(user) {
 
                 // Reset all buttons first
                 buttons.forEach(btn => {
-                    btn.classList.remove('opacity-50', 'ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', 'ring-emerald-400', 'ring-red-400', 'ring-slate-400');
+                    btn.classList.remove('opacity-50', 'ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', 'ring-emerald-400', 'ring-red-400', 'ring-slate-400', 'ring-emerald-500');
                 });
 
                 if (userVoteSnap.exists()) {
                     const selectedOptionId = userVoteSnap.data().selectedOption;
                     buttons.forEach(btn => {
                         if (btn.dataset.optionId === selectedOptionId) {
-                            let ringColorClass = btn.classList.contains('bg-emerald-500') ? 'ring-emerald-400' : (btn.classList.contains('bg-red-500') ? 'ring-red-400' : 'ring-slate-400');
-                            btn.classList.add('ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', ringColorClass);
+                             btn.classList.add('ring-2', 'ring-offset-2', 'ring-emerald-500');
                         } else {
                             btn.classList.add('opacity-50');
                         }
@@ -1284,17 +1300,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (quizIdFromUrl) {
-        document.querySelector('.quiz-layout').style.gridTemplateColumns = '1fr';
-        document.getElementById('right-widget-area').style.display = 'none';
-        document.getElementById('quiz-content-area').innerHTML = ''; 
+        const superQuizSection = document.getElementById("super-quiz-section");
+        if (superQuizSection) superQuizSection.style.display = "none";
+        const popularQuizSection = document.getElementById("popular-quiz-section");
+        if (popularQuizSection) popularQuizSection.style.display = "none";
+        const realtimeQuizSection = document.getElementById("realtime-quiz-section");
+        if (realtimeQuizSection) realtimeQuizSection.style.display = "none";
+        const categorySections = document.getElementById("category-sections");
+        if (categorySections) categorySections.style.display = "none";
+        const rightWidgetArea = document.getElementById("right-widget-area");
+        if (rightWidgetArea) rightWidgetArea.style.display = "none";
+        const quizContainer = document.getElementById("quiz-container");
+        if (quizContainer) quizContainer.style.display = "none";
 
         const detailContainer = document.getElementById("quiz-detail-container");
         if (detailContainer) {
             detailContainer.classList.remove("hidden");
-            document.getElementById('quiz-content-area').appendChild(detailContainer);
-        } else {
-             document.getElementById('quiz-content-area').innerHTML = '<p>Error: Detail container not found</p>';
-        }
+        } 
 
         loadSingleQuiz(quizIdFromUrl);
         loadComments(quizIdFromUrl);
@@ -1744,20 +1766,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const userPoints = document.getElementById('user-points');
 
         if (user) {
-            loginButton.classList.add('hidden');
-            logoutButton.classList.remove('hidden');
-            userProfileInfo.classList.remove('hidden');
-            userProfileInfo.classList.add('flex');
+            if(loginButton) loginButton.classList.add('hidden');
+            if(logoutButton) logoutButton.classList.remove('hidden');
+            if(userProfileInfo) userProfileInfo.classList.remove('hidden');
+            if(userProfileInfo) userProfileInfo.classList.add('flex');
 
             const userRef = doc(db, "userProfiles", user.uid);
             onSnapshot(userRef, (doc) => {
                 if (doc.exists()) {
                     const userData = doc.data();
-                    userNickname.textContent = userData.displayName || "사용자";
-                    userPoints.textContent = `${userData.points || 0} P`;
+                    if(userNickname) userNickname.textContent = userData.displayName || "사용자";
+                    if(userPoints) userPoints.textContent = `${userData.points || 0} P`;
                 } else {
-                    userNickname.textContent = user.displayName || "사용자";
-                    userPoints.textContent = "0 P";
+                    if(userNickname) userNickname.textContent = user.displayName || "사용자";
+                    if(userPoints) userPoints.textContent = "0 P";
                 }
             });
             restoreUserVotes(user);
@@ -1771,13 +1793,13 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
         } else {
-            loginButton.classList.remove('hidden');
-            logoutButton.classList.add('hidden');
-            userProfileInfo.classList.add('hidden');
-            userProfileInfo.classList.remove('flex');
+            if(loginButton) loginButton.classList.remove('hidden');
+            if(logoutButton) logoutButton.classList.add('hidden');
+            if(userProfileInfo) userProfileInfo.classList.add('hidden');
+            if(userProfileInfo) userProfileInfo.classList.remove('flex');
 
             document.querySelectorAll('.vote-option-btn').forEach(btn => {
-                btn.classList.remove('opacity-50', 'ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', 'ring-emerald-400', 'ring-red-400', 'ring-slate-400');
+                btn.classList.remove('opacity-50', 'ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', 'ring-emerald-400', 'ring-red-400', 'ring-slate-400', 'ring-emerald-500');
             });
 
             document.querySelectorAll('.comment-form-container').forEach(container => {
