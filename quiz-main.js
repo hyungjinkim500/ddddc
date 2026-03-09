@@ -546,9 +546,22 @@ async function loadSingleQuiz(quizId) {
         actions.appendChild(shareButton);
         container.appendChild(actions);
     }
+    if (!document.getElementById("detail-like-count")) {
+        const likeCount = document.createElement("span");
+        likeCount.id = "detail-like-count";
+        const actions = document.getElementById("detail-actions");
+        if(actions) actions.appendChild(likeCount);
+    }
+
     if (!document.getElementById("comments-section")) {
         const comments = document.createElement("div");
         comments.id = "comments-section";
+
+        const commentHeader = document.createElement('div');
+        commentHeader.className = 'flex items-center gap-2 mb-2';
+        commentHeader.innerHTML = '<span>댓글</span><span id="comment-count" class="text-sm text-slate-500"></span>';
+        comments.appendChild(commentHeader);
+
         const input = document.createElement("input");
         input.id = "comment-input";
         const submit = document.createElement("button");
@@ -661,11 +674,41 @@ async function loadSingleQuiz(quizId) {
     const auth = getAuth();
     if (auth.currentUser) {
         restoreUserVotes(auth.currentUser);
+        const likeRef = doc(db, `questions/${quizId}/likes`, auth.currentUser.uid);
+        const userLikeSnap = await getDoc(likeRef);
+        const outline = document.getElementById("like-icon-outline");
+        const filled = document.getElementById("like-icon-filled");
+        if (outline && filled) {
+            if (userLikeSnap.exists()) {
+                outline.classList.add("hidden");
+                filled.classList.remove("hidden");
+            } else {
+                outline.classList.remove("hidden");
+                filled.classList.add("hidden");
+            }
+        }
     }
     
     const likeButton = document.getElementById("detail-like-button");
     if(likeButton) {
+        likeButton.innerHTML = '<svg id="like-icon-outline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"/></svg><svg id="like-icon-filled" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 text-red-500 hidden"><path d="M12 21s-8.5-4.6-8.5-11.1C3.5 6.4 5.9 4 8.8 4c1.9 0 3.6 1 4.2 2.6C13.6 5 15.3 4 17.2 4 20.1 4 22.5 6.4 22.5 9.9 22.5 16.4 12 21 12 21z"/></svg>';
+        likeButton.className = "px-3 py-1 rounded bg-slate-200 hover:bg-slate-300 transition";
         likeButton.onclick = () => handleLike(quizId);
+    }
+
+    const likeCountEl = document.getElementById("detail-like-count");
+    if (likeCountEl) {
+        likeCountEl.textContent = quiz.likesCount || 0;
+    }
+
+    const commentCountEl = document.getElementById("comment-count");
+    if (commentCountEl) {
+      commentCountEl.textContent = `(${quiz.commentsCount || 0})`;
+    }
+
+    const likeCount = document.getElementById("detail-like-count");
+    if (likeCount) {
+        likeCount.className = "ml-2 text-sm text-slate-600";
     }
 
     const shareButton = document.getElementById("detail-share-button");
@@ -1269,15 +1312,26 @@ async function handleLike(quizId) {
         return;
     }
 
+    const outline = document.getElementById("like-icon-outline");
+    const filled = document.getElementById("like-icon-filled");
+    
     const quizRef = doc(db, "questions", quizId);
     const likeRef = doc(db, `questions/${quizId}/likes`, user.uid);
 
     try {
         const docSnap = await getDoc(likeRef);
         if (docSnap.exists()) {
+            if (outline && filled) {
+                outline.classList.remove("hidden");
+                filled.classList.add("hidden");
+            }
             await deleteDoc(likeRef);
             await updateDoc(quizRef, { likesCount: increment(-1) });
         } else {
+            if (outline && filled) {
+                outline.classList.add("hidden");
+                filled.classList.remove("hidden");
+            }
             await setDoc(likeRef, {
                 createdAt: serverTimestamp()
             });
