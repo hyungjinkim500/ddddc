@@ -68,6 +68,18 @@
             -ms-overflow-style: none;
             scrollbar-width: none;
         }
+
+        .super-quiz-layout{
+          display:grid;
+          grid-template-columns: 1fr 320px;
+          gap:24px;
+          align-items:start;
+        }
+        @media (max-width: 1024px) {
+            .super-quiz-layout {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body class="transition-colors duration-300">
@@ -126,36 +138,37 @@
     </div>
 </header>
 
-    <main class="container mx-auto px-4 sm:px-6 py-8 md:py-12">
-        <div id="search-section" class="mb-10 grid grid-cols-3 gap-6">
-
-          <input
-            id="quiz-search-input"
-            type="text"
-            placeholder="검색어를 입력하세요"
-            class="w-full px-4 py-3 rounded-lg border border-slate-300"
-          />
-        
-          <div id="popular-keywords" class="flex flex-wrap gap-2">
-            <span class="px-3 py-1 bg-slate-100 rounded-full text-sm">비트코인</span>
-            <span class="px-3 py-1 bg-slate-100 rounded-full text-sm">미국대선</span>
-          </div>
-        
-          <div id="ad-container" class="border border-slate-300 rounded-lg h-24 flex items-center justify-center text-sm text-slate-400">
-            광고 영역
-          </div>
-        
-        </div>
-
+<main class="container mx-auto px-4 sm:px-6 py-8 md:py-12">
+    <div id="quiz-content-area">
         <section id="super-quiz-section" class="mb-12">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="text-xl font-bold">인기 슈퍼퀴즈</h2>
-                <div class="flex gap-2">
-                    <button id="super-slider-left" class="w-8 h-8 rounded-full border flex items-center justify-center">‹</button>
-                    <button id="super-slider-right" class="w-8 h-8 rounded-full border flex items-center justify-center">›</button>
+            <div class="super-quiz-layout">
+                <div class="super-quiz-left">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-xl font-bold">인기 슈퍼퀴즈</h2>
+                        <div class="flex gap-2">
+                            <button id="super-slider-left" class="w-8 h-8 rounded-full border flex items-center justify-center">‹</button>
+                            <button id="super-slider-right" class="w-8 h-8 rounded-full border flex items-center justify-center">›</button>
+                        </div>
+                    </div>
+                    <div id="super-quiz-slider" class="flex gap-4 overflow-hidden"></div>
+                </div>
+                <div id="right-widget-area" class="space-y-6">
+                    <div id="search-widget">
+                        <input id="search-input" type="text" placeholder="검색어를 입력하세요" class="w-full px-4 py-3 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-teal transition">
+                    </div>
+                    <div id="trending-keywords-container">
+                         <h3 class="font-bold text-lg mb-3">인기 키워드</h3>
+                         <div id="trending-keywords" class="flex flex-wrap gap-2">
+                            <!-- Keywords will be loaded here -->
+                         </div>
+                    </div>
+                    <div id="right-ad">
+                        <div class="h-48 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center text-slate-400">
+                            Ad Placeholder
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div id="super-quiz-slider" class="flex gap-4 overflow-hidden"></div>
         </section>
 
         <section id="popular-quiz-section" class="mb-12">
@@ -169,18 +182,18 @@
             <div id="popular-quiz-slider" class="flex gap-4 overflow-hidden"></div>
         </section>
 
-<section id="realtime-quiz-section" class="mb-12">
-    <div class="flex items-center justify-between mb-4">
-        <h2 class="text-xl font-bold">실시간 퀴즈</h2>
-        <div class="flex gap-2">
-            <button id="realtime-slider-left" class="w-8 h-8 rounded-full border flex items-center justify-center">‹</button>
-            <button id="realtime-slider-right" class="w-8 h-8 rounded-full border flex items-center justify-center">›</button>
-        </div>
-    </div>
-    <div id="realtime-slider" class="grid grid-rows-2 grid-flow-col gap-4 overflow-x-auto scrollbar-hide"></div>
-</section>
+        <section id="realtime-quiz-section" class="mb-12">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold">실시간 퀴즈</h2>
+                <div class="flex gap-2">
+                    <button id="realtime-slider-left" class="w-8 h-8 rounded-full border flex items-center justify-center">‹</button>
+                    <button id="realtime-slider-right" class="w-8 h-8 rounded-full border flex items-center justify-center">›</button>
+                </div>
+            </div>
+            <div id="realtime-slider" class="grid grid-rows-2 grid-flow-col gap-4 overflow-x-auto scrollbar-hide"></div>
+        </section>
 
-<div id="category-sections" class="space-y-12"></div>
+        <div id="category-sections" class="space-y-12"></div>
 
         <div id="quiz-container" class="space-y-4">
         </div>
@@ -227,7 +240,8 @@
               <div id="comment-list" class="space-y-3 mb-4"></div>
             </div>
         </div>
-    </main>
+    </div>
+</main>
 
     <!-- Template for Quiz Card Actions & Comments -->
     <template id="quiz-card-extra-template">

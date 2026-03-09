@@ -4,6 +4,8 @@ import { collection, doc, runTransaction, onSnapshot, getDoc, setDoc, deleteDoc,
 
 const categoryPageState = {};
 
+const DEBUG = false;
+
 const realtimePageState = {
   lastDoc: null,
   loading: false,
@@ -13,7 +15,48 @@ const realtimePageState = {
 const params = new URLSearchParams(window.location.search);
 const quizIdFromUrl = params.get("id");
 
-console.log("Quiz ID from URL:", quizIdFromUrl);
+if (DEBUG) console.log("Quiz ID from URL:", quizIdFromUrl);
+
+async function handleSearch(keyword) {
+    const trimmedKeyword = keyword.trim();
+    if (trimmedKeyword) {
+        try {
+            const logRef = doc(db, "searchLogs", trimmedKeyword);
+            await setDoc(logRef, { 
+                keyword: trimmedKeyword,
+                count: increment(1)
+            }, { merge: true });
+        } catch (error) {
+            console.error("Error logging search:", error);
+        }
+        window.location.href = `search.html?q=${encodeURIComponent(trimmedKeyword)}`;
+    }
+}
+
+async function loadTrendingKeywords() {
+    const container = document.getElementById("trending-keywords");
+    if (!container) return;
+
+    try {
+        const q = query(collection(db, "searchLogs"), orderBy("count", "desc"), limit(10));
+        const snapshot = await getDocs(q);
+
+        container.innerHTML = ""; 
+
+        snapshot.forEach(doc => {
+            const keyword = doc.data().keyword;
+            const button = document.createElement("button");
+            button.className = "text-sm bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full hover:bg-teal hover:text-white transition";
+            button.textContent = `#${keyword}`;
+            button.onclick = () => handleSearch(keyword);
+            container.appendChild(button);
+        });
+
+    } catch (error) {
+        console.error("Error loading trending keywords:", error);
+    }
+}
+
 
 async function loadCategories() {
     const q = query(
@@ -32,7 +75,7 @@ async function loadCategories() {
         });
     });
 
-    console.log("Loaded categories:", categories);
+    if (DEBUG) console.log("Loaded categories:", categories);
 
     return categories;
 }
@@ -179,7 +222,7 @@ async function loadQuizzesByCategory(categoryId) {
 
     state.loading = false;
 
-    console.log("Loaded quizzes for category:", categoryId, quizzes.length);
+    if (DEBUG) console.log("Loaded quizzes for category:", categoryId, quizzes.length);
 
     return quizzes;
 }
@@ -437,19 +480,19 @@ async function handleVote(quizId, optionId) {
 }
 
 async function loadSingleQuiz(quizId) {
-    console.log("Loading single quiz:", quizId);
+    if (DEBUG) console.log("Loading single quiz:", quizId);
 
     const container = document.getElementById("single-quiz-container");
 
     if (!container) {
-        console.error("Single quiz container not found");
+        if (DEBUG) console.error("Single quiz container not found");
         return;
     }
 
     const quizRef = doc(db, "questions", quizId);
     const quizSnap = await getDoc(quizRef);
 
-    console.log("Quiz snapshot:", quizSnap);
+    if (DEBUG) console.log("Quiz snapshot:", quizSnap);
 
     if (!quizSnap.exists()) {
         container.innerHTML = "<p class='text-center text-red-500'>퀴즈를 찾을 수 없습니다.</p>";
@@ -465,7 +508,7 @@ async function loadSingleQuiz(quizId) {
 
     const quiz = quizSnap.data();
 
-    console.log("Quiz data:", quiz);
+    if (DEBUG) console.log("Quiz data:", quiz);
 
     const titleElement = document.getElementById("detail-title");
 
@@ -616,8 +659,8 @@ function formatTimeAgo(timestamp) {
     return `${Math.floor(diff / 86400)}일 전`;
 }
 
-function createQuizCard(quizId, quiz) {
-    console.log("createQuizCard RUNNING for:", quizId);
+export function createQuizCard(quizId, quiz) {
+    if(DEBUG) console.log("createQuizCard RUNNING for:", quizId);
 
     // Defensive code for options
     if (!quiz.options || !Array.isArray(quiz.options)) {
@@ -631,7 +674,7 @@ function createQuizCard(quizId, quiz) {
     const isSuper = quiz.isSuper === true;
     
     const borderColorClass = isSuper ? 'border-purple-500' : 'border-black';
-    quizCard.className = `bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 flex flex-col justify-between w-full max-w-4xl mx-auto mb-4 border ${borderColorClass} hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200`;
+    quizCard.className = `bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 flex flex-col justify-between w-full max-w-4xl mx-auto mb-4 border ${borderColorClass} hover:shadow-lg hover:-translate-y-0.5 transform-gpu transition-all duration-200`;
     
     quizCard.style.minHeight = '140px';
 
@@ -1211,16 +1254,26 @@ async function handleLike(quizId) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) {
+        searchInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                handleSearch(searchInput.value);
+            }
+        });
+    }
+
     if (quizIdFromUrl) {
-        const listContainer = document.getElementById("quiz-container");
+        document.querySelector('.quiz-layout').style.gridTemplateColumns = '1fr';
+        document.getElementById('right-widget-area').style.display = 'none';
+        document.getElementById('quiz-content-area').innerHTML = ''; 
+
         const detailContainer = document.getElementById("quiz-detail-container");
-
-        if (listContainer) {
-            listContainer.style.display = "none";
-        }
-
         if (detailContainer) {
             detailContainer.classList.remove("hidden");
+            document.getElementById('quiz-content-area').appendChild(detailContainer);
+        } else {
+             document.getElementById('quiz-content-area').innerHTML = '<p>Error: Detail container not found</p>';
         }
 
         loadSingleQuiz(quizIdFromUrl);
@@ -1284,11 +1337,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 await updatePopularityScore(quizIdFromUrl);
             });
         }
+    } else if (window.location.pathname.includes('search.html')) {
+        // Search page logic is handled by its own inline script
     } else {
         renderCategorySections();
         renderRealtimeSection();
         renderSuperQuizSection();
         renderPopularQuizSection();
+        loadTrendingKeywords();
 
         const realtimeSlider = document.getElementById('realtime-slider');
         const realtimeLeftBtn = document.getElementById('realtime-slider-left');
@@ -1382,9 +1438,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    const quizContainer = document.getElementById('category-sections');
-    if (quizContainer) {
-        quizContainer.addEventListener('click', (event) => {
+    const quizContentArea = document.getElementById('quiz-content-area');
+    if(quizContentArea) {
+        quizContentArea.addEventListener('click', (event) => {
             const voteButton = event.target.closest('.vote-option-btn');
             const likeButton = event.target.closest('.like-button');
             const commentToggleButton = event.target.closest('.comment-toggle-button');
