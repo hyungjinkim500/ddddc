@@ -602,6 +602,20 @@ async function loadSingleQuiz(quizId) {
     container.appendChild(quizCard);
 }
 
+function formatTimeAgo(timestamp) {
+    if (!timestamp || !timestamp.toDate) return "";
+
+    const now = new Date();
+    const past = timestamp.toDate();
+    const diff = Math.floor((now - past) / 1000);
+
+    if (diff < 60) return `${diff}초 전`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}분 전`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}시간 전`;
+
+    return `${Math.floor(diff / 86400)}일 전`;
+}
+
 function createQuizCard(quizId, quiz) {
     console.log("createQuizCard RUNNING for:", quizId);
 
@@ -612,90 +626,88 @@ function createQuizCard(quizId, quiz) {
     }
 
     const quizCard = document.createElement("div");
-    quizCard.className = "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm overflow-hidden w-full max-w-4xl mx-auto mb-4";
     quizCard.dataset.quizId = quizId;
 
-    quizCard.innerHTML = `
-      <div class="quiz-header p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 cursor-pointer">
-          <div class="flex items-center gap-4">
-              <i class="arrow-icon fas fa-chevron-down text-slate-400 transition-transform duration-300"></i>
-              <h3 class="font-bold text-lg sm:text-xl leading-snug text-slate-900 dark:text-white">${quiz.title}</h3>
-          </div>
-          <div class="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">${
-              quiz.options.map(option => `
-                  <button 
-                      class="vote-option-btn w-full sm:w-auto px-4 py-2 rounded-lg text-white font-semibold transition-all hover:opacity-90 ${colorMap[option.color] || 'bg-slate-500 hover:bg-slate-600'}"
-                      data-option-id="${option.id}"
-                  >
-                      ${option.label}
-                  </button>
-              `).join('')
-          }</div>
+    const isSuper = quiz.isSuper === true;
+    
+    const borderColorClass = isSuper ? 'border-purple-500' : 'border-black';
+    quizCard.className = `bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 flex flex-col justify-between w-full max-w-4xl mx-auto mb-4 border ${borderColorClass} hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200`;
+    
+    quizCard.style.minHeight = '140px';
+
+    const avatarName = quiz.creatorName || "User";
+    const creatorHTML = isSuper ? `
+      <div class="flex items-center gap-2 mb-2">
+          <img class="w-6 h-6 rounded-full" src="${quiz.creatorAvatar || `https://ui-avatars.com/api/?name=${avatarName}`}" alt="${avatarName}">
+          <span class="text-sm font-semibold text-slate-700 dark:text-slate-300">${avatarName}</span>
       </div>
-      <div class="quiz-body max-h-0 overflow-hidden transition-all duration-500 ease-in-out">
-          <div class="px-6 pb-6 pt-0">
-              <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">${quiz.description || ''}</p>
-              ${generateParticipationRateHTML(quiz)}
+    ` : '';
+    
+    const participationHTML = () => {
+      if (!isSuper) return '';
+      const participants = quiz.participants || [];
+      const maxParticipants = quiz.participantLimit || 0;
+      if (maxParticipants === 0) return '';
+      
+      const percent = Math.min(100, Math.round((participants.length / maxParticipants) * 100));
+
+      return `
+        <div class="participation-progress mt-3">
+          <div class="flex justify-between text-xs text-slate-500 mb-1">
+            <span class="font-semibold">참여 현황</span>
+            <span>${participants.length} / ${maxParticipants}</span>
           </div>
+          <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+            <div class="bg-purple-500 h-2 rounded-full" style="width: ${percent}%"></div>
+          </div>
+        </div>
+      `;
+    }
+
+    const optionsHTML = quiz.options.map(option => `
+        <button 
+            class="vote-option-btn flex-1 px-3 py-2 text-sm rounded-md font-semibold transition-all hover:opacity-90 ${colorMap[option.color] || 'bg-slate-500 hover:bg-slate-600'} text-white"
+            data-option-id="${option.id}"
+        >
+            ${option.label}
+        </button>
+    `).join('');
+
+    quizCard.innerHTML = `
+      <div>
+        ${creatorHTML}
+        <a href="quiz.html?id=${quizId}" class="quiz-title-link">
+            <h3 class="quiz-title font-bold text-slate-900 dark:text-white hover:underline truncate">${quiz.title}</h3>
+        </a>
+        <p class="quiz-desc text-sm text-slate-500 dark:text-slate-400 truncate mt-1">${quiz.description || ''}</p>
+      </div>
+
+      <div class="my-3 space-y-2">
+        <div class="quiz-options flex flex-wrap gap-2">
+            ${optionsHTML}
+        </div>
+        ${participationHTML()}
+      </div>
+
+      <div class="quiz-meta flex items-center gap-4 text-slate-500 dark:text-slate-400 mt-auto pt-2 border-t border-slate-200 dark:border-slate-700">
+          <button class="like-button flex items-center gap-1.5 hover:text-red-500 transition-colors">
+              <i class="far fa-heart text-base"></i>
+              <span class="like-count font-medium text-xs">${quiz.likesCount || 0}</span>
+          </button>
+          <a href="quiz.html?id=${quizId}#comments" class="comment-button flex items-center gap-1.5 hover:text-sky-500 transition-colors">
+              <i class="far fa-comment text-base"></i>
+              <span class="comment-count font-medium text-xs">${quiz.commentsCount ?? 0}</span>
+          </a>
+          <span class="time text-xs ml-auto">${formatTimeAgo(quiz.createdAt)}</span>
+          <button class="share-button hover:text-teal transition-colors">
+              <i class="fas fa-share-alt"></i>
+          </button>
       </div>
     `;
-
-    const template = document.getElementById('quiz-card-extra-template');
-    if (template) {
-        const clone = template.content.cloneNode(true);
-        const detailLink = clone.querySelector('.detail-link');
-        if (detailLink) {
-            detailLink.href = `quiz.html?id=${quizId}`;
-        }
-        quizCard.appendChild(clone);
-    } else {
-        console.error('CRITICAL: quiz-card-extra-template not found!');
-        const debugDiv = document.createElement("div");
-        debugDiv.style.background = "red";
-        debugDiv.style.color = "white";
-        debugDiv.style.padding = "10px";
-        debugDiv.innerText = "DEBUG: TEMPLATE NOT FOUND!";
-        quizCard.appendChild(debugDiv);
-    }
 
     return quizCard;
 }
 
-function generateParticipationRateHTML(quiz) {
-    // Defensive code for options
-    if (!quiz.options || !Array.isArray(quiz.options)) {
-        quiz.options = [];
-    }
-
-    const voteData = quiz.vote ?? {};
-    const initialVotes = {};
-    quiz.options.forEach(option => {
-        initialVotes[option.id] = voteData[option.id] || 0;
-    });
-
-    const totalVotes = Object.values(initialVotes).reduce((sum, val) => sum + val, 0);
-
-    const barSegments = quiz.options.map(option => {
-        const percentage = totalVotes > 0 ? (initialVotes[option.id] / totalVotes) * 100 : 0;
-        return `<div class="${colorMap[option.color] || 'bg-slate-500'} h-2.5" style="width: ${percentage.toFixed(1)}%"></div>`;
-    }).join('');
-
-    const percentageTexts = quiz.options.map(option => {
-        const percentage = totalVotes > 0 ? ((initialVotes[option.id] / totalVotes) * 100).toFixed(1) : "0.0";
-        return `<span class="font-bold text-${option.color}-500">${option.label}: ${percentage}%</span>`;
-    }).join('');
-
-    return `
-        <div class="participation-rate mt-4" data-votes='${JSON.stringify(initialVotes)}'>
-            <div class="multi-bar w-full flex rounded-full overflow-hidden bg-slate-200 dark:bg-slate-700 h-2.5">
-                ${barSegments}
-            </div>
-            <div class="percentage-row text-xs text-slate-500 dark:text-slate-400 mt-2 flex justify-between">
-                ${percentageTexts}
-            </div>
-        </div>
-    `;
-}
 
 function calculatePopularityScore(data) {
   const likes = data.likes || 0;
