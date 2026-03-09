@@ -193,7 +193,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         hasCorrectAnswer: false,
                         correctOption: null,
                         expiresAt: null,
-                        resolvedAt: null
+                        resolvedAt: null,
+                        views: 0,
+                        popularityScore: 0,
+                        isSuper: quizType === "superquiz" ? true : false
                     });
 
                     const newPoints = points - cost;

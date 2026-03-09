@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>퀴즈 | 딩동댕닷컴</title>
+    <title>퀴즈 | 집단지성 플랫폼 <픽스> </title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="tailwind.config.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -76,7 +76,7 @@
     <div class="w-full border-b border-slate-200 dark:border-slate-700 py-2 text-sm">
       <div class="container mx-auto px-4 flex items-center">
         <a href="quiz.html" class="font-semibold text-slate-400 dark:text-slate-500 hover:underline">
-          최고의 선택이 모인 집단지성 플랫폼<픽스>
+          공평한 한표가 최고의 선택을 만든다. 집단지성 플랫폼 <픽스>
         </a>
       </div>
     </div>
@@ -148,13 +148,25 @@
         </div>
 
         <section id="super-quiz-section" class="mb-12">
-          <h2 class="text-xl font-bold mb-4">인기 슈퍼퀴즈</h2>
-          <div id="super-quiz-slider" class="flex gap-4 overflow-x-auto"></div>
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold">인기 슈퍼퀴즈</h2>
+                <div class="flex gap-2">
+                    <button id="super-slider-left" class="w-8 h-8 rounded-full border flex items-center justify-center">‹</button>
+                    <button id="super-slider-right" class="w-8 h-8 rounded-full border flex items-center justify-center">›</button>
+                </div>
+            </div>
+            <div id="super-quiz-slider" class="flex gap-4 overflow-hidden"></div>
         </section>
 
         <section id="popular-quiz-section" class="mb-12">
-          <h2 class="text-xl font-bold mb-4">인기 퀴즈</h2>
-          <div id="popular-quiz-slider" class="flex gap-4 overflow-x-auto"></div>
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold">인기 퀴즈</h2>
+                <div class="flex gap-2">
+                    <button id="popular-slider-left" class="w-8 h-8 rounded-full border flex items-center justify-center">‹</button>
+                    <button id="popular-slider-right" class="w-8 h-8 rounded-full border flex items-center justify-center">›</button>
+                </div>
+            </div>
+            <div id="popular-quiz-slider" class="flex gap-4 overflow-hidden"></div>
         </section>
 
 <section id="realtime-quiz-section" class="mb-12">

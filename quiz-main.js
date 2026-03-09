@@ -1,6 +1,6 @@
 import { auth, db } from './firebase-config.js';
 import { onAuthStateChanged, signOut, getAuth } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { collection, doc, runTransaction, onSnapshot, getDoc, setDoc, deleteDoc, addDoc, serverTimestamp, query, orderBy, limit, getDocs, where, startAfter } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { collection, doc, runTransaction, onSnapshot, getDoc, setDoc, deleteDoc, addDoc, serverTimestamp, query, orderBy, limit, getDocs, where, startAfter, updateDoc, increment } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const categoryPageState = {};
 
@@ -246,6 +246,84 @@ async function renderRealtimeSection() {
     });
 }
 
+async function loadPopularSuperQuizzes() {
+    const q = query(
+        collection(db, "questions"),
+        where("isSuper", "==", true),
+        orderBy("popularityScore", "desc"),
+        limit(24)
+    );
+
+    const snapshot = await getDocs(q);
+
+    const quizzes = [];
+
+    snapshot.forEach(doc => {
+        quizzes.push({
+            id: doc.id,
+            ...doc.data()
+        });
+    });
+
+    return quizzes;
+}
+
+async function renderSuperQuizSection() {
+    const slider = document.getElementById("super-quiz-slider");
+    if (!slider) return;
+
+    const quizzes = await loadPopularSuperQuizzes();
+
+    quizzes.forEach(quiz => {
+        if (!slider.querySelector(`[data-quiz-id="${quiz.id}"]`)) {
+            const card = createQuizCard(quiz.id, quiz);
+            card.dataset.quizId = quiz.id;
+            card.style.width = "300px";
+            card.style.flexShrink = "0";
+            slider.appendChild(card);
+        }
+    });
+}
+
+async function loadPopularQuizzes() {
+    const q = query(
+        collection(db, "questions"),
+        where("isSuper", "==", false),
+        orderBy("popularityScore", "desc"),
+        limit(24)
+    );
+
+    const snapshot = await getDocs(q);
+
+    const quizzes = [];
+
+    snapshot.forEach(doc => {
+        quizzes.push({
+            id: doc.id,
+            ...doc.data()
+        });
+    });
+
+    return quizzes;
+}
+
+async function renderPopularQuizSection() {
+    const slider = document.getElementById("popular-quiz-slider");
+    if (!slider) return;
+
+    const quizzes = await loadPopularQuizzes();
+
+    quizzes.forEach(quiz => {
+        if (!slider.querySelector(`[data-quiz-id="${quiz.id}"]`)) {
+            const card = createQuizCard(quiz.id, quiz);
+            card.dataset.quizId = quiz.id;
+            card.style.width = "300px";
+            card.style.flexShrink = "0";
+            slider.appendChild(card);
+        }
+    });
+}
+
 const colorMap = {
   emerald: "bg-emerald-500 hover:bg-emerald-600",
   red: "bg-red-500 hover:bg-red-600",
@@ -342,6 +420,8 @@ async function handleVote(quizId, optionId) {
             });
         });
 
+        await updatePopularityScore(quizId);
+
         if (quizIdFromUrl) {
             await loadSingleQuiz(quizIdFromUrl);
         }
@@ -374,6 +454,13 @@ async function loadSingleQuiz(quizId) {
     if (!quizSnap.exists()) {
         container.innerHTML = "<p class='text-center text-red-500'>퀴즈를 찾을 수 없습니다.</p>";
         return;
+    }
+
+    if (sessionStorage.getItem("viewed_" + quizId) !== "true") {
+        await updateDoc(quizRef, {
+            views: increment(1)
+        });
+        sessionStorage.setItem("viewed_" + quizId, "true");
     }
 
     const quiz = quizSnap.data();
@@ -608,6 +695,52 @@ function generateParticipationRateHTML(quiz) {
             </div>
         </div>
     `;
+}
+
+function calculatePopularityScore(data) {
+  const likes = data.likes || 0;
+  const votes = data.votes || 0;
+  const comments = data.comments || 0;
+  const views = data.views || 0;
+
+  return (
+    likes * 1 +
+    votes * 2 +
+    comments * 0.5 +
+    views * 0.01
+  );
+}
+
+async function updatePopularityScore(quizId) {
+    const quizRef = doc(db, "questions", quizId);
+    const quizSnap = await getDoc(quizRef);
+
+    if (!quizSnap.exists()) {
+        console.error(`Quiz with ID ${quizId} not found.`);
+        return;
+    }
+
+    const quizData = quizSnap.data();
+
+    const likesCol = collection(db, "questions", quizId, "likes");
+    const commentsCol = collection(db, "questions",quizId, "comments");
+
+    const likesSnap = await getDocs(likesCol);
+    const commentsSnap = await getDocs(commentsCol);
+
+    const likes = likesSnap.size;
+    const comments = commentsSnap.size;
+    const views = quizData.views || 0;
+    const votes = Object.values(quizData.vote || {}).reduce((sum, current) => sum + current, 0);
+
+    const popularityScore = calculatePopularityScore({
+        likes,
+        votes,
+        comments,
+        views
+    });
+
+    await updateDoc(quizRef, { popularityScore });
 }
 
 async function restoreUserVotes(user) {
@@ -1023,6 +1156,7 @@ async function handleCommentSubmit(e, quizId) {
         });
         textarea.value = '';
         textarea.style.height = 'auto';
+        await updatePopularityScore(quizId);
     } catch (error) {
         console.error("Error adding comment: ", error);
         alert('댓글 등록에 실패했습니다.');
@@ -1047,6 +1181,7 @@ async function handleLike(quizId) {
                 createdAt: serverTimestamp()
             });
         }
+        await updatePopularityScore(quizId);
     } catch (error) {
         console.error("Error toggling like: ", error);
     }
@@ -1126,6 +1261,8 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
         renderCategorySections();
         renderRealtimeSection();
+        renderSuperQuizSection();
+        renderPopularQuizSection();
 
         const realtimeSlider = document.getElementById('realtime-slider');
         const realtimeLeftBtn = document.getElementById('realtime-slider-left');
@@ -1160,6 +1297,58 @@ document.addEventListener('DOMContentLoaded', () => {
             realtimeLeftBtn.onclick = () => {
                 currentIndex = Math.max(0, currentIndex - moveStep);
                 realtimeSlider.scrollTo({
+                    left: currentIndex * cardWidth,
+                    behavior: "smooth"
+                });
+            };
+        }
+
+        const superSlider = document.getElementById("super-quiz-slider");
+        const superLeft = document.getElementById("super-slider-left");
+        const superRight = document.getElementById("super-slider-right");
+
+        if (superSlider && superLeft && superRight) {
+            let currentIndex = 0;
+            const moveStep = 2;
+            const cardWidth = 316;
+
+            superRight.onclick = () => {
+                currentIndex += moveStep;
+                superSlider.scrollTo({
+                    left: currentIndex * cardWidth,
+                    behavior: "smooth"
+                });
+            };
+
+            superLeft.onclick = () => {
+                currentIndex = Math.max(0, currentIndex - moveStep);
+                superSlider.scrollTo({
+                    left: currentIndex * cardWidth,
+                    behavior: "smooth"
+                });
+            };
+        }
+
+        const popularSlider = document.getElementById("popular-quiz-slider");
+        const popularLeft = document.getElementById("popular-slider-left");
+        const popularRight = document.getElementById("popular-slider-right");
+
+        if (popularSlider && popularLeft && popularRight) {
+            let currentIndex = 0;
+            const moveStep = 2;
+            const cardWidth = 316;
+
+            popularRight.onclick = () => {
+                currentIndex += moveStep;
+                popularSlider.scrollTo({
+                    left: currentIndex * cardWidth,
+                    behavior: "smooth"
+                });
+            };
+
+            popularLeft.onclick = () => {
+                currentIndex = Math.max(0, currentIndex - moveStep);
+                popularSlider.scrollTo({
                     left: currentIndex * cardWidth,
                     behavior: "smooth"
                 });
@@ -1295,6 +1484,8 @@ document.addEventListener('DOMContentLoaded', () => {
                                 participants: updatedParticipants
                             });
                         });
+
+                        await updatePopularityScore(card.dataset.quizId);
 
                         if (auth.currentUser) {
                             restoreUserVotes(auth.currentUser);
