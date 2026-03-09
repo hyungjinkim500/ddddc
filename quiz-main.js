@@ -315,17 +315,37 @@ async function renderSuperQuizSection() {
     const slider = document.getElementById("super-quiz-slider");
     if (!slider) return;
 
-    const quizzes = await loadPopularSuperQuizzes();
+    slider.innerHTML = ''; // Clear previous content
 
-    quizzes.forEach(quiz => {
-        if (!slider.querySelector(`[data-quiz-id="${quiz.id}"]`)) {
+    const quizzes = await loadPopularSuperQuizzes();
+    const pageSize = 4;
+
+    const leftBtn = document.getElementById('super-slider-left');
+    const rightBtn = document.getElementById('super-slider-right');
+
+    if (quizzes.length === 0) {
+        slider.innerHTML = '<p class="text-center text-slate-500 w-full">인기 슈퍼퀴즈가 없습니다.</p>';
+        if(leftBtn) leftBtn.style.display = 'none';
+        if(rightBtn) rightBtn.style.display = 'none';
+        return;
+    }
+
+    if(leftBtn) leftBtn.style.display = 'flex';
+    if(rightBtn) rightBtn.style.display = 'flex';
+
+    for (let i = 0; i < quizzes.length; i += pageSize) {
+        const page = document.createElement("div");
+        page.className = "super-quiz-page";
+
+        const chunk = quizzes.slice(i, i + pageSize);
+
+        chunk.forEach(quiz => {
             const card = createQuizCard(quiz.id, quiz);
-            card.dataset.quizId = quiz.id;
-            card.style.width = "300px";
-            card.style.flexShrink = "0";
-            slider.appendChild(card);
-        }
-    });
+            page.appendChild(card);
+        });
+
+        slider.appendChild(page);
+    }
 }
 
 async function loadPopularQuizzes() {
@@ -1390,25 +1410,45 @@ document.addEventListener('DOMContentLoaded', () => {
         const superRight = document.getElementById("super-slider-right");
 
         if (superSlider && superLeft && superRight) {
-            let currentIndex = 0;
-            const moveStep = 2;
-            const cardWidth = 316;
+            let currentPage = 0;
 
-            superRight.onclick = () => {
-                currentIndex += moveStep;
-                superSlider.scrollTo({
-                    left: currentIndex * cardWidth,
-                    behavior: "smooth"
-                });
+            const updateButtons = () => {
+                const pageCount = superSlider.querySelectorAll('.super-quiz-page').length;
+                
+                superLeft.disabled = currentPage === 0;
+                superRight.disabled = currentPage >= pageCount - 1;
+                
+                superLeft.style.cursor = superLeft.disabled ? 'not-allowed' : 'pointer';
+                superRight.style.cursor = superRight.disabled ? 'not-allowed' : 'pointer';
+                superLeft.style.opacity = superLeft.disabled ? '0.5' : '1';
+                superRight.style.opacity = superRight.disabled ? '0.5' : '1';
             };
 
-            superLeft.onclick = () => {
-                currentIndex = Math.max(0, currentIndex - moveStep);
-                superSlider.scrollTo({
-                    left: currentIndex * cardWidth,
-                    behavior: "smooth"
-                });
-            };
+            superRight.addEventListener('click', () => {
+                const pageCount = superSlider.querySelectorAll('.super-quiz-page').length;
+                if (currentPage < pageCount - 1) {
+                    currentPage++;
+                    superSlider.style.transform = `translateX(-${currentPage * 100}%)`;
+                    updateButtons();
+                }
+            });
+
+            superLeft.addEventListener('click', () => {
+                if (currentPage > 0) {
+                    currentPage--;
+                    superSlider.style.transform = `translateX(-${currentPage * 100}%)`;
+                    updateButtons();
+                }
+            });
+
+            const observer = new MutationObserver(() => {
+                currentPage = 0;
+                superSlider.style.transform = `translateX(0%)`;
+                updateButtons();
+            });
+            observer.observe(superSlider, { childList: true });
+
+            updateButtons();
         }
 
         const popularSlider = document.getElementById("popular-quiz-slider");

@@ -69,17 +69,36 @@
             scrollbar-width: none;
         }
 
-        .super-quiz-layout{
-          display:grid;
-          grid-template-columns: 1fr 320px;
-          gap:24px;
-          align-items:start;
+        .super-quiz-layout {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) 320px;
+          gap: 24px;
+          align-items: start;
         }
+
         @media (max-width: 1024px) {
             .super-quiz-layout {
                 grid-template-columns: 1fr;
             }
         }
+        #super-quiz-slider-wrapper {
+            overflow: hidden;
+        }
+        #super-quiz-slider {
+            display: flex;
+            transition: transform 0.5s ease-in-out;
+        }
+        .super-quiz-page {
+            flex: 0 0 100%;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+        }
+        .quiz-card {
+          width: 100%;
+          max-width: 100%;
+        }
+
     </style>
 </head>
 <body class="transition-colors duration-300">
@@ -150,7 +169,11 @@
                             <button id="super-slider-right" class="w-8 h-8 rounded-full border flex items-center justify-center">›</button>
                         </div>
                     </div>
-                    <div id="super-quiz-slider" class="flex gap-4 overflow-hidden"></div>
+                    <div id="super-quiz-slider-wrapper" class="overflow-hidden">
+                        <div id="super-quiz-slider" class="flex">
+                            <!-- Quiz pages will be dynamically generated here by JavaScript -->
+                        </div>
+                    </div>
                 </div>
                 <div id="right-widget-area" class="space-y-6">
                     <div id="search-widget">
