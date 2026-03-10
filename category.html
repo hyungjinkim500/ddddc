@@ -270,6 +270,7 @@
     let isLoadingQuizzes = false;
     let currentPage = 1;
     let totalPages = 1;
+    let lastVisibleDoc = null;
 
     let hotQuizzes = [];
     let hotIndex = 0;
@@ -332,14 +333,29 @@
         const countSnapshot = await getDocs(countQuery);
         totalPages = Math.ceil(countSnapshot.size / quizPageSize);
 
-        const q = query( 
-            collection(db, "questions"), 
-            where("category", "==", categoryId), 
-            orderBy("createdAt", "desc"), 
-            limit(quizPageSize) 
-        );
+        let q;
+        if (lastVisibleDoc) {
+          q = query(
+            collection(db, "questions"),
+            where("category", "==", categoryId),
+            orderBy("createdAt", "desc"),
+            startAfter(lastVisibleDoc),
+            limit(quizPageSize)
+          );
+        } else {
+          q = query(
+            collection(db, "questions"),
+            where("category", "==", categoryId),
+            orderBy("createdAt", "desc"),
+            limit(quizPageSize)
+          );
+        }
 
         const snapshot = await getDocs(q);
+
+        if (!snapshot.empty) {
+          lastVisibleDoc = snapshot.docs[snapshot.docs.length - 1];
+        }
 
         snapshot.forEach(doc => {
             const quiz = doc.data();
@@ -407,8 +423,9 @@ ${likes} </span>
             }
 
             btn.addEventListener("click", () => {
-            currentPage = i;
-            loadCategoryQuizzes(categoryId);
+              currentPage = i;
+              lastVisibleDoc = null;
+              loadCategoryQuizzes(categoryId);
             });
 
             container.appendChild(btn);
@@ -474,13 +491,15 @@ ${likes} </span>
         document.getElementById("page-next").addEventListener("click", () => {
             if (currentPage < totalPages) {
                 currentPage++;
+                lastVisibleDoc = null;
                 loadCategoryQuizzes(categoryId);
             }
         });
 
         document.getElementById("page-prev").addEventListener("click", () => {
             if (currentPage > 1) {
-                currentPage--; // This needs to be handled properly for previous page
+                currentPage--;
+                lastVisibleDoc = null;
                 loadCategoryQuizzes(categoryId);
             }
         });
