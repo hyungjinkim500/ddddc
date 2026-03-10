@@ -1786,6 +1786,23 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
+    // --- User Avatar Dropdown --- //
+    const avatar = document.getElementById("user-avatar");
+    const menu = document.getElementById("user-menu");
+
+    if (avatar && menu) {
+        avatar.addEventListener("click", (e) => {
+            e.stopPropagation();
+            menu.classList.toggle("hidden");
+        });
+
+        document.addEventListener("click", (e) => {
+            if (!menu.contains(e.target) && !avatar.contains(e.target)) {
+                menu.classList.add("hidden");
+            }
+        });
+    }
+
     // --- Tab & Accordion Functionality --- //
     const categoryTabs = document.getElementById('category-tabs');
     if (categoryTabs) {
