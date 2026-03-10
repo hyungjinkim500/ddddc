@@ -267,9 +267,9 @@
 
     let quizPageSize = 25;
     let pageGroupSize = 10;
-    let lastVisibleDoc = null;
     let isLoadingQuizzes = false;
     let currentPage = 1;
+    let totalPages = 1;
 
     let hotQuizzes = [];
     let hotIndex = 0;
@@ -325,29 +325,21 @@
         const listEl = document.getElementById("category-quiz-list");
         listEl.innerHTML = "";
 
-        let q;
-        if (lastVisibleDoc) {
-          q = query(
-            collection(db, "questions"),
-            where("category", "==", categoryId),
-            orderBy("createdAt", "desc"),
-            startAfter(lastVisibleDoc),
-            limit(quizPageSize)
-          );
-        } else {
-          q = query(
-            collection(db, "questions"),
-            where("category", "==", categoryId),
-            orderBy("createdAt", "desc"),
-            limit(quizPageSize)
-          );
-        }
+        const countQuery = query(
+          collection(db, "questions"),
+          where("category", "==", categoryId)
+        );
+        const countSnapshot = await getDocs(countQuery);
+        totalPages = Math.ceil(countSnapshot.size / quizPageSize);
+
+        const q = query( 
+            collection(db, "questions"), 
+            where("category", "==", categoryId), 
+            orderBy("createdAt", "desc"), 
+            limit(quizPageSize) 
+        );
 
         const snapshot = await getDocs(q);
-
-        if (!snapshot.empty) {
-            lastVisibleDoc = snapshot.docs[snapshot.docs.length - 1];
-        }
 
         snapshot.forEach(doc => {
             const quiz = doc.data();
@@ -399,7 +391,7 @@ ${likes} </span>
         const startPage =
             Math.floor((currentPage - 1) / pageGroupSize) * pageGroupSize + 1;
 
-        const endPage = startPage + pageGroupSize - 1;
+        const endPage = Math.min(startPage + pageGroupSize - 1, totalPages);
 
         for (let i = startPage; i <= endPage; i++) {
 
@@ -416,7 +408,6 @@ ${likes} </span>
 
             btn.addEventListener("click", () => {
             currentPage = i;
-            lastVisibleDoc = null;
             loadCategoryQuizzes(categoryId);
             });
 
@@ -481,15 +472,15 @@ ${likes} </span>
         loadCategory(params.get("cat"));
 
         document.getElementById("page-next").addEventListener("click", () => {
-            currentPage += pageGroupSize;
-            lastVisibleDoc = null;
-            loadCategoryQuizzes(categoryId);
+            if (currentPage < totalPages) {
+                currentPage++;
+                loadCategoryQuizzes(categoryId);
+            }
         });
 
         document.getElementById("page-prev").addEventListener("click", () => {
-            if (currentPage > pageGroupSize) {
-                currentPage -= pageGroupSize;
-                lastVisibleDoc = null;
+            if (currentPage > 1) {
+                currentPage--; // This needs to be handled properly for previous page
                 loadCategoryQuizzes(categoryId);
             }
         });
