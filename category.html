@@ -133,7 +133,47 @@
         </div>
       </div>
 
-      <div id="category-quiz-list" class="mt-8 space-y-3"></div>
+      <div class="grid grid-cols-3 gap-6 mt-6">
+        <div class="col-span-2">
+          <div id="category-quiz-list" class="space-y-3"></div>
+          <div id="quiz-pagination" class="flex justify-center items-center gap-2 mt-6">
+            <button id="page-prev"
+              class="px-3 py-1 border rounded text-sm hover:bg-slate-100">
+              이전
+            </button>
+            <div id="page-numbers" class="flex gap-1"></div>
+            <button id="page-next"
+              class="px-3 py-1 border rounded text-sm hover:bg-slate-100">
+              다음
+            </button>
+          </div>
+        </div>
+        <div id="category-sidebar" class="space-y-6">
+          <!-- A Search Box -->
+          <div class="bg-white dark:bg-slate-800 border rounded-lg p-4">
+            <input
+              type="text"
+              placeholder="검색어를 입력하세요"
+              class="w-full border rounded px-3 py-2 text-sm"
+            />
+          </div>
+
+          <!-- B Popular Keywords -->
+          <div class="bg-white dark:bg-slate-800 border rounded-lg p-4">
+            <div class="text-sm font-semibold mb-2">인기 키워드</div>
+            <div class="flex flex-wrap gap-2">
+              <span class="px-2 py-1 text-xs bg-slate-100 rounded">#인기</span>
+              <span class="px-2 py-1 text-xs bg-slate-100 rounded">#효율</span>
+              <span class="px-2 py-1 text-xs bg-slate-100 rounded">#댓글</span>
+            </div>
+          </div>
+
+          <!-- C Advertisement -->
+          <div class="bg-white dark:bg-slate-800 border rounded-lg p-6 text-center text-sm text-slate-400">
+            Ad Placeholder
+          </div>
+        </div>
+      </div>
     </div>
 </main>
 
@@ -212,12 +252,31 @@
     });
 </script>
 <script type="module">
-    import { db, doc, getDoc, collection, query, where, orderBy, limit, getDocs } from "./firebase-config.js";
+    import { db } from "./firebase-config.js";
+    import {
+        doc,
+        getDoc,
+        collection,
+        query,
+        where,
+        orderBy,
+        limit,
+        getDocs,
+        startAfter
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    let quizPageSize = 25;
+    let pageGroupSize = 10;
+    let lastVisibleDoc = null;
+    let isLoadingQuizzes = false;
+    let currentPage = 1;
 
     let hotQuizzes = [];
     let hotIndex = 0;
+    let categoryId;
 
-    async function loadCategory(categoryId) {
+    async function loadCategory(catId) {
+        categoryId = catId;
         const categoryTitleEl = document.getElementById("category-title");
         if (!categoryId) {
             categoryTitleEl.textContent = "카테고리 ID가 없습니다.";
@@ -266,14 +325,29 @@
         const listEl = document.getElementById("category-quiz-list");
         listEl.innerHTML = "";
 
-        const q = query(
+        let q;
+        if (lastVisibleDoc) {
+          q = query(
             collection(db, "questions"),
             where("category", "==", categoryId),
             orderBy("createdAt", "desc"),
-            limit(20)
-        );
+            startAfter(lastVisibleDoc),
+            limit(quizPageSize)
+          );
+        } else {
+          q = query(
+            collection(db, "questions"),
+            where("category", "==", categoryId),
+            orderBy("createdAt", "desc"),
+            limit(quizPageSize)
+          );
+        }
 
         const snapshot = await getDocs(q);
+
+        if (!snapshot.empty) {
+            lastVisibleDoc = snapshot.docs[snapshot.docs.length - 1];
+        }
 
         snapshot.forEach(doc => {
             const quiz = doc.data();
@@ -314,6 +388,40 @@ ${likes} </span>
             `;
             listEl.appendChild(item);
         });
+        renderPagination();
+    }
+
+    function renderPagination() {
+
+        const container = document.getElementById("page-numbers");
+        container.innerHTML = "";
+
+        const startPage =
+            Math.floor((currentPage - 1) / pageGroupSize) * pageGroupSize + 1;
+
+        const endPage = startPage + pageGroupSize - 1;
+
+        for (let i = startPage; i <= endPage; i++) {
+
+            const btn = document.createElement("button");
+
+            btn.textContent = i;
+
+            btn.className =
+            "px-3 py-1 border rounded text-sm hover:bg-slate-100";
+
+            if (i === currentPage) {
+            btn.classList.add("bg-slate-200");
+            }
+
+            btn.addEventListener("click", () => {
+            currentPage = i;
+            lastVisibleDoc = null;
+            loadCategoryQuizzes(categoryId);
+            });
+
+            container.appendChild(btn);
+        }
     }
 
     async function loadHotQuizzes(categoryId) {
@@ -370,8 +478,21 @@ ${likes} </span>
 
     document.addEventListener("DOMContentLoaded", () => {
         const params = new URLSearchParams(window.location.search);
-        const categoryId = params.get("cat");
-        loadCategory(categoryId);
+        loadCategory(params.get("cat"));
+
+        document.getElementById("page-next").addEventListener("click", () => {
+            currentPage += pageGroupSize;
+            lastVisibleDoc = null;
+            loadCategoryQuizzes(categoryId);
+        });
+
+        document.getElementById("page-prev").addEventListener("click", () => {
+            if (currentPage > pageGroupSize) {
+                currentPage -= pageGroupSize;
+                lastVisibleDoc = null;
+                loadCategoryQuizzes(categoryId);
+            }
+        });
     });
 </script>
 <script type="module">
