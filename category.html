@@ -270,7 +270,7 @@
     let isLoadingQuizzes = false;
     let currentPage = 1;
     let totalPages = 1;
-    let lastVisibleDoc = null;
+    let pageCursors = [];
 
     let hotQuizzes = [];
     let hotIndex = 0;
@@ -278,6 +278,7 @@
 
     async function loadCategory(catId) {
         categoryId = catId;
+        pageCursors = [];
         const categoryTitleEl = document.getElementById("category-title");
         if (!categoryId) {
             categoryTitleEl.textContent = "카테고리 ID가 없습니다.";
@@ -334,19 +335,20 @@
         totalPages = Math.ceil(countSnapshot.size / quizPageSize);
 
         let q;
-        if (lastVisibleDoc) {
+        if (currentPage === 1) {
           q = query(
             collection(db, "questions"),
             where("category", "==", categoryId),
             orderBy("createdAt", "desc"),
-            startAfter(lastVisibleDoc),
             limit(quizPageSize)
           );
         } else {
+          const prevCursor = pageCursors[currentPage - 2];
           q = query(
             collection(db, "questions"),
             where("category", "==", categoryId),
             orderBy("createdAt", "desc"),
+            startAfter(prevCursor),
             limit(quizPageSize)
           );
         }
@@ -354,7 +356,7 @@
         const snapshot = await getDocs(q);
 
         if (!snapshot.empty) {
-          lastVisibleDoc = snapshot.docs[snapshot.docs.length - 1];
+          pageCursors[currentPage - 1] = snapshot.docs[snapshot.docs.length - 1];
         }
 
         snapshot.forEach(doc => {
@@ -424,7 +426,6 @@ ${likes} </span>
 
             btn.addEventListener("click", () => {
               currentPage = i;
-              lastVisibleDoc = null;
               loadCategoryQuizzes(categoryId);
             });
 
@@ -491,7 +492,6 @@ ${likes} </span>
         document.getElementById("page-next").addEventListener("click", () => {
             if (currentPage < totalPages) {
                 currentPage++;
-                lastVisibleDoc = null;
                 loadCategoryQuizzes(categoryId);
             }
         });
@@ -499,7 +499,6 @@ ${likes} </span>
         document.getElementById("page-prev").addEventListener("click", () => {
             if (currentPage > 1) {
                 currentPage--;
-                lastVisibleDoc = null;
                 loadCategoryQuizzes(categoryId);
             }
         });
