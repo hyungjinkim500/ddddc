@@ -219,6 +219,26 @@
             categoryTitleEl.textContent = "카테고리를 불러오는 중 오류가 발생했습니다.";
         }
     }
+    function formatBoardTime(date) {
+
+        const now = new Date();
+        const diff = now - date;
+
+        const oneDay = 24 * 60 * 60 * 1000;
+
+        if (diff < oneDay) {
+            return date.toLocaleTimeString("ko-KR", {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: false
+            });
+        }
+
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+
+        return `${month}.${day}`;
+    }
 
     async function loadCategoryQuizzes(categoryId) {
         const listEl = document.getElementById("category-quiz-list");
@@ -236,9 +256,19 @@
         snapshot.forEach(doc => {
             const quiz = doc.data();
             const quizId = doc.id;
+            const views = quiz.views ?? quiz.viewsCount ?? 0;
+            const comments = quiz.commentsCount ?? 0;
+            const likes = quiz.likesCount ?? 0;
+            const createdAt = quiz.createdAt;
+
+            let createdTime = "";
+            if (createdAt && createdAt.toDate) {
+                const date = createdAt.toDate();
+                createdTime = formatBoardTime(date);
+            }
 
             const item = document.createElement("div");
-            item.className = "border rounded-lg p-4 bg-white dark:bg-slate-800";
+            item.className = "border rounded-lg p-4 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition";
             item.style.cursor = "pointer";
             item.addEventListener("click", () => {
                 window.location.href = `quiz.html?id=${quizId}`;
@@ -253,6 +283,11 @@
               </div>
               <div class="text-xs text-slate-500 mt-2">
                 ${quiz.creatorName || "익명"}
+| <span class="inline-flex items-center gap-1"> <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-red-500"> <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" /> </svg>
+${likes} </span>
+| 조회 ${views}
+| 댓글 ${comments}
+| ${createdTime}
               </div>
             `;
             listEl.appendChild(item);
