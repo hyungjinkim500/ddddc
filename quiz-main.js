@@ -37,18 +37,32 @@ async function loadTrendingKeywords() {
     const container = document.getElementById("trending-keywords");
     if (!container) return;
 
+    function formatKeyword(text) {
+        if (!text) return "";
+        if (text.length > 8) {
+            return text.substring(0, 8) + "...";
+        }
+        return text;
+    }
+
     try {
         const q = query(collection(db, "searchLogs"), orderBy("count", "desc"), limit(10));
         const snapshot = await getDocs(q);
 
+        const keywords = [];
+        snapshot.forEach(doc => {
+            keywords.push(doc.data().keyword);
+        });
+
+        const limitedKeywords = keywords.slice(0, 10);
+
         container.innerHTML = ""; 
 
-        snapshot.forEach(doc => {
-            const keyword = doc.data().keyword;
+        limitedKeywords.forEach(keyword => {
             const button = document.createElement("button");
             button.className = "text-sm bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full hover:bg-teal hover:text-white transition";
-            button.textContent = `#${keyword}`;
-            button.onclick = () => handleSearch(keyword);
+            button.textContent = `#${formatKeyword(keyword)}`;
+            button.onclick = () => handleSearch(keyword); 
             container.appendChild(button);
         });
 
