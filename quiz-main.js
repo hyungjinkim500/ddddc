@@ -80,6 +80,41 @@ async function loadCategories() {
     return categories;
 }
 
+async function renderCategoryNavbar() {
+    const navbar = document.getElementById("category-tabs");
+    if (!navbar) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const currentCategory = params.get("cat");
+    const isQuizPage = window.location.pathname.includes("quiz.html");
+
+    const categories = await loadCategories();
+    navbar.innerHTML = "";
+
+    const default_class = "tab-button px-4 py-2 rounded-full text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700";
+    const active_class = "tab-button px-4 py-2 rounded-full text-sm font-medium bg-emerald-500 text-white";
+
+    const homeButton = document.createElement("a");
+    homeButton.href = "quiz.html";
+    homeButton.textContent = "홈";
+    homeButton.className = isQuizPage ? active_class : default_class;
+    navbar.appendChild(homeButton);
+
+    categories.forEach(category => {
+        const button = document.createElement("a");
+        button.href = `category.html?cat=${category.id}`;
+        button.textContent = category.name;
+
+        if (currentCategory === category.id) {
+            button.className = active_class;
+            homeButton.className = default_class; 
+        } else {
+            button.className = default_class;
+        }
+        navbar.appendChild(button);
+    });
+}
+
 async function renderCategorySections() {
     const categories = await loadCategories();
     const container = document.getElementById("category-sections");
@@ -1431,6 +1466,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else if (window.location.pathname.includes('search.html')) {
         // Search page logic is handled by its own inline script
     } else {
+        renderCategoryNavbar();
         renderCategorySections();
         renderRealtimeSection();
         renderSuperQuizSection();
