@@ -115,7 +115,24 @@
 
 <main class="container mx-auto px-4 py-8">
     <div class="container mx-auto px-4 py-8">
-      <h1 id="category-title" class="text-2xl font-bold"></h1>
+      <h1 id="category-title" class="text-2xl font-bold mb-8"></h1>
+      
+      <div id="category-hot-section" class="mb-6">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-lg font-bold">🔥 인기 퀴즈</h2>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="hot-prev" class="px-2 py-1 border rounded">
+            ◀
+          </button>
+          <div id="category-hot-list" class="grid grid-cols-5 gap-3 flex-1">
+          </div>
+          <button id="hot-next" class="px-2 py-1 border rounded">
+            ▶
+          </button>
+        </div>
+      </div>
+
       <div id="category-quiz-list" class="mt-8 space-y-3"></div>
     </div>
 </main>
@@ -197,6 +214,9 @@
 <script type="module">
     import { db, doc, getDoc, collection, query, where, orderBy, limit, getDocs } from "./firebase-config.js";
 
+    let hotQuizzes = [];
+    let hotIndex = 0;
+
     async function loadCategory(categoryId) {
         const categoryTitleEl = document.getElementById("category-title");
         if (!categoryId) {
@@ -209,8 +229,10 @@
             const categorySnap = await getDoc(categoryRef);
 
             if (categorySnap.exists()) {
-                categoryTitleEl.textContent = `카테고리: ${categorySnap.data().name}`;
+                const categoryName = categorySnap.data().name;
+                categoryTitleEl.textContent = `${categoryName} 카테고리`;
                 loadCategoryQuizzes(categoryId);
+                loadHotQuizzes(categoryId);
             } else {
                 categoryTitleEl.textContent = "카테고리를 찾을 수 없습니다.";
             }
@@ -293,6 +315,58 @@ ${likes} </span>
             listEl.appendChild(item);
         });
     }
+
+    async function loadHotQuizzes(categoryId) {
+        const q = query(
+            collection(db, "questions"),
+            where("category", "==", categoryId),
+            orderBy("popularityScore", "desc"),
+            limit(10)
+        );
+
+        const snapshot = await getDocs(q);
+
+        snapshot.forEach(doc => {
+            hotQuizzes.push({
+                id: doc.id,
+                ...doc.data()
+            });
+        });
+
+        renderHotQuizzes();
+    }
+
+    function renderHotQuizzes() {
+        const container = document.getElementById("category-hot-list");
+        container.innerHTML = "";
+
+        const visible = hotQuizzes.slice(hotIndex, hotIndex + 5);
+
+        visible.forEach(quiz => {
+            const item = document.createElement("div");
+            item.className = "border rounded-lg p-3 bg-white dark:bg-slate-800 cursor-pointer";
+            item.innerHTML = `
+              <div class="text-sm font-semibold">
+                ${quiz.title || "제목 없음"}
+              </div>
+            `;
+            container.appendChild(item);
+        });
+    }
+
+    document.getElementById("hot-next").addEventListener("click", () => {
+        if (hotIndex + 5 < hotQuizzes.length) {
+            hotIndex += 5;
+            renderHotQuizzes();
+        }
+    });
+
+    document.getElementById("hot-prev").addEventListener("click", () => {
+        if (hotIndex - 5 >= 0) {
+            hotIndex -= 5;
+            renderHotQuizzes();
+        }
+    });
 
     document.addEventListener("DOMContentLoaded", () => {
         const params = new URLSearchParams(window.location.search);
