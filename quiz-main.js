@@ -559,7 +559,7 @@ async function loadSingleQuiz(quizId) {
 
         const commentHeader = document.createElement('div');
         commentHeader.className = 'flex items-center gap-2 mb-2';
-        commentHeader.innerHTML = '<span>댓글</span><span id="comment-count" class="text-sm text-slate-500"></span>';
+        commentHeader.innerHTML = '<span id="comment-count" class="text-sm text-slate-500">댓글 (0)</span>';
         comments.appendChild(commentHeader);
 
         const input = document.createElement("input");
@@ -699,11 +699,6 @@ async function loadSingleQuiz(quizId) {
     const likeCountEl = document.getElementById("detail-like-count");
     if (likeCountEl) {
         likeCountEl.textContent = quiz.likesCount || 0;
-    }
-
-    const commentCountEl = document.getElementById("comment-count");
-    if (commentCountEl) {
-      commentCountEl.textContent = `(${quiz.commentsCount || 0})`;
     }
 
     const likeCount = document.getElementById("detail-like-count");
@@ -921,7 +916,7 @@ async function loadComments(quizId) {
 
     const commentCountEl = document.getElementById("comment-count");
     if (commentCountEl) {
-        commentCountEl.textContent = snapshot.size;
+        commentCountEl.textContent = `댓글 (${snapshot.size})`;
     }
 
     for (const docSnap of snapshot.docs) {
@@ -1343,7 +1338,7 @@ async function handleLike(quizId) {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const searchInput = document.getElementById('search-input');
     if (searchInput) {
         searchInput.addEventListener('keydown', (event) => {
@@ -1372,8 +1367,8 @@ document.addEventListener('DOMContentLoaded', () => {
             detailContainer.classList.remove("hidden");
         } 
 
-        loadSingleQuiz(quizIdFromUrl);
-        loadComments(quizIdFromUrl);
+        await loadSingleQuiz(quizIdFromUrl);
+        await loadComments(quizIdFromUrl);
 
         const commentInput = document.getElementById("comment-input");
         const commentLength = document.getElementById("comment-length");
