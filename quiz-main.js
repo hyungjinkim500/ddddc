@@ -113,6 +113,7 @@ async function renderCategoryNavbar() {
         }
         navbar.appendChild(button);
     });
+    navbar.classList.remove("invisible");
 }
 
 async function renderCategorySections() {
