@@ -2,6 +2,16 @@ import { auth, db } from './firebase-config.js';
 import { onAuthStateChanged, signOut, getAuth } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { collection, doc, runTransaction, onSnapshot, getDoc, setDoc, deleteDoc, addDoc, serverTimestamp, query, orderBy, limit, getDocs, where, startAfter, updateDoc, increment } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
+async function loadHeader() {
+    const container = document.getElementById("header-container");
+    if (!container) return;
+
+    const res = await fetch("/components/header.html");
+    const html = await res.text();
+
+    container.innerHTML = html;
+}
+
 const categoryPageState = {};
 
 const DEBUG = false;
@@ -1389,6 +1399,7 @@ async function handleLike(quizId) {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+    await loadHeader();
     const searchInput = document.getElementById('search-input');
     if (searchInput) {
         searchInput.addEventListener('keydown', (event) => {

@@ -1,0 +1,61 @@
+<header>
+        <div class="w-full border-b border-slate-200 dark:border-slate-700 py-2 text-sm">
+          <div class="container mx-auto px-4 flex items-center">
+            <a href="quiz.html" class="font-semibold text-slate-400 dark:text-slate-500 hover:underline">
+              공평한 한표가 최고의 선택을 만든다. 집단지성 플랫폼 <픽스>
+            </a>
+          </div>
+        </div>
+        <div class="container mx-auto px-4 py-600 flex items-center justify-between">
+            <a href="quiz.html" class="flex items-center gap-3">
+                <img 
+                  src="./pix_logo_nobackground.png" 
+                  alt="픽스 로고"
+                  class="h-40 w-auto"
+                />
+                <span class="text-xl font-bold text-slate-500">
+                  
+                </span>
+              </a>
+          <div class="flex items-center gap-4">
+            <button id="theme-toggle" class="text-slate-400 hover:text-teal dark:text-slate-500 dark:hover:text-teal transition-colors duration-300 px-2"><i class="fa-solid fa-moon text-lg"></i></button>
+            <div id="user-profile-info" class="hidden items-center gap-2 relative">
+                <span id="user-points" class="text-sm font-bold text-emerald-500"></span>
+                <img id="user-avatar" src="https://i.pravatar.cc/40" class="w-9 h-9 rounded-full cursor-pointer border border-slate-200" />
+                <div
+    id="user-menu"
+    class="hidden absolute right-0 mt-2 w-40 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg z-50"
+    >
+    <a
+    href="#"
+    id="menu-profile"
+    class="block px-4 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-700"
+    >
+    마이페이지
+    </a>
+    
+    <button
+    id="logout-button"
+    class="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-700"
+    
+    >
+    
+    로그아웃 </button>
+    
+    </div>
+            </div>
+            <button id="login-modal-button" class="bg-slate-100 dark:bg-slate-200 border border-slate-200 dark:border-slate-300 px-3 py-2 md:px-4 rounded-lg font-bold text-xs md:text-sm text-slate-700 dark:text-slate-900 transition-all hover:border-teal whitespace-nowrap h-[40px] md:h-[42px]">로그인</button>
+          </div>
+        </div>
+        <div class="border-t border-b border-slate-200 dark:border-slate-700">
+            <div class="container mx-auto px-4 flex justify-between items-center">
+                <div id="category-tabs" class="flex gap-4 py-3 text-sm invisible"></div>
+                <div class="flex items-center gap-4">
+                    <a href="create-quiz.html" id="create-quiz-btn" class="btn-primary px-3 py-2 md:px-4 rounded-lg font-bold text-xs md:text-sm transition-all hover:opacity-90 whitespace-nowrap h-[40px] md:h-[42px] flex items-center">퀴즈 만들기</a>
+                    <a href="ranking.html" class="font-bold text-slate-700 dark:text-slate-200 hover:underline">
+                        랭킹보드
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
