@@ -23,6 +23,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const registerView = document.getElementById('register-view');
     const showRegisterViewLink = document.getElementById('show-register-view-link');
     const showLoginViewLinkFromTerms = document.getElementById('show-login-view-link-from-terms');
+    const avatar = document.getElementById("user-avatar");
+
+    const cachedAvatar = localStorage.getItem("userAvatar");
+    if (cachedAvatar && avatar) {
+      const img = new Image();
+      img.src = cachedAvatar;
+      img.onload = () => {
+        avatar.src = cachedAvatar;
+      };
+    }
 
     const showModal = () => loginModal.classList.add('show');
     const hideModal = () => loginModal.classList.remove('show');
@@ -129,7 +139,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Handle logout
     if (logoutButton) {
         logoutButton.addEventListener('click', () => {
-            signOut(auth).catch((error) => {
+            signOut(auth).then(() => {
+                localStorage.removeItem("userAvatar");
+                if (avatar) {
+                    avatar.src = "";
+                }
+            }).catch((error) => {
                 console.error('Sign out error:', error);
             });
         });
@@ -138,6 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Listen for auth state changes
     onAuthStateChanged(auth, async (user) => {
         const themeToggleButton = document.getElementById('theme-toggle');
+        const userProfileInfo = document.getElementById('user-profile-info');
         if (!themeToggleButton) return;
         const buttonContainer = themeToggleButton ? themeToggleButton.parentElement : null;
         const createQuizButton = buttonContainer.querySelector('.btn-primary');
@@ -149,7 +165,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (user) {
             if (loginModalButton) loginModalButton.classList.add('hidden');
-            if (logoutButton) logoutButton.classList.remove('hidden');
+            if (userProfileInfo) userProfileInfo.classList.remove('hidden');
+            if (userProfileInfo) userProfileInfo.classList.add('flex');
 
             const userRef = doc(db, "userProfiles", user.uid);
             const snap = await getDoc(userRef);
@@ -169,8 +186,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const finalSnap = await getDoc(userRef);
             if (finalSnap.exists()) {
-              const displayName = finalSnap.data().displayName;
+              const userData = finalSnap.data();
+              const displayName = userData.displayName;
 
+              if (avatar && userData.photoURL) {
+                const currentCache = localStorage.getItem("userAvatar");
+                if (currentCache !== userData.photoURL) {
+                  avatar.src = userData.photoURL;
+                  localStorage.setItem("userAvatar", userData.photoURL);
+                }
+              }
+              
               const nicknameDisplayElement = document.createElement('span');
               nicknameDisplayElement.id = 'user-nickname-display';
               nicknameDisplayElement.textContent = `${displayName}님`;
@@ -183,7 +209,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } else {
             if (loginModalButton) loginModalButton.classList.remove('hidden');
-            if (logoutButton) logoutButton.classList.add('hidden');
+            if (userProfileInfo) userProfileInfo.classList.add('hidden');
+             if (userProfileInfo) userProfileInfo.classList.remove('flex');
         }
     });
 });

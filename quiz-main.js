@@ -1913,6 +1913,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         const userNickname = document.getElementById('user-nickname');
         const userPoints = document.getElementById('user-points');
 
+        const headerAvatar = document.getElementById("user-avatar");
+
+        const userRef = doc(db, "userProfiles", user.uid);
+
+        onSnapshot(userRef, (docSnap) => {
+
+         if (!docSnap.exists()) return;
+
+         const data = docSnap.data();
+
+         if (headerAvatar && data.photoURL) {
+         headerAvatar.src = data.photoURL;
+         }
+
+     });
+
         if (user) {
             if(loginButton) loginButton.classList.add('hidden');
             if(logoutButton) logoutButton.classList.remove('hidden');
