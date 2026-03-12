@@ -138,7 +138,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Listen for auth state changes
     onAuthStateChanged(auth, async (user) => {
         const themeToggleButton = document.getElementById('theme-toggle');
-        const buttonContainer = themeToggleButton.parentElement;
+        if (!themeToggleButton) return;
+        const buttonContainer = themeToggleButton ? themeToggleButton.parentElement : null;
         const createQuizButton = buttonContainer.querySelector('.btn-primary');
         const existingNicknameDisplay = document.getElementById('user-nickname-display');
 

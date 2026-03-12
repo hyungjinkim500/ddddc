@@ -2,7 +2,7 @@ import { auth, db } from './firebase-config.js';
 import { onAuthStateChanged, signOut, getAuth } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { collection, doc, runTransaction, onSnapshot, getDoc, setDoc, deleteDoc, addDoc, serverTimestamp, query, orderBy, limit, getDocs, where, startAfter, updateDoc, increment } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
-async function loadHeader() {
+export async function loadHeader() {
     const container = document.getElementById("header-container");
     if (!container) return;
 
@@ -10,6 +10,9 @@ async function loadHeader() {
     const html = await res.text();
 
     container.innerHTML = html;
+    if (window.initializeHeader) {
+        window.initializeHeader();
+    }
 }
 
 const categoryPageState = {};
@@ -1398,6 +1401,85 @@ async function handleLike(quizId) {
     }
 }
 
+function initializeHeader() {
+    // --- Theme Toggle --- //
+    const themeToggle = document.getElementById('theme-toggle');
+    if(themeToggle) {
+        const html = document.documentElement;
+        const icon = themeToggle.querySelector('i');
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        html.classList.add(savedTheme);
+        if (savedTheme === 'dark') {
+            icon.classList.remove('fa-moon');
+            icon.classList.add('fa-sun');
+        } else {
+            icon.classList.remove('fa-sun');
+            icon.classList.add('fa-moon');
+        }
+        themeToggle.addEventListener('click', () => {
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark'); html.classList.add('light'); localStorage.setItem('theme', 'light');
+                icon.classList.remove('fa-sun'); icon.classList.add('fa-moon');
+            } else {
+                html.classList.remove('light'); html.classList.add('dark'); localStorage.setItem('theme', 'dark');
+                icon.classList.remove('fa-moon'); icon.classList.add('fa-sun');
+            }
+        });
+    }
+
+    // --- User Avatar Dropdown --- //
+    const avatar = document.getElementById("user-avatar");
+    const menu = document.getElementById("user-menu");
+
+    if (avatar && menu) {
+        avatar.addEventListener("click", (e) => {
+            e.stopPropagation();
+            menu.classList.toggle("hidden");
+        });
+
+        document.addEventListener("click", (e) => {
+            if (!menu.contains(e.target) && !avatar.contains(e.target)) {
+                menu.classList.add("hidden");
+            }
+        });
+    }
+    // --- Modal elements & Auth buttons ---
+    const loginModal = document.getElementById('login-modal');
+    const loginModalButton = document.getElementById('login-modal-button');
+    const loginModalCloseButton = document.getElementById('login-modal-close-button');
+    const logoutButton = document.getElementById('logout-button');
+
+    // --- Modal Control ---
+    function openModal() {
+        if(loginModal) loginModal.classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal() {
+        if(loginModal) loginModal.classList.remove('show');
+        document.body.style.overflow = '';
+    }
+
+    if(loginModalButton) loginModalButton.addEventListener('click', openModal);
+    if(loginModalCloseButton) loginModalCloseButton.addEventListener('click', closeModal);
+    if(loginModal) loginModal.addEventListener('click', (e) => { 
+        if (e.target === loginModal) closeModal();
+    });
+    // --- Logout Logic ---
+    if(logoutButton) {
+        logoutButton.addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+            } catch (error) {
+                console.error('Logout Error:', error);
+                alert('로그아웃 중 오류가 발생했습니다.');
+            }
+        });
+    }
+}
+
+window.initializeHeader = initializeHeader;
+
 document.addEventListener('DOMContentLoaded', async () => {
     await loadHeader();
     const searchInput = document.getElementById('search-input');
@@ -1772,47 +1854,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // --- Theme Toggle --- //
-    const themeToggle = document.getElementById('theme-toggle');
-    if(themeToggle) {
-        const html = document.documentElement;
-        const icon = themeToggle.querySelector('i');
-        const savedTheme = localStorage.getItem('theme') || 'light';
-        html.classList.add(savedTheme);
-        if (savedTheme === 'dark') {
-            icon.classList.remove('fa-moon');
-            icon.classList.add('fa-sun');
-        } else {
-            icon.classList.remove('fa-sun');
-            icon.classList.add('fa-moon');
-        }
-        themeToggle.addEventListener('click', () => {
-            if (html.classList.contains('dark')) {
-                html.classList.remove('dark'); html.classList.add('light'); localStorage.setItem('theme', 'light');
-                icon.classList.remove('fa-sun'); icon.classList.add('fa-moon');
-            } else {
-                html.classList.remove('light'); html.classList.add('dark'); localStorage.setItem('theme', 'dark');
-                icon.classList.remove('fa-moon'); icon.classList.add('fa-sun');
-            }
-        });
-    }
-
-    // --- User Avatar Dropdown --- //
-    const avatar = document.getElementById("user-avatar");
-    const menu = document.getElementById("user-menu");
-
-    if (avatar && menu) {
-        avatar.addEventListener("click", (e) => {
-            e.stopPropagation();
-            menu.classList.toggle("hidden");
-        });
-
-        document.addEventListener("click", (e) => {
-            if (!menu.contains(e.target) && !avatar.contains(e.target)) {
-                menu.classList.add("hidden");
-            }
-        });
-    }
 
     // --- Tab & Accordion Functionality --- //
     const categoryTabs = document.getElementById('category-tabs');
@@ -1831,32 +1872,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // --- Modal elements & Auth buttons ---
-    const loginModal = document.getElementById('login-modal');
-    const loginModalButton = document.getElementById('login-modal-button');
-    const loginModalCloseButton = document.getElementById('login-modal-close-button');
-    const logoutButton = document.getElementById('logout-button');
     const loginView = document.getElementById('login-view');
     const registerView = document.getElementById('register-view');
     const showRegisterLink = document.getElementById('show-register-view-link');
     const showLoginLink = document.getElementById('show-login-view-link');
 
-    // --- Modal Control ---
-    function openModal() {
-        if(loginModal) loginModal.classList.add('show');
-        document.body.style.overflow = 'hidden';
-    }
-
-    function closeModal() {
-        if(loginModal) loginModal.classList.remove('show');
-        document.body.style.overflow = '';
-    }
-
-    if(loginModalButton) loginModalButton.addEventListener('click', openModal);
-    if(loginModalCloseButton) loginModalCloseButton.addEventListener('click', closeModal);
-    if(loginModal) loginModal.addEventListener('click', (e) => { 
-        if (e.target === loginModal) closeModal();
-    });
 
     // --- Tab Switching ---
     if(showRegisterLink) {
@@ -1886,7 +1906,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // --- Auth State Listener & UI Update ---
-    onAuthStateChanged(auth, (user) => {
+    onAuthStateChanged(auth, async (user) => {
         const loginButton = document.getElementById('login-modal-button');
         const logoutButton = document.getElementById('logout-button');
         const userProfileInfo = document.getElementById('user-profile-info');
@@ -1940,17 +1960,28 @@ document.addEventListener('DOMContentLoaded', async () => {
                 setupLikeListener(quizId, null);
             });
         }
-    });
+        const profileNameEl = document.getElementById("profile-name");
+        const profilePointsEl = document.getElementById("profile-points");
+        const profileImageEl = document.getElementById("profile-image");
 
-    // --- Logout Logic ---
-    if(logoutButton) {
-        logoutButton.addEventListener('click', async () => {
-            try {
-                await signOut(auth);
-            } catch (error) {
-                console.error('Logout Error:', error);
-                alert('로그아웃 중 오류가 발생했습니다.');
+        if (user && profileNameEl && profilePointsEl) {
+
+            const userRef = doc(db, "userProfiles", user.uid);
+            const snap = await getDoc(userRef);
+
+            if (snap.exists()) {
+
+                const data = snap.data();
+
+                profileNameEl.textContent = data.displayName || "사용자";
+                profilePointsEl.textContent = (data.points || 0) + " 포인트";
+
+                if (profileImageEl && data.photoURL) {
+                    profileImageEl.src = data.photoURL;
+                }
+
             }
-        });
-    }
+
+        }
+    });
 });
