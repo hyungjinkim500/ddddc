@@ -510,20 +510,5 @@
             });
         });
     </script>
-    <script type="module">
-        import { auth } from './firebase-config.js';
-        const createQuizBtn = document.getElementById("create-quiz-btn");
-
-        if (createQuizBtn) {
-            createQuizBtn.addEventListener("click", (e) => {
-                e.preventDefault();
-                if (auth.currentUser) {
-                    window.location.href = "create-quiz.html";
-                } else {
-                    alert("로그인이 필요한 서비스 입니다. 로그인해주세요.");
-                }
-            });
-        }
-    </script>
 </body>
 </html>

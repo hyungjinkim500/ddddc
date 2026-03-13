@@ -138,15 +138,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Handle logout
     if (logoutButton) {
-        logoutButton.addEventListener('click', () => {
-            signOut(auth).then(() => {
-                localStorage.removeItem("userAvatar");
-                if (avatar) {
-                    avatar.src = "";
-                }
-            }).catch((error) => {
-                console.error('Sign out error:', error);
-            });
+        logoutButton.addEventListener("click", async () => {
+            await signOut(auth);
+            localStorage.removeItem("userAvatar");
         });
     }
 
@@ -154,9 +148,9 @@ document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, async (user) => {
         const themeToggleButton = document.getElementById('theme-toggle');
         const userProfileInfo = document.getElementById('user-profile-info');
-        if (!themeToggleButton) return;
+        const loginModalButton = document.getElementById('login-modal-button');
         const buttonContainer = themeToggleButton ? themeToggleButton.parentElement : null;
-        const createQuizButton = buttonContainer.querySelector('.btn-primary');
+        const createQuizButton = buttonContainer ? buttonContainer.querySelector('.btn-primary') : null;
         const existingNicknameDisplay = document.getElementById('user-nickname-display');
 
         if (existingNicknameDisplay) {
@@ -208,9 +202,43 @@ document.addEventListener('DOMContentLoaded', () => {
               }
             }
         } else {
-            if (loginModalButton) loginModalButton.classList.remove('hidden');
-            if (userProfileInfo) userProfileInfo.classList.add('hidden');
-             if (userProfileInfo) userProfileInfo.classList.remove('flex');
+            if (loginModalButton) {
+                loginModalButton.classList.remove("hidden");
+            }
+            if (userProfileInfo) {
+                userProfileInfo.classList.add("hidden");
+                userProfileInfo.classList.remove("flex");
+            }
+
+            const avatar = document.getElementById("user-avatar");
+            if (avatar) {
+                avatar.removeAttribute("src");
+            }
+
+            const nicknameDisplay = document.getElementById("user-nickname-display");
+            if (nicknameDisplay) {
+                nicknameDisplay.remove();
+            }
         }
     });
+});
+
+document.addEventListener("DOMContentLoaded", () => {
+
+    const createQuizBtn = document.getElementById("create-quiz-btn");
+
+    if (!createQuizBtn) return;
+
+    createQuizBtn.addEventListener("click", (e) => {
+
+        e.preventDefault();
+
+        if (auth.currentUser) {
+            window.location.href = "create-quiz.html";
+        } else {
+            alert("로그인이 필요한 서비스 입니다. 로그인해주세요.");
+        }
+
+    });
+
 });
