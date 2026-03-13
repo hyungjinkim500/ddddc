@@ -1,7 +1,45 @@
 import { auth, db } from './firebase-config.js';
 import { onAuthStateChanged, signOut, getAuth } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { collection, doc, runTransaction, onSnapshot, getDoc, setDoc, deleteDoc, addDoc, serverTimestamp, query, orderBy, limit, getDocs, where, startAfter, updateDoc, increment } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
-import { handleVote, restoreUserVotes } from './vote-system.js';
+import { handleVote } from './vote-system.js';
+
+async function restoreUserVotes(user) {
+    if (!user) return;
+    const quizCards = document.querySelectorAll('[data-quiz-id]');
+    const votePromises = [];
+
+    quizCards.forEach(card => {
+        const quizId = card.dataset.quizId;
+        const userVoteRef = doc(db, `questions/${quizId}/userVotes/${user.uid}`);
+
+        votePromises.push(
+            getDoc(userVoteRef).then(userVoteSnap => {
+                const buttons = card.querySelectorAll('.vote-option-btn');
+
+                // Reset all buttons first
+                buttons.forEach(btn => {
+                    btn.classList.remove('opacity-50', 'ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', 'ring-emerald-400', 'ring-red-400', 'ring-slate-400', 'ring-emerald-500');
+                });
+
+                if (userVoteSnap.exists()) {
+                    const selectedOptionId = userVoteSnap.data().selectedOption;
+                    buttons.forEach(btn => {
+                        if (btn.dataset.optionId === selectedOptionId) {
+                             btn.classList.add('ring-2', 'ring-offset-2', 'ring-emerald-500');
+                        } else {
+                            btn.classList.add('opacity-50');
+                        }
+                    });
+                }
+            }).catch(error => {
+                console.error(`Failed to restore vote for quiz ${quizId}:`, error);
+            })
+        );
+    });
+
+    await Promise.all(votePromises);
+}
+
 
 export async function loadHeader() {
     const container = document.getElementById("header-container");
@@ -151,7 +189,11 @@ async function renderCategorySections() {
 
     container.innerHTML = "";
 
-    for (const category of categories) {
+    const quizPromises = categories.map(category => loadQuizzesByCategory(category.id));
+    const quizzesByAllCategories = await Promise.all(quizPromises);
+
+    categories.forEach((category, index) => {
+        const quizzes = quizzesByAllCategories[index];
         const section = document.createElement("section");
         section.className = "mb-12";
 
@@ -183,7 +225,6 @@ async function renderCategorySections() {
         slider.className = "flex gap-4 overflow-hidden pb-2";
         slider.id = "category-slider-" + category.id;
 
-        const quizzes = await loadQuizzesByCategory(category.id);
         quizzes.forEach(quiz => {
             if (!slider.querySelector(`[data-quiz-id="${quiz.id}"]`)) {
                 const card = createQuizCard(quiz.id, quiz);
@@ -231,7 +272,7 @@ async function renderCategorySections() {
         section.appendChild(slider);
 
         container.appendChild(section);
-    }
+    });
 }
 
 async function loadQuizzesByCategory(categoryId) {
@@ -576,7 +617,18 @@ async function loadSingleQuiz(quizId) {
                     btn.classList.remove("ring-2", "ring-emerald-500", "ring-offset-2");
                 });
                 button.classList.add("ring-2", "ring-emerald-500", "ring-offset-2");
-                await handleVote(quizId, option.id);
+
+                const voteSuccessful = await handleVote(quizId, option.id);
+                if (voteSuccessful) {
+                    await updatePopularityScore(quizId);
+                    if (quizIdFromUrl) {
+                        await loadSingleQuiz(quizIdFromUrl);
+                    }
+                    const auth = getAuth();
+                    if (auth.currentUser) {
+                        restoreUserVotes(auth.currentUser);
+                    }
+                }
             });
             optionsContainer.appendChild(button);
         });
@@ -1606,91 +1658,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                 
                 // Update Firestore using a transaction
                 (async () => {
-                    try {
-                        const quizRef = doc(db, "questions", card.dataset.quizId);
-                        const userVoteRef = doc(db, "questions", card.dataset.quizId, "userVotes", user.uid);
+                    const voteSuccessful = await handleVote(card.dataset.quizId, clickedOptionId);
 
-                        await runTransaction(db, async (transaction) => {
-                            const quizDoc = await transaction.get(quizRef);
-                            if (!quizDoc.exists()) {
-                                throw "Quiz document does not exist!";
-                            }
-
-                            const data = quizDoc.data();
-                            const entryFee = data.entryFee || 0;
-                            const participantLimit = data.participantLimit || 0;
-                            const participants = data.participants || [];
-
-                            const userProfileRef = doc(db, "userProfiles", user.uid);
-                            const userProfileDoc = await transaction.get(userProfileRef);
-                            const userPoints = userProfileDoc.data()?.points || 0;
-
-                            if (participantLimit > 0 && participants.length >= participantLimit && !participants.includes(user.uid)) {
-                                throw "Participant limit reached";
-                            }
-
-                            const userVoteDoc = await transaction.get(userVoteRef);
-                            const voteData = data.vote ?? {};
-                            const updatedVotes = { ...voteData };
-
-                            let previousOptionId = null;
-                            if (userVoteDoc.exists()) {
-                                previousOptionId = userVoteDoc.data().selectedOption;
-                            }
-
-                            let updatedParticipants = [...participants];
-
-                            if (previousOptionId === clickedOptionId) {
-                                // Deselecting the same option
-                                updatedVotes[clickedOptionId] = Math.max(0, (updatedVotes[clickedOptionId] || 0) - 1);
-                                transaction.delete(userVoteRef);
-
-                                if (entryFee > 0 && previousOptionId) {
-                                    transaction.update(userProfileRef, {
-                                        points: userPoints + entryFee
-                                    });
-                                }
-                                // Remove user from participants
-                                updatedParticipants = updatedParticipants.filter(uid => uid !== user.uid);
-
-                            } else {
-                                // Selecting a new option or switching vote
-                                if (previousOptionId) {
-                                    updatedVotes[previousOptionId] = Math.max(0, (updatedVotes[previousOptionId] || 0) - 1);
-                                }
-                                updatedVotes[clickedOptionId] = (updatedVotes[clickedOptionId] || 0) + 1;
-                                transaction.set(userVoteRef, { selectedOption: clickedOptionId });
-
-                                if (entryFee > 0 && !participants.includes(user.uid)) {
-                                    if (userPoints < entryFee) {
-                                        throw "Not enough points";
-                                    }
-                                    transaction.update(userProfileRef, {
-                                        points: userPoints - entryFee
-                                    });
-                                }
-
-                                // Add user to participants if not already there
-                                if (!updatedParticipants.includes(user.uid)) {
-                                    updatedParticipants.push(user.uid);
-                                }
-                            }
-
-                            transaction.update(quizRef, { 
-                                vote: updatedVotes,
-                                participants: updatedParticipants
-                            });
-                        });
-
+                    if (voteSuccessful) {
                         await updatePopularityScore(card.dataset.quizId);
 
                         if (auth.currentUser) {
                             restoreUserVotes(auth.currentUser);
                         }
-
-                    } catch (e) {
-                        console.error("Transaction failed: ", e);
-                        // TODO: Revert optimistic UI changes if the transaction fails
                     }
                 })();
                 
