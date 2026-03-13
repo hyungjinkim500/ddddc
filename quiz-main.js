@@ -1,6 +1,7 @@
 import { auth, db } from './firebase-config.js';
 import { onAuthStateChanged, signOut, getAuth } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { collection, doc, runTransaction, onSnapshot, getDoc, setDoc, deleteDoc, addDoc, serverTimestamp, query, orderBy, limit, getDocs, where, startAfter, updateDoc, increment } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { handleVote, restoreUserVotes } from './vote-system.js';
 
 export async function loadHeader() {
     const container = document.getElementById("header-container");
@@ -458,110 +459,6 @@ const colorMap = {
   sky: "bg-sky-400 hover:bg-sky-500"
 };
 
-async function handleVote(quizId, optionId) {
-    const auth = getAuth();
-    const user = auth.currentUser;
-
-    if (!user) {
-        if (confirm("로그인이 필요합니다. 로그인하시겠습니까?")) {
-            openModal();
-        }
-        return;
-    }
-
-    try {
-        const quizRef = doc(db, "questions", quizId);
-        const userVoteRef = doc(db, "questions", quizId, "userVotes", user.uid);
-
-        await runTransaction(db, async (transaction) => {
-            const quizDoc = await transaction.get(quizRef);
-            if (!quizDoc.exists()) {
-                throw "Quiz document does not exist!";
-            }
-
-            const data = quizDoc.data();
-            const entryFee = data.entryFee || 0;
-            const participantLimit = data.participantLimit || 0;
-            const participants = data.participants || [];
-
-            const userProfileRef = doc(db, "userProfiles", user.uid);
-            const userProfileDoc = await transaction.get(userProfileRef);
-            const userPoints = userProfileDoc.data()?.points || 0;
-
-            if (participantLimit > 0 && participants.length >= participantLimit && !participants.includes(user.uid)) {
-                throw "Participant limit reached";
-            }
-
-            const userVoteDoc = await transaction.get(userVoteRef);
-            const voteData = data.vote ?? {};
-            const updatedVotes = { ...voteData };
-
-            let previousOptionId = null;
-            if (userVoteDoc.exists()) {
-                previousOptionId = userVoteDoc.data().selectedOption;
-            }
-
-            let updatedParticipants = [...participants];
-            const clickedOptionId = optionId;
-
-            if (previousOptionId === clickedOptionId) {
-                // Deselecting the same option
-                updatedVotes[clickedOptionId] = Math.max(0, (updatedVotes[clickedOptionId] || 0) - 1);
-                transaction.delete(userVoteRef);
-
-                if (entryFee > 0 && previousOptionId) {
-                    transaction.update(userProfileRef, {
-                        points: userPoints + entryFee
-                    });
-                }
-                // Remove user from participants
-                updatedParticipants = updatedParticipants.filter(uid => uid !== user.uid);
-
-            } else {
-                // Selecting a new option or switching vote
-                if (previousOptionId) {
-                    updatedVotes[previousOptionId] = Math.max(0, (updatedVotes[previousOptionId] || 0) - 1);
-                }
-                updatedVotes[clickedOptionId] = (updatedVotes[clickedOptionId] || 0) + 1;
-                transaction.set(userVoteRef, { selectedOption: clickedOptionId });
-
-                if (entryFee > 0 && !participants.includes(user.uid)) {
-                    if (userPoints < entryFee) {
-                        throw "Not enough points";
-                    }
-                    transaction.update(userProfileRef, {
-                        points: userPoints - entryFee
-                    });
-                }
-
-                // Add user to participants if not already there
-                if (!updatedParticipants.includes(user.uid)) {
-                    updatedParticipants.push(user.uid);
-                }
-            }
-
-            transaction.update(quizRef, { 
-                vote: updatedVotes,
-                participants: updatedParticipants
-            });
-        });
-
-        await updatePopularityScore(quizId);
-
-        if (quizIdFromUrl) {
-            await loadSingleQuiz(quizIdFromUrl);
-        }
-
-        if (auth.currentUser) {
-            restoreUserVotes(auth.currentUser);
-        }
-
-    } catch (e) {
-        console.error("Transaction failed: ", e);
-        alert(`투표 처리 중 오류가 발생했습니다: ${e}`);
-    }
-}
-
 async function loadSingleQuiz(quizId) {
     const container = document.getElementById("quiz-detail-container");
     if (!container) return;
@@ -903,7 +800,7 @@ function calculatePopularityScore(data) {
   );
 }
 
-async function updatePopularityScore(quizId) {
+export async function updatePopularityScore(quizId) {
     const quizRef = doc(db, "questions", quizId);
     const quizSnap = await getDoc(quizRef);
 
@@ -927,43 +824,6 @@ async function updatePopularityScore(quizId) {
     });
 
     await updateDoc(quizRef, { popularityScore });
-}
-
-async function restoreUserVotes(user) {
-    if (!user) return;
-    const quizCards = document.querySelectorAll('[data-quiz-id]');
-    const votePromises = [];
-
-    quizCards.forEach(card => {
-        const quizId = card.dataset.quizId;
-        const userVoteRef = doc(db, `questions/${quizId}/userVotes/${user.uid}`);
-
-        votePromises.push(
-            getDoc(userVoteRef).then(userVoteSnap => {
-                const buttons = card.querySelectorAll('.vote-option-btn');
-
-                // Reset all buttons first
-                buttons.forEach(btn => {
-                    btn.classList.remove('opacity-50', 'ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', 'ring-emerald-400', 'ring-red-400', 'ring-slate-400', 'ring-emerald-500');
-                });
-
-                if (userVoteSnap.exists()) {
-                    const selectedOptionId = userVoteSnap.data().selectedOption;
-                    buttons.forEach(btn => {
-                        if (btn.dataset.optionId === selectedOptionId) {
-                             btn.classList.add('ring-2', 'ring-offset-2', 'ring-emerald-500');
-                        } else {
-                            btn.classList.add('opacity-50');
-                        }
-                    });
-                }
-            }).catch(error => {
-                console.error(`Failed to restore vote for quiz ${quizId}:`, error);
-            })
-        );
-    });
-
-    await Promise.all(votePromises);
 }
 
 async function loadComments(quizId) {
