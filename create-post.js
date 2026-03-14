@@ -35,7 +35,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  function createOptionElement(isTopic) {
+  function createOptionElement(isTopic, index = 0) {
     const optionDiv = document.createElement("div");
     optionDiv.className = "flex items-center gap-2";
 
@@ -45,7 +45,25 @@ document.addEventListener("DOMContentLoaded", () => {
     input.required = true;
     input.className =
       "w-full px-4 py-3 rounded-md bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-teal transition";
-    input.placeholder = "선택지 입력";
+    
+    input.maxLength = isTopic ? 20 : 5;
+    
+    const optionIndex = index;
+
+    if (!isTopic) {
+      if (optionIndex === 0) {
+        input.placeholder = "선택지 입력 (최대 5글자) 초록";
+        input.classList.add("border-emerald-500");
+      }
+      if (optionIndex === 1) {
+        input.placeholder = "선택지 입력 (최대 5글자) 빨강";
+        input.classList.add("border-red-500");
+      }
+    }
+
+    if (isTopic) {
+      input.placeholder = "선택지 입력 (최대 20글자)";
+    }
 
     optionDiv.appendChild(input);
 
@@ -118,18 +136,16 @@ document.addEventListener("DOMContentLoaded", () => {
     const theme = pickThemeSelect.value;
     if (!theme) return;
     if (theme === "custom") {
-      const a = createOptionElement(false);
-      const b = createOptionElement(false);
-      a.querySelector("input").maxLength = 5;
-      b.querySelector("input").maxLength = 5;
+      const a = createOptionElement(false, 0);
+      const b = createOptionElement(false, 1);
       optionsContainer.appendChild(a);
       optionsContainer.appendChild(b);
       return;
     }
     const preset = pickThemes[theme];
     if (preset) {
-      preset.forEach(text => {
-        const el = createOptionElement(false);
+      preset.forEach((text, index) => {
+        const el = createOptionElement(false, index);
         const input = el.querySelector("input");
         input.value = text;
         input.readOnly = true;
@@ -166,7 +182,15 @@ document.addEventListener("DOMContentLoaded", () => {
       alert("카테고리를 선택해주세요.");
       return;
     }
-    if (data.participantLimit) {
+
+    const quizType = data['quiz-type'];
+
+    // Poll participant limit validation
+    if (quizType) {
+      if (!data.participantLimit) {
+        alert("참가자 제한을 입력해주세요. (10~500)");
+        return;
+      }
       const limit = Number(data.participantLimit);
       if (limit < 10 || limit > 500) {
         alert("참가자 제한은 10명 이상 500명 이하입니다.");
@@ -175,7 +199,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const optionInputs = Array.from(form.querySelectorAll('[name="option"]')).filter(input => input.value.trim() !== "");
-    const quizType = data['quiz-type'];
+
+    if (quizType === 'quiz' && !data.theme) {
+      alert('VS Pick 테마를 선택해주세요.');
+      return;
+    }
 
     if (quizType === "quiz" && optionInputs.length !== 2) {
       alert("VS Pick은 선택지가 정확히 2개여야 합니다.");
