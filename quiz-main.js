@@ -3,6 +3,43 @@ import { onAuthStateChanged, signOut, getAuth } from 'https://www.gstatic.com/fi
 import { collection, doc, runTransaction, onSnapshot, getDoc, setDoc, deleteDoc, addDoc, serverTimestamp, query, orderBy, limit, getDocs, where, startAfter, updateDoc, increment } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { handleVote } from './vote-system.js';
 
+const quizListeners = new Map();
+const quizCache = new Map();
+const firestoreListeners = {
+    questions: null,
+    comments: new Map(),
+    likes: new Map()
+};
+
+function setupQuestionsListener() {
+
+    if (firestoreListeners.questionsCollection) {
+        return;
+    }
+
+    const unsubscribe = onSnapshot(collection(db, "questions"), (snapshot) => {
+
+        snapshot.docChanges().forEach(change => {
+
+            const quizId = change.doc.id;
+            const data = change.doc.data();
+
+            const quizCard = document.querySelector(`[data-quiz-id="${quizId}"]`);
+
+            if (!quizCard) return;
+
+            const likeCountSpan = quizCard.querySelector('.like-count');
+            if (likeCountSpan) {
+                likeCountSpan.textContent = data.likesCount || 0;
+            }
+
+        });
+
+    });
+
+    firestoreListeners.questionsCollection = unsubscribe;
+}
+
 async function restoreUserVotes(user) {
     if (!user) return;
     const quizCards = document.querySelectorAll('[data-quiz-id]');
@@ -276,6 +313,10 @@ async function renderCategorySections() {
 }
 
 async function loadQuizzesByCategory(categoryId) {
+    if (quizCache.has(categoryId)) {
+        return quizCache.get(categoryId);
+    }
+
     if (!categoryPageState[categoryId]) {
         categoryPageState[categoryId] = {
             lastDoc: null,
@@ -329,7 +370,32 @@ async function loadQuizzesByCategory(categoryId) {
 
     if (DEBUG) console.log("Loaded quizzes for category:", categoryId, quizzes.length);
 
+    quizCache.set(categoryId, quizzes);
     return quizzes;
+}
+
+async function preloadQuizzes() {
+    const q = query(
+        collection(db, "questions"),
+        orderBy("createdAt", "desc"),
+        limit(200)
+    );
+
+    const snapshot = await getDocs(q);
+
+    snapshot.forEach(doc => {
+        const data = doc.data();
+        const category = data.category;
+
+        if (!quizCache.has(category)) {
+            quizCache.set(category, []);
+        }
+
+        quizCache.get(category).push({
+            id: doc.id,
+            ...data
+        });
+    });
 }
 
 async function loadRealtimeQuizzes() {
@@ -501,6 +567,10 @@ const colorMap = {
 };
 
 async function loadSingleQuiz(quizId) {
+    if (firestoreListeners.questions) {
+        return;
+    }
+
     const container = document.getElementById("quiz-detail-container");
     if (!container) return;
 
@@ -576,12 +646,6 @@ async function loadSingleQuiz(quizId) {
     }
 
     const quizRef = doc(db, "questions", quizId);
-    const quizSnap = await getDoc(quizRef);
-
-    if (!quizSnap.exists()) {
-        container.innerHTML = "<p class='text-center text-red-500'>퀴즈를 찾을 수 없습니다.</p>";
-        return;
-    }
 
     if (sessionStorage.getItem("viewed_" + quizId) !== "true") {
         await updateDoc(quizRef, {
@@ -590,145 +654,154 @@ async function loadSingleQuiz(quizId) {
         sessionStorage.setItem("viewed_" + quizId, "true");
     }
 
-    const quiz = quizSnap.data();
+    const unsubscribe = onSnapshot(quizRef, async (quizSnap) => {
+        if (!quizSnap.exists()) {
+            container.innerHTML = "<p class='text-center text-red-500'>퀴즈를 찾을 수 없습니다.</p>";
+            return;
+        }
 
-    const titleElement = document.getElementById("detail-title");
-    if (titleElement) {
-        titleElement.textContent = quiz.title;
-    }
+        const quiz = quizSnap.data();
 
-    const descriptionElement = document.getElementById("detail-description");
-    if (descriptionElement) {
-        descriptionElement.textContent = quiz.description;
-    }
+        const titleElement = document.getElementById("detail-title");
+        if (titleElement) {
+            titleElement.textContent = quiz.title;
+        }
 
-    const optionsContainer = document.getElementById("detail-options");
-    if (optionsContainer && Array.isArray(quiz.options)) {
-        optionsContainer.innerHTML = "";
-        quiz.options.forEach((option) => {
-            const button = document.createElement("button");
-            button.className = "vote-option-btn w-full text-left px-4 py-3 rounded-lg border border-slate-300 hover:bg-slate-50 transition";
-            button.dataset.optionId = option.id;
-            button.dataset.quizId = quizId;
-            button.textContent = option.label;
-            button.addEventListener("click", async () => {
-                const allButtons = optionsContainer.querySelectorAll(".vote-option-btn");
-                allButtons.forEach(btn => {
-                    btn.classList.remove("ring-2", "ring-emerald-500", "ring-offset-2");
+        const descriptionElement = document.getElementById("detail-description");
+        if (descriptionElement) {
+            descriptionElement.textContent = quiz.description;
+        }
+
+        const optionsContainer = document.getElementById("detail-options");
+        if (optionsContainer && Array.isArray(quiz.options)) {
+            optionsContainer.innerHTML = "";
+            quiz.options.forEach((option) => {
+                const button = document.createElement("button");
+                button.className = "vote-option-btn w-full text-left px-4 py-3 rounded-lg border border-slate-300 hover:bg-slate-50 transition";
+                button.dataset.optionId = option.id;
+                button.dataset.quizId = quizId;
+                button.textContent = option.label;
+                button.addEventListener("click", async () => {
+                    const allButtons = optionsContainer.querySelectorAll(".vote-option-btn");
+                    allButtons.forEach(btn => {
+                        btn.classList.remove("ring-2", "ring-emerald-500", "ring-offset-2");
+                    });
+                    button.classList.add("ring-2", "ring-emerald-500", "ring-offset-2");
+
+                    const voteSuccessful = await handleVote(quizId, option.id);
+                    if (voteSuccessful) {
+                        await updatePopularityScore(quizId);
+                        if (quizIdFromUrl) {
+                            await loadSingleQuiz(quizIdFromUrl);
+                        }
+                        const auth = getAuth();
+                        if (auth.currentUser) {
+                            restoreUserVotes(auth.currentUser);
+                        }
+                    }
                 });
-                button.classList.add("ring-2", "ring-emerald-500", "ring-offset-2");
-
-                const voteSuccessful = await handleVote(quizId, option.id);
-                if (voteSuccessful) {
-                    await updatePopularityScore(quizId);
-                    if (quizIdFromUrl) {
-                        await loadSingleQuiz(quizIdFromUrl);
-                    }
-                    const auth = getAuth();
-                    if (auth.currentUser) {
-                        restoreUserVotes(auth.currentUser);
-                    }
-                }
+                optionsContainer.appendChild(button);
             });
-            optionsContainer.appendChild(button);
-        });
-    }
-
-    const resultsContainer = document.getElementById("detail-results");
-    if (resultsContainer && Array.isArray(quiz.options)) {
-        resultsContainer.innerHTML = "";
-        const votes = quiz.vote || {};
-        const totalVotes = Object.values(votes).reduce((a, b) => a + b, 0);
-        quiz.options.forEach(option => {
-            const count = votes[option.id] || 0;
-            const percent = totalVotes === 0 ? 0 : Math.round((count / totalVotes) * 100);
-            const wrapper = document.createElement("div");
-            wrapper.className = "space-y-1";
-            const label = document.createElement("div");
-            label.className = "flex justify-between text-sm text-slate-600";
-            label.innerHTML = `
-                <span>${option.label}</span>
-                <span>${percent}% (${count})</span>
-            `;
-            const bar = document.createElement("div");
-            bar.className = "w-full bg-slate-200 rounded h-3";
-            const fill = document.createElement("div");
-            fill.className = "bg-emerald-500 h-3 rounded";
-            fill.style.width = percent + "%";
-            bar.appendChild(fill);
-            wrapper.appendChild(label);
-            wrapper.appendChild(bar);
-            resultsContainer.appendChild(wrapper);
-        });
-    }
-
-    const participationContainer = document.getElementById("detail-participation");
-    if (participationContainer) {
-        const participants = quiz.participants || [];
-        const maxParticipants = quiz.participantLimit || 0;
-        const current = participants.length;
-        const percent = maxParticipants === 0 ? 0 : Math.round((current / maxParticipants) * 100);
-        const bar = document.getElementById("participation-bar");
-        if (bar) {
-            bar.style.width = percent + "%";
         }
-        const text = document.getElementById("participation-text");
-        if (text) {
-            text.textContent = `${current} / ${maxParticipants} 참여`;
-        }
-        if (maxParticipants === 0) {
-            participationContainer.classList.add("hidden");
-        } else {
-            participationContainer.classList.remove("hidden");
-        }
-    }
 
-    const auth = getAuth();
-    if (auth.currentUser) {
-        restoreUserVotes(auth.currentUser);
-        const likeRef = doc(db, `questions/${quizId}/likes`, auth.currentUser.uid);
-        const userLikeSnap = await getDoc(likeRef);
-        const outline = document.getElementById("like-icon-outline");
-        const filled = document.getElementById("like-icon-filled");
-        if (outline && filled) {
-            if (userLikeSnap.exists()) {
-                outline.classList.add("hidden");
-                filled.classList.remove("hidden");
+        const resultsContainer = document.getElementById("detail-results");
+        if (resultsContainer && Array.isArray(quiz.options)) {
+            resultsContainer.innerHTML = "";
+            const votes = quiz.vote || {};
+            const totalVotes = Object.values(votes).reduce((a, b) => a + b, 0);
+            quiz.options.forEach(option => {
+                const count = votes[option.id] || 0;
+                const percent = totalVotes === 0 ? 0 : Math.round((count / totalVotes) * 100);
+                const wrapper = document.createElement("div");
+                wrapper.className = "space-y-1";
+                const label = document.createElement("div");
+                label.className = "flex justify-between text-sm text-slate-600";
+                label.innerHTML = `
+                    <span>${option.label}</span>
+                    <span>${percent}% (${count})</span>
+                `;
+                const bar = document.createElement("div");
+                bar.className = "w-full bg-slate-200 rounded h-3";
+                const fill = document.createElement("div");
+                fill.className = "bg-emerald-500 h-3 rounded";
+                fill.style.width = percent + "%";
+                bar.appendChild(fill);
+                wrapper.appendChild(label);
+                wrapper.appendChild(bar);
+                resultsContainer.appendChild(wrapper);
+            });
+        }
+
+        const participationContainer = document.getElementById("detail-participation");
+        if (participationContainer) {
+            const participants = quiz.participants || [];
+            const maxParticipants = quiz.participantLimit || 0;
+            const current = participants.length;
+            const percent = maxParticipants === 0 ? 0 : Math.round((current / maxParticipants) * 100);
+            const bar = document.getElementById("participation-bar");
+            if (bar) {
+                bar.style.width = percent + "%";
+            }
+            const text = document.getElementById("participation-text");
+            if (text) {
+                text.textContent = `${current} / ${maxParticipants} 참여`;
+            }
+            if (maxParticipants === 0) {
+                participationContainer.classList.add("hidden");
             } else {
-                outline.classList.remove("hidden");
-                filled.classList.add("hidden");
+                participationContainer.classList.remove("hidden");
             }
         }
-    }
-    
-    const likeButton = document.getElementById("detail-like-button");
-    if(likeButton) {
-        likeButton.innerHTML = '<svg id="like-icon-outline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"/></svg><svg id="like-icon-filled" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 text-red-500 hidden"><path d="M12 21s-8.5-4.6-8.5-11.1C3.5 6.4 5.9 4 8.8 4c1.9 0 3.6 1 4.2 2.6C13.6 5 15.3 4 17.2 4 20.1 4 22.5 6.4 22.5 9.9 22.5 16.4 12 21 12 21z"/></svg>';
-        likeButton.className = "px-3 py-1 rounded bg-slate-200 hover:bg-slate-300 transition";
-        likeButton.onclick = () => handleLike(quizId);
-    }
 
-    const likeCountEl = document.getElementById("detail-like-count");
-    if (likeCountEl) {
-        likeCountEl.textContent = quiz.likesCount || 0;
-    }
+        const auth = getAuth();
+        if (auth.currentUser) {
+            restoreUserVotes(auth.currentUser);
+            const likeRef = doc(db, `questions/${quizId}/likes`, auth.currentUser.uid);
+            const userLikeSnap = await getDoc(likeRef);
+            const outline = document.getElementById("like-icon-outline");
+            const filled = document.getElementById("like-icon-filled");
+            if (outline && filled) {
+                if (userLikeSnap.exists()) {
+                    outline.classList.add("hidden");
+                    filled.classList.remove("hidden");
+                } else {
+                    outline.classList.remove("hidden");
+                    filled.classList.add("hidden");
+                }
+            }
+        }
+        
+        const likeButton = document.getElementById("detail-like-button");
+        if(likeButton) {
+            likeButton.innerHTML = '<svg id="like-icon-outline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"/></svg><svg id="like-icon-filled" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 text-red-500 hidden"><path d="M12 21s-8.5-4.6-8.5-11.1C3.5 6.4 5.9 4 8.8 4c1.9 0 3.6 1 4.2 2.6C13.6 5 15.3 4 17.2 4 20.1 4 22.5 6.4 22.5 9.9 22.5 16.4 12 21 12 21z"/></svg>';
+            likeButton.className = "px-3 py-1 rounded bg-slate-200 hover:bg-slate-300 transition";
+            likeButton.onclick = () => handleLike(quizId);
+        }
 
-    const likeCount = document.getElementById("detail-like-count");
-    if (likeCount) {
-        likeCount.className = "ml-2 text-sm text-slate-600";
-    }
+        const likeCountEl = document.getElementById("detail-like-count");
+        if (likeCountEl) {
+            likeCountEl.textContent = quiz.likesCount || 0;
+        }
 
-    const shareButton = document.getElementById("detail-share-button");
-    if(shareButton) {
-        shareButton.onclick = () => {
-            const url = window.location.href;
-            navigator.clipboard.writeText(url).then(() => {
-                alert("퀴즈 링크가 복사되었습니다!");
-            }, () => {
-                alert("링크 복사에 실패했습니다.");
-            });
-        };
-    }
+        const likeCount = document.getElementById("detail-like-count");
+        if (likeCount) {
+            likeCount.className = "ml-2 text-sm text-slate-600";
+        }
+
+        const shareButton = document.getElementById("detail-share-button");
+        if(shareButton) {
+            shareButton.onclick = () => {
+                const url = window.location.href;
+                navigator.clipboard.writeText(url).then(() => {
+                    alert("퀴즈 링크가 복사되었습니다!");
+                }, () => {
+                    alert("링크 복사에 실패했습니다.");
+                });
+            };
+        }
+    });
+
+    firestoreListeners.questions = unsubscribe;
 }
 
 function formatTimeAgo(timestamp) {
@@ -1149,70 +1222,36 @@ async function loadComments(quizId) {
 
 // --- Like and Comment Functions ---
 
-function setupLikeListener(quizId, currentUserId) {
+async function setupLikeListener(quizId, currentUserId) {
     const quizCard = document.querySelector(`[data-quiz-id="${quizId}"]`);
     if (!quizCard) return;
 
     const likeButton = quizCard.querySelector('.like-button');
     if (!likeButton) return;
-    const likeCountSpan = quizCard.querySelector('.like-count');
     const likeIcon = likeButton.querySelector('i');
 
-    onSnapshot(doc(db, "questions", quizId), async (docSnap) => {
-        if (docSnap.exists()) {
-            const data = docSnap.data();
-            if (likeCountSpan) likeCountSpan.textContent = data.likesCount || 0;
-
-            let userHasLiked = false;
-            if (currentUserId) {
-                const likeRef = doc(db, `questions/${quizId}/likes`, currentUserId);
-                const userLikeSnap = await getDoc(likeRef);
-                userHasLiked = userLikeSnap.exists();
-            }
-
-            if (likeIcon) {
-                if (userHasLiked) {
-                    likeIcon.classList.remove('far', 'fa-heart');
-                    likeIcon.classList.add('fas', 'fa-heart', 'text-red-500');
-                } else {
-                    likeIcon.classList.remove('fas', 'fa-heart', 'text-red-500');
-                    likeIcon.classList.add('far', 'fa-heart');
-                }
+    if (currentUserId) {
+        const likeRef = doc(db, `questions/${quizId}/likes`, currentUserId);
+        const userLikeSnap = await getDoc(likeRef);
+        if (likeIcon) {
+            if (userLikeSnap.exists()) {
+                likeIcon.classList.remove('far');
+                likeIcon.classList.add('fas', 'text-red-500');
+            } else {
+                likeIcon.classList.remove('fas', 'text-red-500');
+                likeIcon.classList.add('far');
             }
         }
-    });
+    } else {
+        if(likeIcon){
+             likeIcon.classList.remove('fas', 'text-red-500');
+            likeIcon.classList.add('far');
+        }
+    }
 }
 
 function setupCommentListener(quizId) {
-    const quizCard = document.querySelector(`[data-quiz-id="${quizId}"]`);
-    if (!quizCard) return;
-
-    const commentsList = quizCard.querySelector('.comments-list');
-    const commentCountSpan = quizCard.querySelector('.comment-count');
-    if (!commentsList || !commentCountSpan) return;
-
-    const commentsQuery = query(collection(db, `questions/${quizId}/comments`), orderBy('createdAt', 'desc'), limit(20));
-
-    onSnapshot(doc(db, "questions", quizId), (docSnap) => {
-        if (docSnap.exists()) {
-            const data = docSnap.data();
-            if (commentCountSpan) commentCountSpan.textContent = data.commentsCount || 0;
-
-            (async () => {
-                const snapshot = await getDocs(commentsQuery);
-                commentsList.innerHTML = '';
-                if (snapshot.empty) {
-                    commentsList.innerHTML = `<p class="text-xs text-slate-400 dark:text-slate-500 text-center">아직 댓글이 없습니다.</p>`;
-                } else {
-                    snapshot.forEach(doc => {
-                        const comment = doc.data();
-                        const commentElement = createCommentElement(doc.id, comment);
-                        commentsList.appendChild(commentElement);
-                    });
-                }
-            })();
-        }
-    });
+    // This listener is redundant because the new collection listener handles comment count updates.
 }
 
 function createCommentElement(commentId, comment) {
@@ -1393,6 +1432,8 @@ function initializeHeader() {
 window.initializeHeader = initializeHeader;
 
 document.addEventListener('DOMContentLoaded', async () => {
+    setupQuestionsListener();
+    await preloadQuizzes();
     await loadHeader();
     const searchInput = document.getElementById('search-input');
     if (searchInput) {
