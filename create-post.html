@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="ko" class="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create Quiz | 픽스</title>
+    <title>Create Post | 픽스</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="tailwind.config.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -54,18 +53,18 @@
 
 <main class="container mx-auto px-4 sm:px-6 py-8 md:py-12">
     <div class="max-w-2xl mx-auto bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-md">
-        <h1 class="text-3xl font-bold text-slate-900 dark:text-white mb-6">퀴즈 만들기</h1>
+        <h1 class="text-3xl font-bold text-slate-900 dark:text-white mb-6">VS Pick 만들기</h1>
         <form id="create-quiz-form" novalidate class="space-y-6">
             <div>
-              <label class="block text-sm font-semibold mb-2 text-slate-700 dark:text-slate-200">퀴즈 유형</label>
+              <label class="block text-sm font-semibold mb-2 text-slate-700 dark:text-slate-200">Pick 유형</label>
               <div class="flex gap-4">
                 <label class="flex items-center gap-2">
                   <input type="radio" name="quiz-type" value="quiz" checked>
-                  <span>퀴즈</span>
+                  <span>VS Pick</span>
                 </label>
                 <label class="flex items-center gap-2">
                   <input type="radio" name="quiz-type" value="superquiz">
-                  <span>슈퍼퀴즈</span>
+                  <span>Topic</span>
                 </label>
               </div>
             </div>
@@ -89,7 +88,7 @@
             <div id="superquiz-settings" style="display:none;" class="space-y-4 p-4 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
 
               <p class="text-sm text-slate-500">
-              슈퍼 퀴즈는 최대 일주일간 게시 가능합니다.
+              Topic은 최대 일주일간 게시 가능합니다.
               </p>
             
               <div>
@@ -131,30 +130,29 @@
             
             </div>
             <div>
-                <label for="quiz-title" class="block text-sm font-semibold mb-2 text-slate-700 dark:text-slate-200">퀴즈 제목</label>
+                <label for="quiz-title" class="block text-sm font-semibold mb-2 text-slate-700 dark:text-slate-200">Pick 제목</label>
                 <input type="text" id="quiz-title" name="title" required placeholder="예: 2024년 미국 대선 승자는?" class="w-full px-4 py-3 rounded-md bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-teal transition">
             </div>
             <div>
                 <label for="quiz-description" class="block text-sm font-semibold mb-2 text-slate-700 dark:text-slate-200">설명 (선택)</label>
-                <textarea id="quiz-description" name="description" rows="3" placeholder="퀴즈에 대한 추가적인 정보를 입력하세요。"
+                <textarea id="quiz-description" name="description" rows="3" placeholder="Pick에 대한 추가적인 정보를 입력하세요。"
                   class="w-full px-4 py-3 rounded-md bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-teal transition"></textarea>
             </div>
             <div id="options-container">
                 <label class="block text-sm font-semibold mb-2 text-slate-700 dark:text-slate-200">선택지</label>
-                <div class="space-y-3">
-                </div>
+                <div id="options-list" class="space-y-3"></div>
             </div>
             <button type="button" id="add-option-btn" class="text-sm font-semibold text-teal hover:underline">+ 선택지 추가</button>
             
             <div class="pt-4">
-                <button type="submit" class="w-full btn-primary px-6 py-4 rounded-lg font-bold text-lg transition-all hover:opacity-90">퀴즈 생성하기</button>
+                <button type="submit" class="w-full btn-primary px-6 py-4 rounded-lg font-bold text-lg transition-all hover:opacity-90">Pick 생성하기</button>
             </div>
         </form>
     </div>
 </main>
 
 <script type="module" src="firebase-config.js"></script>
-<script type="module" src="create-quiz.js"></script>
+<script type="module" src="create-post.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         // Basic theme toggle for consistency
