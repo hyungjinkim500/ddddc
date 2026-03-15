@@ -16,6 +16,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const pickThemeSelect = document.getElementById("pick-theme-select");
   const pollSettings = document.getElementById("poll-settings");
   const quizTypeRadios = form.querySelectorAll('input[name="quiz-type"]');
+  const imageInput = document.getElementById("image-input");
+  const imagePreview = document.getElementById("image-preview");
+
+  let selectedImages = [];
 
   const pickThemes = {
     yesno: ["그렇다", "아니다"],
@@ -250,6 +254,61 @@ document.addEventListener("DOMContentLoaded", () => {
       alert("게시물 생성 중 오류가 발생했습니다. 다시 시도해 주세요.");
     }
   });
+
+  imageInput.addEventListener("change", (e) => {
+    const files = Array.from(e.target.files);
+  
+    for (const file of files) {
+      if (selectedImages.length >= 5) {
+        alert("이미지는 최대 5장까지 업로드 가능합니다.");
+        break;
+      }
+  
+      if (file.size > 10 * 1024 * 1024) {
+        alert("이미지 크기는 10MB 이하만 가능합니다.");
+        continue;
+      }
+  
+      selectedImages.push(file);
+    }
+  
+    renderImagePreview();
+  });
+  
+  function renderImagePreview() {
+    imagePreview.innerHTML = "";
+  
+    selectedImages.forEach((file, index) => {
+      const reader = new FileReader();
+  
+      reader.onload = (e) => {
+        const wrapper = document.createElement("div");
+        wrapper.className = "relative";
+  
+        const img = document.createElement("img");
+        img.src = e.target.result;
+        img.className = "w-full h-24 object-cover rounded-lg";
+  
+        const removeBtn = document.createElement("button");
+        removeBtn.innerHTML = "✕";
+        removeBtn.className =
+          "absolute top-1 right-1 bg-black text-white text-xs px-2 py-1 rounded";
+  
+        removeBtn.addEventListener("click", () => {
+          selectedImages.splice(index, 1);
+          renderImagePreview();
+        });
+  
+        wrapper.appendChild(img);
+        wrapper.appendChild(removeBtn);
+  
+        imagePreview.appendChild(wrapper);
+      };
+  
+      reader.readAsDataURL(file);
+    });
+  }
+  
   // Initial setup on page load
   setupOptions();
 });

@@ -7,37 +7,37 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="tailwind.config.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Pretendard:wght@400;600;700&display=swap');
-        
-        :root {
-            --pm-navy: #0e1117;
-            --pm-teal: #00d395; 
-            --pm-teal-dark: #00a876;
-            --bg-primary-light: #f1f5f9;
-            --bg-primary-dark: #020617;
-            --text-primary-light: #1e293b;
-            --text-primary-dark: #e2e8f0;
-            --card-bg-light: white;
-            --card-bg-dark: #0f172a;
-            --border-light: #e2e8f0;
-            --border-dark: #1e293b;
-        }
+   <style>
+       @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Pretendard:wght@400;600;700&display=swap');
+       
+       :root {
+           --pm-navy: #0e1117;
+           --pm-teal: #00d395; 
+           --pm-teal-dark: #00a876;
+           --bg-primary-light: #f1f5f9;
+           --bg-primary-dark: #020617;
+           --text-primary-light: #1e293b;
+           --text-primary-dark: #e2e8f0;
+           --card-bg-light: white;
+           --card-bg-dark: #0f172a;
+           --border-light: #e2e8f0;
+           --border-dark: #1e293b;
+       }
 
-        body {
-            font-family: 'Pretendard', sans-serif;
-            letter-spacing: -0.025em;
-            word-break: keep-all;
-            background-color: var(--bg-primary-light);
-            color: var(--text-primary-light);
-        }
-        html.dark body {
-            background-color: var(--bg-primary-dark);
-            color: var(--text-primary-dark);
-        }
-        
-        .btn-primary { background-color: var(--pm-teal); color: var(--pm-navy); }
-    </style>
+       body {
+           font-family: 'Pretendard', sans-serif;
+           letter-spacing: -0.025em;
+           word-break: keep-all;
+           background-color: var(--bg-primary-light);
+           color: var(--text-primary-light);
+       }
+       html.dark body {
+           background-color: var(--bg-primary-dark);
+           color: var(--text-primary-dark);
+       }
+       
+       .btn-primary { background-color: var(--pm-teal); color: var(--pm-navy); }
+   </style>
 </head>
 <body class="transition-colors duration-300">
 
@@ -111,6 +111,23 @@
                 <label for="quiz-description" class="block text-sm font-semibold mb-2 text-slate-700 dark:text-slate-200">설명 (선택)</label>
                 <textarea id="quiz-description" name="description" rows="3" placeholder="Pick에 대한 추가적인 정보를 입력하세요。"
                   class="w-full px-4 py-3 rounded-md bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-teal transition"></textarea>
+            </div>
+            <div id="image-upload-section" class="space-y-3">
+              <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200">
+                사진 업로드 (최대 5장, 각 10MB)
+              </label>
+            
+              <input 
+                type="file"
+                id="image-input"
+                accept="image/*"
+                multiple
+                class="block w-full text-sm text-slate-600"
+              />
+            
+              <div id="image-preview"
+                class="grid grid-cols-3 gap-3">
+              </div>
             </div>
             <div id="pick-theme-container" style="display:none;" class="space-y-2">
               <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200">
