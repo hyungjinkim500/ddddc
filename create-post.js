@@ -24,6 +24,15 @@ document.addEventListener("DOMContentLoaded", () => {
   const quizTypeRadios = form.querySelectorAll('input[name="quiz-type"]');
   const imageInput = document.getElementById("image-input");
   const imagePreview = document.getElementById("image-preview");
+  const descriptionInput = document.getElementById("quiz-description");
+  const descriptionCounter = document.getElementById("description-counter");
+
+  if (descriptionInput && descriptionCounter) {
+    descriptionInput.addEventListener("input", () => {
+      const length = descriptionInput.value.length;
+      descriptionCounter.textContent = `${length} / 2000`;
+    });
+  }
 
   let selectedImages = [];
 
@@ -184,10 +193,23 @@ document.addEventListener("DOMContentLoaded", () => {
     const formData = new FormData(form);
     const data = Object.fromEntries(formData.entries());
 
-    if (!data.title || !data.title.trim()) {
+    const title = data.title.trim();
+
+    if (!title) {
       alert("제목을 입력해주세요.");
       return;
     }
+
+    if (title.length > 100) {
+        alert("제목은 최대 100자까지 작성할 수 있습니다.");
+        return;
+    }
+
+    if (data.description && data.description.length > 2000) {
+        alert("본문은 최대 2000자까지 작성할 수 있습니다.");
+        return;
+    }
+
     if (!data.category) {
       alert("카테고리를 선택해주세요.");
       return;
@@ -233,7 +255,7 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const postData = {
         category: data.category,
-        title: data.title,
+        title: title,
         description: data.description,
         options,
         creatorId: currentUser.uid,

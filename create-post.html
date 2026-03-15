@@ -105,11 +105,14 @@
             </div>
             <div>
                 <label for="quiz-title" class="block text-sm font-semibold mb-2 text-slate-700 dark:text-slate-200">Pick 제목</label>
-                <input type="text" id="quiz-title" name="title" required placeholder="예: 2024년 미국 대선 승자는?" class="w-full px-4 py-3 rounded-md bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-teal transition">
+                <input type="text" id="quiz-title" name="title" required placeholder="예: 2024년 미국 대선 승자는?" class="w-full px-4 py-3 rounded-md bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-teal transition" maxlength="100">
             </div>
             <div>
-                <label for="quiz-description" class="block text-sm font-semibold mb-2 text-slate-700 dark:text-slate-200">설명 (선택)</label>
-                <textarea id="quiz-description" name="description" rows="3" placeholder="Pick에 대한 추가적인 정보를 입력하세요。"
+                <label for="quiz-description" class="flex justify-between text-sm font-semibold mb-2 text-slate-700 dark:text-slate-200">
+                  <span>설명 (선택)</span>
+                  <span id="description-counter" class="text-xs text-slate-400">0 / 2000</span>
+                </label>
+                <textarea id="quiz-description" name="description" rows="3" placeholder="Pick에 대한 추가적인 정보를 입력하세요。" maxlength="2000"
                   class="w-full px-4 py-3 rounded-md bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-teal transition"></textarea>
             </div>
             <div id="image-upload-section" class="space-y-3">
