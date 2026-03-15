@@ -431,13 +431,13 @@ async function loadRealtimeQuizzes() {
             collection(db, "questions"),
             orderBy("createdAt", "desc"),
             startAfter(realtimePageState.lastDoc),
-            limit(8)
+            limit(6)
         );
     } else {
         q = query(
             collection(db, "questions"),
             orderBy("createdAt", "desc"),
-            limit(8)
+            limit(6)
         );
     }
 
@@ -452,7 +452,7 @@ async function loadRealtimeQuizzes() {
         });
     });
 
-    if (snapshot.size < 8) {
+    if (snapshot.size < 6) {
         realtimePageState.hasMore = false;
     }
 

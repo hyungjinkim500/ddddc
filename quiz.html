@@ -168,28 +168,27 @@
             <div id="popular-quiz-slider" class="flex gap-4 overflow-hidden"></div>
         </section>
 
-        <section id="realtime-quiz-section" class="mb-12">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="text-xl font-bold">실시간 퀴즈</h2>
-                <div class="flex gap-2">
-                    <button id="realtime-slider-left" class="w-8 h-8 rounded-full border flex items-center justify-center">‹</button>
-                    <button id="realtime-slider-right" class="w-8 h-8 rounded-full border flex items-center justify-center">›</button>
+        <section id="realtime-wrapper" class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+            <section id="realtime-quiz-section">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-bold">실시간 퀴즈</h2>
+                    <div class="flex gap-2">
+                        <button id="realtime-slider-left" class="w-8 h-8 rounded-full border flex items-center justify-center">‹</button>
+                        <button id="realtime-slider-right" class="w-8 h-8 rounded-full border flex items-center justify-center">›</button>
+                    </div>
                 </div>
-            </div>
-            <div id="realtime-slider" class="grid grid-rows-2 grid-flow-col gap-4 overflow-x-auto scrollbar-hide"></div>
-        </section>
-
-        <section id="realtime-post-section" class="mb-12">
-
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="text-xl font-bold">실시간 게시글</h2>
-            </div>
-
-            <div
-                id="realtime-post-list"
-                class="space-y-3"
-            ></div>
-
+                <div id="realtime-slider" class="grid grid-rows-2 grid-flow-col gap-4 overflow-x-auto scrollbar-hide"></div>
+            </section>
+    
+            <section id="realtime-post-section">
+    
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-bold">실시간 게시글</h2>
+                </div>
+    
+                <div id="realtime-post-list" class="space-y-3"></div>
+    
+            </section>
         </section>
 
         <div id="category-sections" class="space-y-12"></div>
