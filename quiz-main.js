@@ -11,6 +11,17 @@ const firestoreListeners = {
     likes: new Map()
 };
 
+let imageGallery = [];
+let currentImageIndex = 0;
+
+function updateImageCounter() {
+  const counter = document.getElementById("image-counter");
+  if (!counter) return;
+
+  counter.textContent =
+    (currentImageIndex + 1) + " / " + imageGallery.length;
+}
+
 function setupQuestionsListener() {
 
     if (firestoreListeners.questionsCollection) {
@@ -585,6 +596,12 @@ async function loadSingleQuiz(quizId) {
         description.id = "detail-description";
         container.appendChild(description);
     }
+    if (!document.getElementById("detail-images")) {
+        const imageContainer = document.createElement("div");
+        imageContainer.id = "detail-images";
+        imageContainer.className = "mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3";
+        container.appendChild(imageContainer);
+    }
     if (!document.getElementById("detail-participation")) {
         const participation = document.createElement("div");
         participation.id = "detail-participation";
@@ -670,6 +687,37 @@ async function loadSingleQuiz(quizId) {
         const descriptionElement = document.getElementById("detail-description");
         if (descriptionElement) {
             descriptionElement.textContent = quiz.description;
+        }
+
+        const imageContainer = document.getElementById("detail-images");
+        if (imageContainer) {
+            imageContainer.innerHTML = "";
+            if (Array.isArray(quiz.imageUrls)) {
+                imageGallery = quiz.imageUrls;
+                quiz.imageUrls.forEach((url) => {
+                    const img = document.createElement("img");
+                    img.src = url;
+                    img.loading = "lazy";
+                    img.decoding = "async";
+                    img.referrerPolicy = "no-referrer";
+                    img.draggable = false;
+                    img.className =
+                        "w-full rounded-lg object-cover max-h-[400px]";
+                    img.style.cursor = "zoom-in";
+                    img.addEventListener("click", () => {
+                        const modal = document.getElementById("image-modal");
+                        if (!modal) return;
+                        const modalImg = modal.querySelector("img");
+                        currentImageIndex = imageGallery.indexOf(url);
+                        if (modalImg) {
+                            modalImg.src = url;
+                        }
+                        modal.classList.remove("hidden");
+                        updateImageCounter();
+                    });
+                    imageContainer.appendChild(img);
+                });
+            }
         }
 
         const optionsContainer = document.getElementById("detail-options");
@@ -1432,6 +1480,83 @@ function initializeHeader() {
 window.initializeHeader = initializeHeader;
 
 document.addEventListener('DOMContentLoaded', async () => {
+    const imageModal = document.getElementById("image-modal");
+    if (imageModal) {
+        const closeBtn = document.getElementById("image-modal-close");
+        if (closeBtn) {
+            closeBtn.addEventListener("click", () => {
+                imageModal.classList.add("hidden");
+            });
+        }
+        imageModal.addEventListener("click", (e) => {
+            if (e.target === imageModal) {
+                imageModal.classList.add("hidden");
+            }
+        });
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "Escape") {
+                imageModal.classList.add("hidden");
+            }
+        });
+    }
+    document.addEventListener("keydown", (e) => {
+        const modal = document.getElementById("image-modal");
+        if (!modal || modal.classList.contains("hidden") || imageGallery.length === 0) return;
+
+        if (e.key === "ArrowRight") {
+            currentImageIndex = (currentImageIndex + 1) % imageGallery.length;
+        }
+
+        if (e.key === "ArrowLeft") {
+            currentImageIndex = (currentImageIndex - 1 + imageGallery.length) % imageGallery.length;
+        }
+
+        const modalImg = modal.querySelector("img");
+        if (modalImg) {
+            modalImg.src = imageGallery[currentImageIndex];
+        }
+        updateImageCounter();
+    });
+
+    const prevBtn = document.getElementById("image-prev");
+    const nextBtn = document.getElementById("image-next");
+
+    if (prevBtn) {
+      prevBtn.addEventListener("click", () => {
+        if (imageGallery.length === 0) return;
+
+        currentImageIndex =
+          (currentImageIndex - 1 + imageGallery.length) % imageGallery.length;
+
+        const modal = document.getElementById("image-modal");
+        const modalImg = modal.querySelector("img");
+
+        if (modalImg) {
+          modalImg.src = imageGallery[currentImageIndex];
+        }
+
+        updateImageCounter();
+      });
+    }
+
+    if (nextBtn) {
+      nextBtn.addEventListener("click", () => {
+        if (imageGallery.length === 0) return;
+
+        currentImageIndex =
+          (currentImageIndex + 1) % imageGallery.length;
+
+        const modal = document.getElementById("image-modal");
+        const modalImg = modal.querySelector("img");
+
+        if (modalImg) {
+          modalImg.src = imageGallery[currentImageIndex];
+        }
+
+        updateImageCounter();
+      });
+    }
+
     setupQuestionsListener();
     await preloadQuizzes();
     await loadHeader();

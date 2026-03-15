@@ -3,10 +3,16 @@ import {
   collection,
   addDoc,
   serverTimestamp,
+  updateDoc,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import {
   onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getStorage, ref, uploadBytes, getDownloadURL } 
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+import { compressImage } from "./image-compress.js";
+
+const storage = getStorage();
 
 document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById("create-quiz-form");
@@ -239,7 +245,8 @@ document.addEventListener("DOMContentLoaded", () => {
         participants: [],
         likesCount: 0,
         commentsCount: 0,
-        theme: data.theme
+        theme: data.theme,
+        imageUrls: [],
       };
 
       if (quizType) {
@@ -247,7 +254,26 @@ document.addEventListener("DOMContentLoaded", () => {
         postData.isSuper = quizType === "superquiz";
       }
 
-      await addDoc(collection(db, "questions"), postData);
+      const docRef = await addDoc(collection(db, "questions"), postData);
+
+      const imageUrls = [];
+      for (let i = 0; i < selectedImages.length; i++) {
+        const imageBlob = selectedImages[i];
+        const imageRef = ref(
+          storage,
+          `postImages/${docRef.id}/${i}.jpg`
+        );
+        await uploadBytes(imageRef, imageBlob);
+        const downloadURL = await getDownloadURL(imageRef);
+        imageUrls.push(downloadURL);
+      }
+
+      if (imageUrls.length > 0) {
+        await updateDoc(docRef, {
+          imageUrls: imageUrls
+        });
+      }
+
       window.location.href = "quiz.html";
     } catch (error) { 
       console.error("Error adding document: ", error);
@@ -255,7 +281,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  imageInput.addEventListener("change", (e) => {
+  imageInput.addEventListener("change", async (e) => {
     const files = Array.from(e.target.files);
   
     for (const file of files) {
@@ -268,44 +294,56 @@ document.addEventListener("DOMContentLoaded", () => {
         alert("이미지 크기는 10MB 이하만 가능합니다.");
         continue;
       }
+
+      if (!file.type.startsWith("image/")) {
+        alert("이미지 파일만 업로드 가능합니다.");
+        continue;
+      }
   
-      selectedImages.push(file);
+      try {
+        const compressedBlob = await compressImage(file);
+        selectedImages.push(compressedBlob);
+      } catch (error) {
+        console.error("Image compression failed:", error);
+        alert("이미지 압축에 실패했습니다.");
+      }
     }
   
     renderImagePreview();
+  
+    // Clear the input to allow re-selecting the same file
+    e.target.value = "";
   });
   
   function renderImagePreview() {
     imagePreview.innerHTML = "";
   
-    selectedImages.forEach((file, index) => {
-      const reader = new FileReader();
+    selectedImages.forEach((blob, index) => {
+      const wrapper = document.createElement("div");
+      wrapper.className = "relative";
   
-      reader.onload = (e) => {
-        const wrapper = document.createElement("div");
-        wrapper.className = "relative";
-  
-        const img = document.createElement("img");
-        img.src = e.target.result;
-        img.className = "w-full h-24 object-cover rounded-lg";
-  
-        const removeBtn = document.createElement("button");
-        removeBtn.innerHTML = "✕";
-        removeBtn.className =
-          "absolute top-1 right-1 bg-black text-white text-xs px-2 py-1 rounded";
-  
-        removeBtn.addEventListener("click", () => {
-          selectedImages.splice(index, 1);
-          renderImagePreview();
-        });
-  
-        wrapper.appendChild(img);
-        wrapper.appendChild(removeBtn);
-  
-        imagePreview.appendChild(wrapper);
+      const img = document.createElement("img");
+      const url = URL.createObjectURL(blob);
+      img.src = url;
+      img.className = "w-full h-24 object-cover rounded-lg";
+      img.onload = () => {
+        URL.revokeObjectURL(url);
       };
   
-      reader.readAsDataURL(file);
+      const removeBtn = document.createElement("button");
+      removeBtn.innerHTML = "✕";
+      removeBtn.className =
+        "absolute top-1 right-1 bg-black/60 text-white text-xs px-1 rounded";
+  
+      removeBtn.addEventListener("click", () => {
+        selectedImages.splice(index, 1);
+        renderImagePreview();
+      });
+  
+      wrapper.appendChild(img);
+      wrapper.appendChild(removeBtn);
+  
+      imagePreview.appendChild(wrapper);
     });
   }
   

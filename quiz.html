@@ -510,5 +510,36 @@
             });
         });
     </script>
+    <div id="image-modal"
+     class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center">
+
+  <button
+    id="image-modal-close"
+    class="absolute top-5 right-6 text-white text-3xl font-bold">
+    ×
+  </button>
+
+  <button
+    id="image-prev"
+    class="absolute left-6 text-white text-4xl font-bold">
+    ‹
+  </button>
+
+  <img
+    class="max-h-[90vh] max-w-[90vw] rounded-lg shadow-xl"
+  />
+
+  <button
+    id="image-next"
+    class="absolute right-6 text-white text-4xl font-bold">
+    ›
+  </button>
+
+  <div
+    id="image-counter"
+    class="absolute bottom-6 text-white text-sm">
+  </div>
+
+</div>
 </body>
 </html>
