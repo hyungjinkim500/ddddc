@@ -288,7 +288,7 @@ async function renderCategorySections() {
 
         const title = document.createElement("h2");
         title.className = "text-xl font-bold";
-        title.textContent = category.name + " 퀴즈";
+        title.textContent = category.name + " 픽스";
 
         const controls = document.createElement("div");
         controls.className = "flex gap-2";
@@ -403,20 +403,15 @@ async function loadPostsByCategory(categoryId) {
 }
 
 function renderCategoryPosts(categoryId, posts) {
-
     const container = document.getElementById(`category-posts-${categoryId}`);
     if (!container) return;
 
     container.innerHTML = "";
 
     posts.forEach(post => {
-
         const item = document.createElement("a");
-
         item.href = `post.html?id=${post.id}`;
-
-        item.className =
-            "block border rounded-lg px-4 py-3 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition";
+        item.className = "block border rounded-lg px-4 py-3 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition";
 
         const badge = getPostTypeBadge(post);
         const commentCount = post.commentsCount || 0;
@@ -426,33 +421,34 @@ function renderCategoryPosts(categoryId, posts) {
         item.innerHTML = `
         <div class="flex items-center gap-2 text-sm">
 
-        <span class="text-xs font-semibold text-emerald-600">
-        [${badge}]
-        </span>
+            <span class="text-xs font-semibold text-emerald-600">
+                [${badge}]
+            </span>
 
-        <span class="truncate flex-1">
-        ${title}
-        ${commentCount > 0 ? `<span class="text-red-500 ml-1">[${commentCount}]</span>` : ""}
-        </span>
+            <div class="flex items-center gap-1 flex-1 min-w-0">
+                <span class="truncate">
+                    ${title}
+                </span>
+                ${commentCount > 0 ? `<span class="text-red-500 text-xs flex-shrink-0">[${commentCount}]</span>` : ""}
+            </div>
 
-        ${imageIcon ? `<span class="text-slate-400">${imageIcon}</span>` : ""}
+            ${imageIcon ? `<span class="text-slate-400">${imageIcon}</span>` : ""}
 
-        <span class="text-xs text-slate-400 ml-auto">
-        ${formatTime(post.createdAt)}
-        </span>
+            <span class="text-xs text-slate-400 ml-auto">
+                ${formatTime(post.createdAt)}
+            </span>
 
-        <span class="text-xs text-slate-400 ml-2">
-        👁 ${post.views || 0}
-        </span>
+            <span class="text-xs text-slate-400 ml-2">
+                👁 ${post.views || 0}
+            </span>
 
         </div>
         `;
 
         container.appendChild(item);
-
     });
-
 }
+
 
 async function loadQuizzesByCategory(categoryId) {
     if (quizCache.has(categoryId)) {
@@ -608,30 +604,37 @@ async function renderRealtimeSection() {
     });
 }
 
-async function renderRealtimePosts() {
+let realtimePage = 0;
+const REALTIME_PAGE_SIZE = 7;
 
+async function renderRealtimePosts() {
     const container = document.getElementById("realtime-post-list");
     if (!container) return;
-
+    
     const q = query(
         collection(db, "questions"),
         orderBy("createdAt", "desc"),
-        limit(10)
+        limit(50)
     );
-
+    
     const snapshot = await getDocs(q);
-
-    container.innerHTML = "";
-
-    snapshot.forEach(docSnap => {
-
-        const data = docSnap.data();
-
+    
+    const posts = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+    }));
+    
+    container.innerHTML = ""; // Clear list
+    
+    const start = realtimePage * REALTIME_PAGE_SIZE;
+    const end = start + REALTIME_PAGE_SIZE;
+    const visiblePosts = posts.slice(start, end);
+    
+    visiblePosts.forEach(post => {
+        const data = post;
         const item = document.createElement("a");
-        item.href = `quiz.html?id=${docSnap.id}`;
-
-        item.className =
-            "block border rounded-lg px-4 py-3 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition";
+        item.href = `quiz.html?id=${post.id}`;
+        item.className = "block border rounded-lg px-4 py-3 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition";
 
         const badge = getPostTypeBadge(data);
         const commentCount = data.commentsCount || 0;
@@ -641,32 +644,32 @@ async function renderRealtimePosts() {
         item.innerHTML = `
         <div class="flex items-center gap-2 text-sm">
 
-        <span class="text-xs font-semibold text-emerald-600">
-        [${badge}]
-        </span>
+            <span class="text-xs font-semibold text-emerald-600">
+                [${badge}]
+            </span>
 
-        <span class="truncate flex-1">
-        ${title}
-        ${commentCount > 0 ? `<span class="text-red-500 ml-1">[${commentCount}]</span>` : ""}
-        </span>
+            <div class="flex items-center gap-1 flex-1 min-w-0">
+                <span class="truncate">
+                    ${title}
+                </span>
+                ${commentCount > 0 ? `<span class="text-red-500 text-xs flex-shrink-0">[${commentCount}]</span>` : ""}
+            </div>
 
-        ${imageIcon ? `<span class="text-slate-400">${imageIcon}</span>` : ""}
+            ${imageIcon ? `<span class="text-slate-400">${imageIcon}</span>` : ""}
 
-        <span class="text-xs text-slate-400 ml-auto">
-        ${formatTime(data.createdAt)}
-        </span>
+            <span class="text-xs text-slate-400 ml-auto">
+                ${formatTime(data.createdAt)}
+            </span>
 
-        <span class="text-xs text-slate-400 ml-2">
-        👁 ${data.views || 0}
-        </span>
+            <span class="text-xs text-slate-400 ml-2">
+                👁 ${data.views || 0}
+            </span>
 
         </div>
         `;
 
         container.appendChild(item);
-
     });
-
 }
 
 async function loadPopularSuperQuizzes() {
@@ -1857,6 +1860,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderSuperQuizSection();
         renderPopularQuizSection();
         loadTrendingKeywords();
+
+        const realtimePrevBtn = document.getElementById('realtime-prev');
+        const realtimeNextBtn = document.getElementById('realtime-next');
+
+        if (realtimeNextBtn) {
+            realtimeNextBtn.onclick = async () => {
+                const snapshot = await getDocs(query(collection(db, "questions"), orderBy("createdAt", "desc"), limit(50)));
+                if ((realtimePage + 1) * REALTIME_PAGE_SIZE < snapshot.size) {
+                    realtimePage++;
+                    renderRealtimePosts();
+                }
+            };
+        }
+
+        if (realtimePrevBtn) {
+            realtimePrevBtn.onclick = () => {
+                realtimePage = Math.max(0, realtimePage - 1);
+                renderRealtimePosts();
+            };
+        }
 
         const realtimeSlider = document.getElementById('realtime-slider');
         const realtimeLeftBtn = document.getElementById('realtime-slider-left');
