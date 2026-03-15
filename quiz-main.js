@@ -14,6 +14,17 @@ const firestoreListeners = {
 let imageGallery = [];
 let currentImageIndex = 0;
 
+function getPostTypeBadge(data){
+    if(!data.type) return "POST";
+    if(data.type === "quiz") return "PICK";
+    if(data.type === "superquiz") return "TOPIC";
+    return "POST";
+}
+
+function hasImage(data){
+    return Array.isArray(data.imageUrls) && data.imageUrls.length > 0;
+}
+
 function updateImageCounter() {
   const counter = document.getElementById("image-counter");
   if (!counter) return;
@@ -407,16 +418,34 @@ function renderCategoryPosts(categoryId, posts) {
         item.className =
             "block border rounded-lg px-4 py-3 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition";
 
-        item.innerHTML = `
-            <div class="font-semibold text-sm text-slate-900 dark:text-white truncate">
-                ${post.title || "제목 없음"}
-            </div>
+        const badge = getPostTypeBadge(post);
+        const commentCount = post.commentsCount || 0;
+        const imageIcon = hasImage(post) ? "🖼" : "";
+        const title = post.title || "제목 없음";
 
-            <div class="text-xs text-slate-500 mt-1 flex gap-3">
-                <span>❤️ ${post.likesCount || 0}</span>
-                <span>💬 ${post.commentsCount || 0}</span>
-                <span>👁 ${post.views || 0}</span>
-            </div>
+        item.innerHTML = `
+        <div class="flex items-center gap-2 text-sm">
+
+        <span class="text-xs font-semibold text-emerald-600">
+        [${badge}]
+        </span>
+
+        <span class="truncate flex-1">
+        ${title}
+        ${commentCount > 0 ? `<span class="text-red-500 ml-1">[${commentCount}]</span>` : ""}
+        </span>
+
+        ${imageIcon ? `<span class="text-slate-400">${imageIcon}</span>` : ""}
+
+        <span class="text-xs text-slate-400 ml-auto">
+        ${formatTime(post.createdAt)}
+        </span>
+
+        <span class="text-xs text-slate-400 ml-2">
+        👁 ${post.views || 0}
+        </span>
+
+        </div>
         `;
 
         container.appendChild(item);
@@ -604,16 +633,34 @@ async function renderRealtimePosts() {
         item.className =
             "block border rounded-lg px-4 py-3 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition";
 
-        item.innerHTML = `
-            <div class="font-semibold text-sm text-slate-900 dark:text-white truncate">
-                ${data.title || "제목 없음"}
-            </div>
+        const badge = getPostTypeBadge(data);
+        const commentCount = data.commentsCount || 0;
+        const imageIcon = hasImage(data) ? "🖼" : "";
+        const title = data.title || "제목 없음";
 
-            <div class="text-xs text-slate-500 mt-1 flex gap-3">
-                <span>❤️ ${data.likesCount || 0}</span>
-                <span>💬 ${data.commentsCount || 0}</span>
-                <span>👁 ${data.views || 0}</span>
-            </div>
+        item.innerHTML = `
+        <div class="flex items-center gap-2 text-sm">
+
+        <span class="text-xs font-semibold text-emerald-600">
+        [${badge}]
+        </span>
+
+        <span class="truncate flex-1">
+        ${title}
+        ${commentCount > 0 ? `<span class="text-red-500 ml-1">[${commentCount}]</span>` : ""}
+        </span>
+
+        ${imageIcon ? `<span class="text-slate-400">${imageIcon}</span>` : ""}
+
+        <span class="text-xs text-slate-400 ml-auto">
+        ${formatTime(data.createdAt)}
+        </span>
+
+        <span class="text-xs text-slate-400 ml-2">
+        👁 ${data.views || 0}
+        </span>
+
+        </div>
         `;
 
         container.appendChild(item);
@@ -1003,7 +1050,7 @@ async function loadSingleQuiz(quizId) {
     firestoreListeners.questions = unsubscribe;
 }
 
-function formatTimeAgo(timestamp) {
+function formatTime(timestamp) {
     if (!timestamp || !timestamp.toDate) return "";
 
     const now = new Date();
@@ -1099,7 +1146,7 @@ export function createQuizCard(quizId, quiz) {
               <i class="far fa-comment text-base"></i>
               <span class="comment-count font-medium text-xs">${quiz.commentsCount ?? 0}</span>
           </a>
-          <span class="time text-xs ml-auto">${formatTimeAgo(quiz.createdAt)}</span>
+          <span class="time text-xs ml-auto">${formatTime(quiz.createdAt)}</span>
           <button class="share-button hover:text-teal transition-colors">
               <i class="fas fa-share-alt"></i>
           </button>
