@@ -22,6 +22,22 @@ function updateImageCounter() {
     (currentImageIndex + 1) + " / " + imageGallery.length;
 }
 
+function getContentType(data) {
+    if (!data || !data.type) {
+        return "post";
+    }
+
+    if (data.type === "quiz") {
+        return "quiz";
+    }
+
+    if (data.type === "superquiz") {
+        return "superquiz";
+    }
+
+    return "post";
+}
+
 function setupQuestionsListener() {
 
     if (firestoreListeners.questionsCollection) {
@@ -251,7 +267,7 @@ async function renderCategorySections() {
     const quizPromises = categories.map(category => loadQuizzesByCategory(category.id));
     const quizzesByAllCategories = await Promise.all(quizPromises);
 
-    categories.forEach((category, index) => {
+    categories.forEach(async (category, index) => {
         const quizzes = quizzesByAllCategories[index];
         const section = document.createElement("section");
         section.className = "mb-12";
@@ -327,11 +343,86 @@ async function renderCategorySections() {
             });
         };
 
+        const grid = document.createElement("div");
+        grid.className = "grid grid-cols-1 lg:grid-cols-2 gap-6";
+
+        grid.appendChild(slider);
+
+        const postList = document.createElement("div");
+        postList.className = "space-y-3";
+        postList.id = `category-posts-${category.id}`;
+
+        grid.appendChild(postList);
+
         section.appendChild(header);
-        section.appendChild(slider);
+        section.appendChild(grid);
 
         container.appendChild(section);
+
+        const posts = await loadPostsByCategory(category.id);
+        renderCategoryPosts(category.id, posts);
     });
+}
+
+async function loadPostsByCategory(categoryId) {
+
+    const q = query(
+        collection(db, "questions"),
+        where("category", "==", categoryId),
+        orderBy("createdAt", "desc"),
+        limit(5)
+    );
+
+    const snapshot = await getDocs(q);
+
+    const posts = [];
+
+    snapshot.forEach(doc => {
+        const data = doc.data();
+
+        if (!data.type) {
+            posts.push({
+                id: doc.id,
+                ...data
+            });
+        }
+    });
+
+    return posts;
+}
+
+function renderCategoryPosts(categoryId, posts) {
+
+    const container = document.getElementById(`category-posts-${categoryId}`);
+    if (!container) return;
+
+    container.innerHTML = "";
+
+    posts.forEach(post => {
+
+        const item = document.createElement("a");
+
+        item.href = `post.html?id=${post.id}`;
+
+        item.className =
+            "block border rounded-lg px-4 py-3 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition";
+
+        item.innerHTML = `
+            <div class="font-semibold text-sm text-slate-900 dark:text-white truncate">
+                ${post.title || "제목 없음"}
+            </div>
+
+            <div class="text-xs text-slate-500 mt-1 flex gap-3">
+                <span>❤️ ${post.likesCount || 0}</span>
+                <span>💬 ${post.commentsCount || 0}</span>
+                <span>👁 ${post.views || 0}</span>
+            </div>
+        `;
+
+        container.appendChild(item);
+
+    });
+
 }
 
 async function loadQuizzesByCategory(categoryId) {
@@ -358,6 +449,8 @@ async function loadQuizzesByCategory(categoryId) {
         q = query(
             collection(db, "questions"),
             where("category", "==", categoryId),
+            where("type", "in", ["quiz", "superquiz"]),
+            orderBy("createdAt", "desc"),
             startAfter(state.lastDoc),
             limit(6)
         );
@@ -365,6 +458,8 @@ async function loadQuizzesByCategory(categoryId) {
         q = query(
             collection(db, "questions"),
             where("category", "==", categoryId),
+            where("type", "in", ["quiz", "superquiz"]),
+            orderBy("createdAt", "desc"),
             limit(6)
         );
     }
@@ -429,6 +524,7 @@ async function loadRealtimeQuizzes() {
     if (realtimePageState.lastDoc) {
         q = query(
             collection(db, "questions"),
+            where("type", "in", ["quiz", "superquiz"]),
             orderBy("createdAt", "desc"),
             startAfter(realtimePageState.lastDoc),
             limit(6)
@@ -436,6 +532,7 @@ async function loadRealtimeQuizzes() {
     } else {
         q = query(
             collection(db, "questions"),
+            where("type", "in", ["quiz", "superquiz"]),
             orderBy("createdAt", "desc"),
             limit(6)
         );
@@ -528,7 +625,7 @@ async function renderRealtimePosts() {
 async function loadPopularSuperQuizzes() {
     const q = query(
         collection(db, "questions"),
-        where("isSuper", "==", true),
+        where("type", "==", "superquiz"),
         orderBy("popularityScore", "desc"),
         limit(24)
     );
@@ -587,7 +684,7 @@ async function renderSuperQuizSection() {
 async function loadPopularQuizzes() {
     const q = query(
         collection(db, "questions"),
-        where("isSuper", "==", false),
+        where("type", "==", "quiz"),
         orderBy("popularityScore", "desc"),
         limit(24)
     );
