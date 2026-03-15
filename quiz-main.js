@@ -194,6 +194,16 @@ async function loadCategories() {
     return categories;
 }
 
+function getRandomCategories(categories, count = 3) {
+
+    if (!Array.isArray(categories)) return [];
+
+    const shuffled = [...categories].sort(() => 0.5 - Math.random());
+
+    return shuffled.slice(0, count);
+
+}
+
 async function renderCategoryNavbar() {
     const navbar = document.getElementById("category-tabs");
     if (!navbar) return;
@@ -231,7 +241,8 @@ async function renderCategoryNavbar() {
 }
 
 async function renderCategorySections() {
-    const categories = await loadCategories();
+    const allCategories = await loadCategories();
+    const categories = getRandomCategories(allCategories, 3);
     const container = document.getElementById("category-sections");
     if (!container) return;
 
@@ -469,6 +480,49 @@ async function renderRealtimeSection() {
             slider.appendChild(card);
         }
     });
+}
+
+async function renderRealtimePosts() {
+
+    const container = document.getElementById("realtime-post-list");
+    if (!container) return;
+
+    const q = query(
+        collection(db, "questions"),
+        orderBy("createdAt", "desc"),
+        limit(10)
+    );
+
+    const snapshot = await getDocs(q);
+
+    container.innerHTML = "";
+
+    snapshot.forEach(docSnap => {
+
+        const data = docSnap.data();
+
+        const item = document.createElement("a");
+        item.href = `quiz.html?id=${docSnap.id}`;
+
+        item.className =
+            "block border rounded-lg px-4 py-3 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition";
+
+        item.innerHTML = `
+            <div class="font-semibold text-sm text-slate-900 dark:text-white truncate">
+                ${data.title || "제목 없음"}
+            </div>
+
+            <div class="text-xs text-slate-500 mt-1 flex gap-3">
+                <span>❤️ ${data.likesCount || 0}</span>
+                <span>💬 ${data.commentsCount || 0}</span>
+                <span>👁 ${data.views || 0}</span>
+            </div>
+        `;
+
+        container.appendChild(item);
+
+    });
+
 }
 
 async function loadPopularSuperQuizzes() {
@@ -1655,6 +1709,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderCategoryNavbar();
         renderCategorySections();
         renderRealtimeSection();
+        renderRealtimePosts();
         renderSuperQuizSection();
         renderPopularQuizSection();
         loadTrendingKeywords();
