@@ -41,8 +41,9 @@ export function createQuizCard(quizId, quiz) {
     const borderColorClass = isSuper ? 'border-purple-500' : 'border-black';
     quizCard.className = `bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 flex flex-col justify-between w-full max-w-4xl mx-auto mb-4 border ${borderColorClass} hover:shadow-lg hover:-translate-y-0.5 transform-gpu transition-all duration-200`;
     
+    quizCard.style.width = '320px';
     quizCard.style.height = '220px';
-    quizCard.style.minHeight = 'unset';
+    quizCard.style.flexShrink = '0';
 
     const avatarName = quiz.creatorName || "User";
     const creatorHTML = isSuper ? `
@@ -53,7 +54,6 @@ export function createQuizCard(quizId, quiz) {
     ` : '';
     
     const participationHTML = () => {
-      if (!isSuper) return '';
       const participants = quiz.participants || [];
       const maxParticipants = quiz.participantLimit || 0;
       if (maxParticipants === 0) return '';
@@ -101,14 +101,23 @@ export function createQuizCard(quizId, quiz) {
     </div>
     `;
 
-    const optionsHTML = quiz.options.map(option => `
-        <button 
-            class="vote-option-btn flex-1 px-3 py-2 text-sm rounded-md font-semibold transition-all hover:opacity-90 ${isVsPick ? (option === quiz.options[0] ? colorMap["emerald"] : colorMap["red"]) : (colorMap[option.color] || colorMap["slate"])} text-white"
-            data-option-id="${option.id}"
-        >
-            ${option.label}
-        </button>
-    `).join('');
+    const firstOption = quiz.options[0]?.label || '';
+    const firstOptionDisplay = firstOption.length > 12 ? firstOption.substring(0, 12) + '..' : firstOption;
+    const extraCount = quiz.options.length - 1;
+
+    const optionsHTML = isSuper ? `
+        <div class="flex items-center justify-between text-sm text-slate-600 dark:text-slate-300 mt-1">
+            <span class="truncate">${firstOptionDisplay}${extraCount > 0 ? ` 외 ${extraCount}개 선택지` : ''}</span>
+            <a href="quiz.html?id=${quizId}" class="ml-2 flex-shrink-0 text-[#169976] font-semibold hover:underline whitespace-nowrap">선택하기 &gt;&gt;</a>
+        </div>
+    ` : quiz.options.map(option => `
+            <button 
+                class="vote-option-btn flex-1 px-3 py-2 text-sm rounded-md font-semibold transition-all hover:opacity-90 ${isVsPick ? (option === quiz.options[0] ? colorMap["emerald"] : colorMap["red"]) : (colorMap[option.color] || colorMap["slate"])} text-white"
+                data-option-id="${option.id}"
+            >
+                ${option.label}
+            </button>
+        `).join('');
 
     quizCard.innerHTML = `
       <div class="flex items-start justify-between gap-3">

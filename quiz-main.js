@@ -316,8 +316,6 @@ async function renderCategorySections() {
             if (!slider.querySelector(`[data-quiz-id="${quiz.id}"]`)) {
                 const card = createQuizCard(quiz.id, quiz);
                 card.dataset.quizId = quiz.id;
-                card.style.width = "300px";
-                card.style.flexShrink = "0";
                 slider.appendChild(card);
             }
         });
@@ -339,8 +337,6 @@ async function renderCategorySections() {
                     if (!slider.querySelector(`[data-quiz-id="${quiz.id}"]`)) {
                         const card = createQuizCard(quiz.id, quiz);
                         card.dataset.quizId = quiz.id;
-                        card.style.width = "300px";
-                        card.style.flexShrink = "0";
                         slider.appendChild(card);
                     }
                 });
@@ -598,8 +594,6 @@ async function renderRealtimeSection() {
         if (!slider.querySelector(`[data-quiz-id="${quiz.id}"]`)) {
             const card = createQuizCard(quiz.id, quiz);
             card.dataset.quizId = quiz.id;
-            card.style.width = "300px";
-            card.style.flexShrink = "0";
             slider.appendChild(card);
         }
     });
@@ -765,8 +759,6 @@ async function renderPopularQuizSection() {
         if (!slider.querySelector(`[data-quiz-id="${quiz.id}"]`)) {
             const card = createQuizCard(quiz.id, quiz);
             card.dataset.quizId = quiz.id;
-            card.style.width = "300px";
-            card.style.flexShrink = "0";
             slider.appendChild(card);
         }
     });
@@ -1790,8 +1782,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                         if (!realtimeSlider.querySelector(`[data-quiz-id="${quiz.id}"]`)) {
                             const card = createQuizCard(quiz.id, quiz);
                             card.dataset.quizId = quiz.id;
-                            card.style.width = "300px";
-                            card.style.flexShrink = "0";
                             realtimeSlider.appendChild(card);
                         }
                     });
