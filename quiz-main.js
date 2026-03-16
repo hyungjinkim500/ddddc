@@ -94,14 +94,14 @@ async function restoreUserVotes(user) {
 
                 // Reset all buttons first
                 buttons.forEach(btn => {
-                    btn.classList.remove('opacity-50', 'ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', 'ring-emerald-400', 'ring-red-400', 'ring-slate-400', 'ring-emerald-500');
+                    btn.classList.remove('opacity-50', 'ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', 'ring-[#169976]', 'ring-red-400', 'ring-slate-400', 'ring-[#169976]');
                 });
 
                 if (userVoteSnap.exists()) {
                     const selectedOptionId = userVoteSnap.data().selectedOption;
                     buttons.forEach(btn => {
                         if (btn.dataset.optionId === selectedOptionId) {
-                             btn.classList.add('ring-2', 'ring-offset-2', 'ring-emerald-500');
+                             btn.classList.add('ring-2', 'ring-offset-2', 'ring-[#169976]');
                         } else {
                             btn.classList.add('opacity-50');
                         }
@@ -244,7 +244,7 @@ async function renderCategoryNavbar() {
     navbar.innerHTML = "";
 
     const default_class = "tab-button px-4 py-2 rounded-full text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700";
-    const active_class = "tab-button px-4 py-2 rounded-full text-sm font-medium bg-emerald-500 text-white";
+    const active_class = "tab-button px-4 py-2 rounded-full text-sm font-medium bg-[#169976] text-white";
 
     const homeButton = document.createElement("a");
     homeButton.href = "quiz.html";
@@ -422,7 +422,7 @@ function renderCategoryPosts(categoryId, posts) {
         item.innerHTML = `
         <div class="flex items-center gap-2 text-sm">
 
-            <span class="text-xs font-semibold text-emerald-600">
+            <span class="text-xs font-semibold text-[#169976]">
                 [${badge}]
             </span>
 
@@ -645,7 +645,7 @@ async function renderRealtimePosts() {
         item.innerHTML = `
         <div class="flex items-center gap-2 text-sm">
 
-            <span class="text-xs font-semibold text-emerald-600">
+            <span class="text-xs font-semibold text-[#169976]">
                 [${badge}]
             </span>
 
@@ -677,6 +677,7 @@ async function loadPopularSuperQuizzes() {
     const q = query(
         collection(db, "questions"),
         where("type", "==", "superquiz"),
+        where("popularityScore", ">=", 0),
         orderBy("popularityScore", "desc"),
         limit(24)
     );
@@ -696,7 +697,7 @@ async function loadPopularSuperQuizzes() {
 }
 
 async function renderSuperQuizSection() {
-    const slider = document.getElementById("super-quiz-slider");
+    const slider = document.getElementById("popular-quiz-slider");
     if (!slider) return;
 
     slider.innerHTML = ''; // Clear previous content
@@ -755,7 +756,7 @@ async function loadPopularQuizzes() {
 }
 
 async function renderPopularQuizSection() {
-    const slider = document.getElementById("popular-quiz-slider");
+    const slider = document.getElementById("super-quiz-slider");
     if (!slider) return;
 
     const quizzes = await loadPopularQuizzes();
@@ -926,9 +927,9 @@ async function loadSingleQuiz(quizId) {
                 button.addEventListener("click", async () => {
                     const allButtons = optionsContainer.querySelectorAll(".vote-option-btn");
                     allButtons.forEach(btn => {
-                        btn.classList.remove("ring-2", "ring-emerald-500", "ring-offset-2");
+                        btn.classList.remove("ring-2", "ring-[#169976]", "ring-offset-2");
                     });
-                    button.classList.add("ring-2", "ring-emerald-500", "ring-offset-2");
+                    button.classList.add("ring-2", "ring-[#169976]", "ring-offset-2");
 
                     const voteSuccessful = await handleVote(quizId, option.id);
                     if (voteSuccessful) {
@@ -965,7 +966,7 @@ async function loadSingleQuiz(quizId) {
                 const bar = document.createElement("div");
                 bar.className = "w-full bg-slate-200 rounded h-3";
                 const fill = document.createElement("div");
-                fill.className = "bg-emerald-500 h-3 rounded";
+                fill.className = "bg-[#169976] h-3 rounded";
                 fill.style.width = percent + "%";
                 bar.appendChild(fill);
                 wrapper.appendChild(label);
@@ -1920,13 +1921,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 // Optimistic UI update for button styles
                 if (voteButton === previouslySelectedButton) {
-                    allOptionButtons.forEach(btn => btn.classList.remove('opacity-50', 'ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', 'ring-emerald-400', 'ring-red-400', 'ring-slate-400'));
+                    allOptionButtons.forEach(btn => btn.classList.remove('opacity-50', 'ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', 'ring-[#169976]', 'ring-red-400', 'ring-slate-400'));
                 } else {
                     allOptionButtons.forEach(btn => {
-                        btn.classList.remove('opacity-50', 'ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', 'ring-emerald-400', 'ring-red-400', 'ring-slate-400');
+                        btn.classList.remove('opacity-50', 'ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', 'ring-[#169976]', 'ring-red-400', 'ring-slate-400');
                         if (btn !== voteButton) btn.classList.add('opacity-50');
                     });
-                    let ringColorClass = voteButton.classList.contains('bg-emerald-500') ? 'ring-emerald-400' : (voteButton.classList.contains('bg-red-500') ? 'ring-red-400' : 'ring-slate-400');
+                    let ringColorClass = voteButton.classList.contains('bg-[#169976]') ? 'ring-[#169976]' : (voteButton.classList.contains('bg-red-500') ? 'ring-red-400' : 'ring-slate-400');
                     voteButton.classList.add('ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', ringColorClass);
                 }
                 
@@ -1972,11 +1973,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const buttons = categoryTabs.querySelectorAll('tab-button');
             buttons.forEach(btn => {
-                btn.classList.remove('active', 'bg-emerald-500', 'text-white');
+                btn.classList.remove('active', 'bg-[#169976]', 'text-white');
                 btn.classList.add('text-slate-600', 'dark:text-slate-300', 'hover:bg-slate-100', 'dark:hover:bg-slate-700');
             });
             
-            e.target.classList.add('active', 'bg-emerald-500', 'text-white');
+            e.target.classList.add('active', 'bg-[#169976]', 'text-white');
             e.target.classList.remove('text-slate-600', 'dark:text-slate-300', 'hover:bg-slate-100', 'dark:hover:bg-slate-700');
         });
     }
@@ -2072,7 +2073,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if(userProfileInfo) userProfileInfo.classList.remove('flex');
 
             document.querySelectorAll('.vote-option-btn').forEach(btn => {
-                btn.classList.remove('opacity-50', 'ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', 'ring-emerald-400', 'ring-red-400', 'ring-slate-400', 'ring-emerald-500');
+                btn.classList.remove('opacity-50', 'ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', 'ring-[#169976]', 'ring-red-400', 'ring-slate-400', 'ring-[#169976]');
             });
 
             document.querySelectorAll('.comment-form-container').forEach(container => {

@@ -1,7 +1,7 @@
 const DEBUG = false;
 
 const colorMap = {
-  emerald: "bg-emerald-500 hover:bg-emerald-600",
+  emerald: "bg-[#169976] hover:bg-[#127a5e]",
   red: "bg-red-500 hover:bg-red-600",
   slate: "bg-slate-500 hover:bg-slate-600",
   yellow: "bg-yellow-400 hover:bg-yellow-500",
@@ -9,6 +9,8 @@ const colorMap = {
 };
 
 export function formatTime(timestamp) {
+
+
     if (!timestamp || !timestamp.toDate) return "";
 
     const now = new Date();
@@ -39,7 +41,8 @@ export function createQuizCard(quizId, quiz) {
     const borderColorClass = isSuper ? 'border-purple-500' : 'border-black';
     quizCard.className = `bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 flex flex-col justify-between w-full max-w-4xl mx-auto mb-4 border ${borderColorClass} hover:shadow-lg hover:-translate-y-0.5 transform-gpu transition-all duration-200`;
     
-    quizCard.style.minHeight = '140px';
+    quizCard.style.height = '220px';
+    quizCard.style.minHeight = 'unset';
 
     const avatarName = quiz.creatorName || "User";
     const creatorHTML = isSuper ? `
@@ -70,9 +73,37 @@ export function createQuizCard(quizId, quiz) {
       `;
     }
 
+    const votes = quiz.vote || {};
+
+    const optionIds = quiz.options.map(o => o.id);
+
+    const vote1 = votes[optionIds[0]] || 0;
+    const vote2 = votes[optionIds[1]] || 0;
+
+    const totalVotes = vote1 + vote2;
+
+    const percent1 = totalVotes === 0 ? 50 : Math.round((vote1 / totalVotes) * 100);
+    const percent2 = totalVotes === 0 ? 50 : 100 - percent1;
+
+    const isVsPick = quiz.type === "quiz";
+    const color1 = isVsPick ? colorMap["emerald"] : (colorMap[quiz.options[0]?.color] || colorMap["slate"]);
+    const color2 = isVsPick ? colorMap["red"] : (colorMap[quiz.options[1]?.color] || colorMap["slate"]);
+    const voteRatioHTML = `
+    <div class="vote-ratio mt-3">
+      <div class="flex justify-between text-xs text-slate-500 mb-1">
+        <span class="font-semibold">투표비율</span>
+        <span>${percent1}%</span>
+      </div>
+      <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2 overflow-hidden flex">
+          <div class="${color1.split(' ')[0]} h-2" style="width:${percent1}%"></div>
+          <div class="${color2.split(' ')[0]} h-2" style="width:${percent2}%"></div>
+      </div>
+    </div>
+    `;
+
     const optionsHTML = quiz.options.map(option => `
         <button 
-            class="vote-option-btn flex-1 px-3 py-2 text-sm rounded-md font-semibold transition-all hover:opacity-90 ${colorMap[option.color] || 'bg-slate-500 hover:bg-slate-600'} text-white"
+            class="vote-option-btn flex-1 px-3 py-2 text-sm rounded-md font-semibold transition-all hover:opacity-90 ${isVsPick ? (option === quiz.options[0] ? colorMap["emerald"] : colorMap["red"]) : (colorMap[option.color] || colorMap["slate"])} text-white"
             data-option-id="${option.id}"
         >
             ${option.label}
@@ -87,10 +118,9 @@ export function createQuizCard(quizId, quiz) {
                   ${quiz.title}
               </h3>
           </a>
-          ${quiz.description ? `
-          <p class="quiz-desc text-sm text-slate-500 dark:text-slate-400 truncate mt-1">
-            ${quiz.description}
-          </p>` : ''}
+          <p class="quiz-desc text-sm text-slate-500 dark:text-slate-400 truncate mt-1 h-5">
+            ${quiz.description || ''}
+          </p>
         </div>
         ${creatorHTML}
       </div>
@@ -99,6 +129,7 @@ export function createQuizCard(quizId, quiz) {
         <div class="quiz-options flex flex-wrap gap-2">
             ${optionsHTML}
         </div>
+        ${voteRatioHTML}
         ${participationHTML()}
       </div>
 
