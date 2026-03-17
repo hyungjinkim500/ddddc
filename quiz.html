@@ -226,9 +226,16 @@
           
             <!-- voting buttons -->
             <div id="detail-options" class="space-y-2"></div>
+            <div id="detail-images" class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
 
             <div id="comments-section" class="mt-10">
-              <h3 class="text-lg font-semibold mb-4">댓글</h3>
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold">댓글</h3>
+                <div class="flex items-center gap-2">
+                  <button id="detail-like-button" class="flex items-center gap-1 px-3 py-1 rounded bg-slate-200 hover:bg-slate-300 transition"></button>
+                  <span id="detail-like-count" class="text-sm text-slate-600"></span>
+                </div>
+              </div>
               <div class="flex gap-2">
                 <input
                   id="comment-input"
