@@ -697,7 +697,7 @@ async function renderSuperQuizSection() {
     slider.innerHTML = ''; // Clear previous content
 
     const quizzes = await loadPopularSuperQuizzes();
-    const pageSize = 4;
+    const pageSize = 3;
 
     const leftBtn = document.getElementById('super-slider-left');
     const rightBtn = document.getElementById('super-slider-right');
@@ -753,15 +753,29 @@ async function renderPopularQuizSection() {
     const slider = document.getElementById("super-quiz-slider");
     if (!slider) return;
 
-    const quizzes = await loadPopularQuizzes();
+    slider.innerHTML = '';
 
-    quizzes.forEach(quiz => {
-        if (!slider.querySelector(`[data-quiz-id="${quiz.id}"]`)) {
+    const quizzes = await loadPopularQuizzes();
+    const pageSize = 3;
+
+    if (quizzes.length === 0) {
+        slider.innerHTML = '<p class="text-center text-slate-500 w-full">인기 픽이 없습니다.</p>';
+        return;
+    }
+
+    for (let i = 0; i < quizzes.length; i += pageSize) {
+        const page = document.createElement("div");
+        page.className = "super-quiz-page";
+
+        const chunk = quizzes.slice(i, i + pageSize);
+
+        chunk.forEach(quiz => {
             const card = createQuizCard(quiz.id, quiz);
-            card.dataset.quizId = quiz.id;
-            slider.appendChild(card);
-        }
-    });
+            page.appendChild(card);
+        });
+
+        slider.appendChild(page);
+    }
 }
 
 async function loadSingleQuiz(quizId) {
@@ -1848,25 +1862,34 @@ document.addEventListener('DOMContentLoaded', async () => {
         const popularRight = document.getElementById("popular-slider-right");
 
         if (popularSlider && popularLeft && popularRight) {
-            let currentIndex = 0;
-            const moveStep = 2;
-            const cardWidth = 316;
+            let currentPage = 0;
 
-            popularRight.onclick = () => {
-                currentIndex += moveStep;
-                popularSlider.scrollTo({
-                    left: currentIndex * cardWidth,
-                    behavior: "smooth"
-                });
+            const updatePopularButtons = () => {
+                const pageCount = popularSlider.querySelectorAll('.super-quiz-page').length;
+                popularLeft.disabled = currentPage === 0;
+                popularRight.disabled = currentPage >= pageCount - 1;
+                popularLeft.style.opacity = popularLeft.disabled ? '0.5' : '1';
+                popularRight.style.opacity = popularRight.disabled ? '0.5' : '1';
             };
 
-            popularLeft.onclick = () => {
-                currentIndex = Math.max(0, currentIndex - moveStep);
-                popularSlider.scrollTo({
-                    left: currentIndex * cardWidth,
-                    behavior: "smooth"
-                });
-            };
+            popularRight.addEventListener('click', () => {
+                const pageCount = popularSlider.querySelectorAll('.super-quiz-page').length;
+                if (currentPage < pageCount - 1) {
+                    currentPage++;
+                    popularSlider.style.transform = `translateX(-${currentPage * 100}%)`;
+                    updatePopularButtons();
+                }
+            });
+
+            popularLeft.addEventListener('click', () => {
+                if (currentPage > 0) {
+                    currentPage--;
+                    popularSlider.style.transform = `translateX(-${currentPage * 100}%)`;
+                    updatePopularButtons();
+                }
+            });
+
+            updatePopularButtons();
         }
     }
 

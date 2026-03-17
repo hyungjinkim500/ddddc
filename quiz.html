@@ -91,9 +91,9 @@
         .super-quiz-page {
             flex: 0 0 100%;
             display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 20px;
-            padding: 4px;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            align-items: start;
         }
         .quiz-card {
           width: 100%;
@@ -109,23 +109,38 @@
 
 <main class="container mx-auto px-4 sm:px-6 py-8 md:py-12">
     <div id="quiz-content-area">
-        <section id="super-quiz-section" class="mb-12">
-            <div class="super-quiz-layout">
-                <div class="super-quiz-left">
-                    <div class="flex items-center justify-between mb-4">
-                        <h2 class="text-xl font-bold">🔥 HOT PICK</h2>
-                        <div class="flex gap-2">
-                            <button id="super-slider-left" class="w-8 h-8 rounded-full border flex items-center justify-center">‹</button>
-                            <button id="super-slider-right" class="w-8 h-8 rounded-full border flex items-center justify-center">›</button>
-                        </div>
-                    </div>
-                    <div id="super-quiz-slider-wrapper" class="overflow-hidden">
-                        <div id="super-quiz-slider" class="flex">
-                            <!-- Quiz pages will be dynamically generated here by JavaScript -->
-                        </div>
-                    </div>
+        <div class="flex gap-6 items-start mb-12">
+          <div class="flex-1 min-w-0">
+            <section id="super-quiz-section" class="mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold">🔥 HOT PICK</h2>
+                <div class="flex gap-2">
+                    <button id="super-slider-left" class="w-8 h-8 rounded-full border flex items-center justify-center">‹</button>
+                    <button id="super-slider-right" class="w-8 h-8 rounded-full border flex items-center justify-center">›</button>
                 </div>
-                <div id="right-widget-area" class="space-y-6 mt-6">
+            </div>
+            <div id="super-quiz-slider-wrapper" class="overflow-hidden">
+                <div id="super-quiz-slider" class="flex">
+                    <!-- Quiz pages will be dynamically generated here by JavaScript -->
+                </div>
+            </div>
+        </section>
+
+        <section id="popular-quiz-section" class="mb-12">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold">🔥 HOT TOPIC</h2>
+                <div class="flex gap-2">
+                    <button id="popular-slider-left" class="w-8 h-8 rounded-full border flex items-center justify-center">‹</button>
+                    <button id="popular-slider-right" class="w-8 h-8 rounded-full border flex items-center justify-center">›</button>
+                </div>
+            </div>
+            <div id="popular-quiz-slider-wrapper" class="overflow-hidden">
+                <div id="popular-quiz-slider" class="flex" style="transition: transform 0.5s ease-in-out;"></div>
+            </div>
+        </section>
+
+</div>
+          <div id="right-widget-area" class="w-80 flex-shrink-0 space-y-6 mt-0">
                     <div id="search-widget" class="bg-white dark:bg-slate-800 border rounded-lg p-4">
                         <div class="relative">
                           <input
@@ -156,18 +171,6 @@
                     </div>
                 </div>
             </div>
-        </section>
-
-        <section id="popular-quiz-section" class="mb-12">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="text-xl font-bold">🔥 HOT TOPIC</h2>
-                <div class="flex gap-2">
-                    <button id="popular-slider-left" class="w-8 h-8 rounded-full border flex items-center justify-center">‹</button>
-                    <button id="popular-slider-right" class="w-8 h-8 rounded-full border flex items-center justify-center">›</button>
-                </div>
-            </div>
-            <div id="popular-quiz-slider" class="flex gap-4 overflow-hidden"></div>
-        </section>
 
         <section id="realtime-wrapper" class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
             <section id="realtime-quiz-section">

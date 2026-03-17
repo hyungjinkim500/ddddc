@@ -8,6 +8,12 @@ const colorMap = {
   sky: "bg-sky-400 hover:bg-sky-500"
 };
 
+const borderColorMap = {
+  emerald: "border-2 border-[#169976] hover:bg-[#169976]/10",
+  red: "border-2 border-red-500 hover:bg-red-500/10",
+  slate: "border-2 border-slate-500 hover:bg-slate-500/10",
+};
+
 export function formatTime(timestamp) {
 
 
@@ -38,11 +44,12 @@ export function createQuizCard(quizId, quiz) {
 
     const isSuper = quiz.isSuper === true;
     
-    const borderColorClass = isSuper ? 'border-purple-500' : 'border-black';
+    const borderColorClass = 'border-slate-200';
     quizCard.className = `bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 flex flex-col justify-between w-full max-w-4xl mx-auto mb-4 border ${borderColorClass} hover:shadow-lg hover:-translate-y-0.5 transform-gpu transition-all duration-200`;
     
-    quizCard.style.width = '320px';
-    quizCard.style.height = '220px';
+    quizCard.style.width = '360px';
+    quizCard.style.minHeight = '260px';
+    quizCard.style.height = 'auto';
     quizCard.style.flexShrink = '0';
 
     const avatarName = quiz.creatorName || "User";
@@ -53,21 +60,26 @@ export function createQuizCard(quizId, quiz) {
       </div>
     ` : '';
     
-    const participationHTML = () => {
-      const participants = quiz.participants || [];
+const participationHTML = () => {
+      const totalVoteCount = Object.values(quiz.vote || {}).reduce((a, b) => a + b, 0);
       const maxParticipants = quiz.participantLimit || 0;
-      if (maxParticipants === 0) return '';
-      
-      const percent = Math.min(100, Math.round((participants.length / maxParticipants) * 100));
+
+      const percent = maxParticipants > 0
+        ? Math.min(100, Math.round((quiz.participants?.length || 0) / maxParticipants * 100))
+        : (totalVoteCount > 0 ? 100 : 0);
+
+      const label = maxParticipants > 0
+        ? `${quiz.participants?.length || 0} / ${maxParticipants}`
+        : `${totalVoteCount}명 참여`;
 
       return `
-        <div class="participation-progress mt-3">
+        <div class="participation-progress mt-2">
           <div class="flex justify-between text-xs text-slate-500 mb-1">
             <span class="font-semibold">참여 현황</span>
-            <span>${participants.length} / ${maxParticipants}</span>
+            <span>${label}</span>
           </div>
           <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
-            <div class="bg-purple-500 h-2 rounded-full" style="width: ${percent}%"></div>
+            <div class="bg-purple-500 h-2 rounded-full" style="width: ${Math.max(percent, totalVoteCount > 0 ? 5 : 0)}%"></div>
           </div>
         </div>
       `;
@@ -112,7 +124,7 @@ export function createQuizCard(quizId, quiz) {
         </div>
     ` : quiz.options.map(option => `
             <button 
-                class="vote-option-btn flex-1 px-3 py-2 text-sm rounded-md font-semibold transition-all hover:opacity-90 ${isVsPick ? (option === quiz.options[0] ? colorMap["emerald"] : colorMap["red"]) : (colorMap[option.color] || colorMap["slate"])} text-white"
+                class="vote-option-btn flex-1 px-3 py-2 text-sm rounded-md font-semibold transition-all ${isVsPick ? (option === quiz.options[0] ? borderColorMap["emerald"] : borderColorMap["red"]) : (colorMap[option.color] || colorMap["slate"])} ${isVsPick ? 'bg-[#f8f7f4] text-slate-900' : 'text-white'}"
                 data-option-id="${option.id}"
             >
                 ${option.label}
