@@ -365,8 +365,6 @@ async function renderCategorySections() {
         section.appendChild(header);
         section.appendChild(grid);
 
-        container.appendChild(section);
-
         const posts = await loadPostsByCategory(category.id);
         renderCategoryPosts(category.id, posts);
     });
@@ -1751,7 +1749,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderRealtimeSection();
         renderRealtimePosts();
         renderSuperQuizSection();
-        renderPopularQuizSection();
+        renderPopularQuizSection().then(() => {
+            const auth = getAuth();
+            if (auth.currentUser) {
+                restoreUserVotes(auth.currentUser);
+            }
+        });
         loadTrendingKeywords();
 
         const realtimePrevBtn = document.getElementById('realtime-prev');

@@ -79,7 +79,7 @@ const participationHTML = () => {
             <span>${label}</span>
           </div>
           <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
-            <div class="bg-purple-500 h-2 rounded-full" style="width: ${Math.max(percent, totalVoteCount > 0 ? 5 : 0)}%"></div>
+            <div class="bg-slate-400 h-2 rounded-full" style="width: ${Math.max(percent, totalVoteCount > 0 ? 5 : 0)}%"></div>
           </div>
         </div>
       `;
@@ -100,7 +100,29 @@ const participationHTML = () => {
     const isVsPick = quiz.type === "quiz";
     const color1 = isVsPick ? colorMap["emerald"] : (colorMap[quiz.options[0]?.color] || colorMap["slate"]);
     const color2 = isVsPick ? colorMap["red"] : (colorMap[quiz.options[1]?.color] || colorMap["slate"]);
-    const voteRatioHTML = `
+
+    const allVotes = quiz.options.map((o, i) => ({
+      label: o.label,
+      count: votes[o.id] || 0,
+      index: i
+    }));
+    const totalAllVotes = allVotes.reduce((sum, option) => sum + option.count, 0);
+
+    const topOption = allVotes.length > 0 ? [...allVotes].sort((a, b) => b.count - a.count)[0] : {count: 0, label: ""};
+    const topPercent = totalAllVotes === 0 ? 0 : Math.round((topOption.count / totalAllVotes) * 100);
+    const topLabel = topOption.label.length > 8 ? topOption.label.substring(0, 8) + '...' : topOption.label;
+
+    const voteRatioHTML = isSuper ? `
+    <div class="vote-ratio mt-3">
+      <div class="flex justify-between text-xs text-slate-500 mb-1">
+        <span class="font-semibold">투표비율</span>
+        <span>${totalAllVotes === 0 ? '-' : `${topLabel} ${topPercent}% 1등`}</span>
+      </div>
+      <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2 overflow-hidden">
+          <div class="bg-[#169976] h-2" style="width:${topPercent}%"></div>
+      </div>
+    </div>
+    ` : `
     <div class="vote-ratio mt-3">
       <div class="flex justify-between text-xs text-slate-500 mb-1">
         <span class="font-semibold">투표비율</span>

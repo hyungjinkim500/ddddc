@@ -3,7 +3,7 @@
 <html lang="ko" class="light">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=1200">
     <title>퀴즈 | 집단지성 플랫폼 <픽스> </title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="tailwind.config.js"></script>
@@ -31,6 +31,7 @@
             word-break: keep-all;
             background-color: var(--bg-primary-light);
             color: var(--text-primary-light);
+            min-width: 1200px;
         }
         html.dark body {
             background-color: var(--bg-primary-dark);
@@ -91,9 +92,10 @@
         .super-quiz-page {
             flex: 0 0 100%;
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(3, minmax(280px, 1fr));
             gap: 16px;
             align-items: start;
+            width: 100%;
         }
         .quiz-card {
           width: 100%;

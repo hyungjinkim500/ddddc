@@ -216,6 +216,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const quizType = data['quiz-type'];
+    console.log("participantLimit 값:", data.participantLimit, "quizType:", quizType);
 
     // Poll participant limit validation
     if (quizType) {
@@ -274,6 +275,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (quizType) {
         postData.type = quizType;
         postData.isSuper = quizType === "superquiz";
+        postData.participantLimit = Number(data.participantLimit) || 0;
       }
 
       const docRef = await addDoc(collection(db, "questions"), postData);
