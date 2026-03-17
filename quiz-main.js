@@ -3,6 +3,7 @@ import { onAuthStateChanged, signOut, getAuth } from 'https://www.gstatic.com/fi
 import { collection, doc, runTransaction, onSnapshot, getDoc, setDoc, deleteDoc, addDoc, serverTimestamp, query, orderBy, limit, getDocs, where, startAfter, updateDoc, increment } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { handleVote } from './vote-system.js';
 import { createQuizCard, formatTime } from './modules/quiz-card.js';
+import { handleCardLike, handleDetailLike, restoreAllLikeStates, restoreDetailLikeState } from './modules/likes.js';
 
 const quizListeners = new Map();
 const quizCache = new Map();
@@ -1000,29 +1001,17 @@ async function loadSingleQuiz(quizId) {
             }
         }
 
-        const auth = getAuth();
-        if (auth.currentUser) {
-            restoreUserVotes(auth.currentUser);
-            const likeRef = doc(db, `questions/${quizId}/likes`, auth.currentUser.uid);
-            const userLikeSnap = await getDoc(likeRef);
-            const outline = document.getElementById("like-icon-outline");
-            const filled = document.getElementById("like-icon-filled");
-            if (outline && filled) {
-                if (userLikeSnap.exists()) {
-                    outline.classList.add("hidden");
-                    filled.classList.remove("hidden");
-                } else {
-                    outline.classList.remove("hidden");
-                    filled.classList.add("hidden");
-                }
-            }
-        }
-        
         const likeButton = document.getElementById("detail-like-button");
         if(likeButton && !likeButton.querySelector('#like-icon-outline')) {
             likeButton.innerHTML = '<svg id="like-icon-outline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"/></svg><svg id="like-icon-filled" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 text-red-500 hidden"><path d="M12 21s-8.5-4.6-8.5-11.1C3.5 6.4 5.9 4 8.8 4c1.9 0 3.6 1 4.2 2.6C13.6 5 15.3 4 17.2 4 20.1 4 22.5 6.4 22.5 9.9 22.5 16.4 12 21 12 21z"/></svg>';
             likeButton.className = "px-3 py-1 rounded bg-slate-200 hover:bg-slate-300 transition";
-            likeButton.onclick = () => handleLike(quizId);
+            likeButton.onclick = () => handleDetailLike(quizId);
+        }
+
+        const auth = getAuth();
+        if (auth.currentUser) {
+            restoreUserVotes(auth.currentUser);
+            await restoreDetailLikeState(quizId, auth.currentUser.uid);
         }
 
         const likeCountEl = document.getElementById("detail-like-count");
@@ -1360,35 +1349,7 @@ async function loadComments(quizId) {
     });
 }
 
-// --- Like and Comment Functions ---
 
-async function setupLikeListener(quizId, currentUserId) {
-    const quizCard = document.querySelector(`[data-quiz-id="${quizId}"]`);
-    if (!quizCard) return;
-
-    const likeButton = quizCard.querySelector('.like-button');
-    if (!likeButton) return;
-    const likeIcon = likeButton.querySelector('i');
-
-    if (currentUserId) {
-        const likeRef = doc(db, `questions/${quizId}/likes`, currentUserId);
-        const userLikeSnap = await getDoc(likeRef);
-        if (likeIcon) {
-            if (userLikeSnap.exists()) {
-                likeIcon.classList.remove('far');
-                likeIcon.classList.add('fas', 'text-red-500');
-            } else {
-                likeIcon.classList.remove('fas', 'text-red-500');
-                likeIcon.classList.add('far');
-            }
-        }
-    } else {
-        if(likeIcon){
-             likeIcon.classList.remove('fas', 'text-red-500');
-            likeIcon.classList.add('far');
-        }
-    }
-}
 
 function setupCommentListener(quizId) {
     // This listener is redundant because the new collection listener handles comment count updates.
@@ -1451,44 +1412,6 @@ async function handleCommentSubmit(e, quizId) {
     } catch (error) {
         console.error("Error adding comment: ", error);
         alert('댓글 등록에 실패했습니다.');
-    }
-}
-
-async function handleLike(quizId) {
-    const user = auth.currentUser;
-    if (!user) {
-        alert('좋아요를 누르려면 로그인이 필요합니다.');
-        return;
-    }
-
-    const outline = document.getElementById("like-icon-outline");
-    const filled = document.getElementById("like-icon-filled");
-    
-    const quizRef = doc(db, "questions", quizId);
-    const likeRef = doc(db, `questions/${quizId}/likes`, user.uid);
-
-    try {
-        const docSnap = await getDoc(likeRef);
-        if (docSnap.exists()) {
-            if (outline && filled) {
-                outline.classList.remove("hidden");
-                filled.classList.add("hidden");
-            }
-            await deleteDoc(likeRef);
-            await updateDoc(quizRef, { likesCount: increment(-1) });
-        } else {
-            if (outline && filled) {
-                outline.classList.add("hidden");
-                filled.classList.remove("hidden");
-            }
-            await setDoc(likeRef, {
-                createdAt: serverTimestamp()
-            });
-            await updateDoc(quizRef, { likesCount: increment(1) });
-        }
-        await updatePopularityScore(quizId);
-    } catch (error) {
-        console.error("Error toggling like: ", error);
     }
 }
 
@@ -1746,14 +1669,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Search page logic is handled by its own inline script
     } else {
         renderCategoryNavbar();
-        renderCategorySections();
+        renderCategorySections().then(() => {
+            const auth = getAuth();
+            if (auth.currentUser) restoreAllLikeStates(auth.currentUser.uid);
+        });
         renderRealtimeSection();
         renderRealtimePosts();
-        renderSuperQuizSection();
+        renderSuperQuizSection().then(() => {
+            const auth = getAuth();
+            if (auth.currentUser) restoreAllLikeStates(auth.currentUser.uid);
+        });
         renderPopularQuizSection().then(() => {
             const auth = getAuth();
             if (auth.currentUser) {
                 restoreUserVotes(auth.currentUser);
+                restoreAllLikeStates(auth.currentUser.uid);
             }
         });
         loadTrendingKeywords();
@@ -1905,8 +1835,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             const commentToggleButton = event.target.closest('.comment-toggle-button');
 
             if (likeButton) {
-                const quizId = likeButton.closest('[data-quiz-id]').dataset.quizId;
-                handleLike(quizId);
+                const card = likeButton.closest('[data-quiz-id]');
+                const quizId = card.dataset.quizId;
+                handleCardLike(quizId, card);
                 return;
             }
 
@@ -2075,13 +2006,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
             restoreUserVotes(user);
             
-            // Update all cards for new auth state
             document.querySelectorAll('[data-quiz-id]').forEach(card => {
                 const quizId = card.dataset.quizId;
                 updateCommentFormVisibility(quizId, user);
-                // Re-initialize like listeners with the user's UID
-                setupLikeListener(quizId, user.uid);
             });
+            restoreAllLikeStates(user.uid);
 
         } else {
             if(loginButton) loginButton.classList.remove('hidden');
@@ -2097,11 +2026,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 container.innerHTML = '';
             });
 
-            // Re-initialize like listeners without a user UID
-            document.querySelectorAll('[data-quiz-id]').forEach(card => {
-                const quizId = card.dataset.quizId;
-                setupLikeListener(quizId, null);
-            });
+            restoreAllLikeStates(null);
         }
         const profileNameEl = document.getElementById("profile-name");
         const profilePointsEl = document.getElementById("profile-points");
