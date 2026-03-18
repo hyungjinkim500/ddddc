@@ -136,13 +136,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Handle logout
-    if (logoutButton) {
-        logoutButton.addEventListener("click", async () => {
+    // Handle logout using event delegation
+    document.addEventListener("click", async (e) => {
+        if (e.target.closest("#logout-button")) {
             await signOut(auth);
             localStorage.removeItem("userAvatar");
-        });
-    }
+            window.location.reload();
+        }
+    });
 
     // Listen for auth state changes
     onAuthStateChanged(auth, async (user) => {

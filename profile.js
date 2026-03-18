@@ -1,3 +1,4 @@
+
 import { auth, db, storage } from "./firebase-config.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
@@ -231,5 +232,26 @@ document.getElementById('withdraw-link')?.addEventListener('click', async (e) =>
 
 // 초기화
 onAuthStateChanged(auth, (user) => {
-    if (user) initTabs();
+    if (user) {
+        initTabs();
+    } else {
+        // 프로필 카드 영역을 로그인 필요 메시지로 교체
+        const profileCard = document.querySelector('.bg-white.dark\\:bg-slate-800.rounded-xl.shadow.p-6.mb-6');
+        if (profileCard) {
+            profileCard.innerHTML = `
+                <div class="text-center py-4">
+                    <p class="text-black-500 text-xl mb-80">마이페이지 조회는 로그인이 필요합니다.</p>
+                    <button onclick="document.getElementById('login-modal-button').click()" 
+                        class="px-6 py-2 bg-[#169976] text-white rounded-lg font-semibold hover:opacity-90 transition">
+                        로그인
+                    </button>
+                </div>`;
+        }
+        // 탭 콘텐츠 영역도 숨김
+        const contentCard = document.querySelector('.bg-white.dark\\:bg-slate-800.rounded-xl.shadow.p-6.min-h-64');
+        if (contentCard) contentCard.classList.add('hidden');
+        // 사이드바도 숨김
+        const sidebar = document.querySelector('.col-span-3');
+        if (sidebar) sidebar.classList.add('hidden');
+    }
 });

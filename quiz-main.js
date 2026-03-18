@@ -829,16 +829,6 @@ function initializeHeader() {
         if (e.target === loginModal) closeModal();
     });
     // --- Logout Logic ---
-    if(logoutButton) {
-        logoutButton.addEventListener('click', async () => {
-            try {
-                await signOut(auth);
-            } catch (error) {
-                console.error('Logout Error:', error);
-                alert('로그아웃 중 오류가 발생했습니다.');
-            }
-        });
-    }
 }
 
 window.initializeHeader = initializeHeader;
