@@ -109,39 +109,67 @@
 <div id="header-container"></div>
 
 <main class="container mx-auto px-4 sm:px-6 py-8 md:py-12">
-    <div id="detail-container" class="max-w-3xl mx-auto space-y-6">
-        <div id="detail-title" class="text-2xl font-bold break-words"></div>
-        <p id="detail-description" class="text-slate-600 dark:text-slate-400 break-words"></p>
-        <div id="detail-participation" class="space-y-2 hidden">
-            <div class="text-sm text-slate-500">참여율</div>
-            <div class="w-full bg-slate-200 rounded h-3">
-                <div id="participation-bar" class="bg-[#169976] h-3 rounded w-0"></div>
+    <div id="detail-container" class="max-w-3xl mx-auto">
+
+        <!-- 카테고리명 -->
+        <div id="detail-category" class="text-2xl font-extrabold text-[#169976] mb-2"></div>
+
+        <!-- 로고색 두꺼운 구분선 -->
+        <div class="border-t-4 border-[#169976] mb-4"></div>
+
+        <!-- 제목 -->
+        <div id="detail-title" class="text-2xl font-bold text-slate-900 dark:text-white break-words mb-4"></div>
+
+        <!-- 메타 정보: 좌측 작성시간 / 우측 작성자·댓글·조회 -->
+        <div class="flex items-center justify-between text-sm text-slate-500 dark:text-slate-400 mb-3">
+            <span id="detail-created-at"></span>
+            <div class="flex items-center gap-3">
+                <span id="detail-author" class="font-semibold text-slate-700 dark:text-slate-200"></span>
+                <span id="detail-comment-count">댓글 0</span>
+                <span id="detail-view-count">조회 0</span>
             </div>
-            <div id="participation-text" class="text-xs text-slate-500"></div>
         </div>
-        <div id="detail-results" class="space-y-3"></div>
-        <div id="detail-options" class="space-y-2"></div>
-        <div id="detail-images" class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
-        <div id="comments-section" class="mt-10">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-semibold">댓글</h3>
-                <div class="flex items-center gap-2">
-                    <button id="detail-like-button" class="flex items-center gap-1 px-3 py-1 rounded bg-slate-200 hover:bg-slate-300 transition"></button>
-                    <span id="detail-like-count" class="text-sm text-slate-600"></span>
+
+        <!-- 회색 구분선 -->
+        <div class="border-t border-slate-300 dark:border-slate-600 mb-6"></div>
+
+        <!-- 본문 영역 -->
+        <div class="space-y-6">
+            <p id="detail-description" class="text-slate-700 dark:text-slate-300 break-words leading-relaxed"></p>
+
+            <div id="detail-participation" class="space-y-2 hidden">
+                <div class="text-sm text-slate-500">참여율</div>
+                <div class="w-full bg-slate-200 rounded h-3">
+                    <div id="participation-bar" class="bg-[#169976] h-3 rounded w-0"></div>
                 </div>
+                <div id="participation-text" class="text-xs text-slate-500"></div>
             </div>
+
+            <div id="detail-results" class="space-y-3"></div>
+            <div id="detail-options" class="space-y-2"></div>
+            <div id="detail-images" class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+        </div>
+
+        <!-- 하단 액션 -->
+        <div class="flex items-center gap-3 mt-8 pt-4 border-t border-slate-200 dark:border-slate-700">
+            <button id="detail-like-button" class="flex items-center gap-1 px-3 py-1 rounded bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 transition"></button>
+            <span id="detail-like-count" class="text-sm text-slate-600 dark:text-slate-400"></span>
+            <button id="detail-share-button" class="flex items-center gap-2 px-4 py-2 rounded-lg border hover:bg-slate-50 dark:hover:bg-slate-700 transition text-sm ml-auto">
+                <i class="fas fa-share-alt"></i> 공유
+            </button>
+        </div>
+
+        <!-- 댓글 -->
+        <div id="comments-section" class="mt-10">
+            <h3 class="text-lg font-semibold mb-4">댓글</h3>
             <div class="flex gap-2">
-                <input id="comment-input" type="text" placeholder="댓글을 입력하세요" class="flex-1 border rounded-lg px-3 py-2"/>
+                <input id="comment-input" type="text" placeholder="댓글을 입력하세요" class="flex-1 border rounded-lg px-3 py-2 dark:bg-slate-800 dark:border-slate-600"/>
                 <button id="comment-submit" class="bg-[#169976] text-white px-4 py-2 rounded-lg">작성</button>
             </div>
             <div id="comment-length" class="text-xs text-slate-400 mt-1 text-right">0 / 200</div>
             <div id="comment-list" class="space-y-3 mt-4"></div>
         </div>
-        <div class="flex items-center gap-3 pt-4 border-t border-slate-200">
-            <button id="detail-share-button" class="flex items-center gap-2 px-4 py-2 rounded-lg border hover:bg-slate-50 transition text-sm">
-                <i class="fas fa-share-alt"></i> 공유
-            </button>
-        </div>
+
     </div>
 </main>
 

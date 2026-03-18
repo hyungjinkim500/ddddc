@@ -59,6 +59,17 @@ async function loadPost(postId) {
 
         const post = snap.data();
 
+        // 카테고리
+        const categoryEl = document.getElementById('detail-category');
+        if (categoryEl && post.category) {
+            try {
+                const catSnap = await getDoc(doc(db, 'categories', post.category));
+                categoryEl.textContent = catSnap.exists() ? catSnap.data().name : post.category;
+            } catch {
+                categoryEl.textContent = post.category;
+            }
+        }
+
         // 제목
         const titleEl = document.getElementById('detail-title');
         if (titleEl) titleEl.textContent = post.title || '';
@@ -66,6 +77,26 @@ async function loadPost(postId) {
         // 설명
         const descEl = document.getElementById('detail-description');
         if (descEl) descEl.textContent = post.description || '';
+
+        // 작성자
+        const authorEl = document.getElementById('detail-author');
+        if (authorEl) authorEl.textContent = post.creatorName || '익명';
+
+        // 작성시간
+        const createdAtEl = document.getElementById('detail-created-at');
+        if (createdAtEl && post.createdAt && post.createdAt.toDate) {
+            const d = post.createdAt.toDate();
+            createdAtEl.textContent = d.toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' })
+                + ' ' + d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        // 조회수
+        const viewCountEl = document.getElementById('detail-view-count');
+        if (viewCountEl) viewCountEl.textContent = '조회 ' + (post.views || 0);
+
+        // 댓글수
+        const commentCountEl = document.getElementById('detail-comment-count');
+        if (commentCountEl) commentCountEl.textContent = '댓글 ' + (post.commentsCount || 0);
 
         // 이미지
         const imgContainer = document.getElementById('detail-images');
