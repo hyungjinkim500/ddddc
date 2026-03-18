@@ -142,7 +142,7 @@ const participationHTML = () => {
     const optionsHTML = isSuper ? `
         <div class="flex items-center justify-between text-sm text-slate-600 dark:text-slate-300 mt-1">
             <span class="truncate">${firstOptionDisplay}${extraCount > 0 ? ` 외 ${extraCount}개 선택지` : ''}</span>
-            <a href="quiz.html?id=${quizId}" class="ml-2 flex-shrink-0 text-[#169976] font-semibold hover:underline whitespace-nowrap">선택하기 &gt;&gt;</a>
+            <a href="view.html?id=${quizId}" class="ml-2 flex-shrink-0 text-[#169976] font-semibold hover:underline whitespace-nowrap">선택하기 &gt;&gt;</a>
         </div>
     ` : quiz.options.map(option => `
             <button 
@@ -156,7 +156,7 @@ const participationHTML = () => {
     quizCard.innerHTML = `
       <div class="flex items-start justify-between gap-3">
         <div class="flex-1 min-w-0">
-          <a href="quiz.html?id=${quizId}" class="quiz-title-link">
+          <a href="view.html?id=${quizId}" class="quiz-title-link">
               <h3 class="quiz-title font-bold text-slate-900 dark:text-white hover:underline line-clamp-2">
                   ${quiz.title}
               </h3>
@@ -181,7 +181,7 @@ const participationHTML = () => {
               <i class="far fa-heart text-base"></i>
               <span class="like-count font-medium text-xs">${quiz.likesCount || 0}</span>
           </button>
-          <a href="quiz.html?id=${quizId}#comments" class="comment-button flex items-center gap-1.5 hover:text-sky-500 transition-colors">
+          <a href="view.html?id=${quizId}#comments" class="comment-button flex items-center gap-1.5 hover:text-sky-500 transition-colors">
               <i class="far fa-comment text-base"></i>
               <span class="comment-count font-medium text-xs">${quiz.commentsCount ?? 0}</span>
           </a>

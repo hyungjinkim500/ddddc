@@ -627,7 +627,7 @@ async function renderRealtimePosts() {
     visiblePosts.forEach(post => {
         const data = post;
         const item = document.createElement("a");
-        item.href = `quiz.html?id=${post.id}`;
+        item.href = `view.html?id=${post.id}`;
         item.className = "block border rounded-lg px-4 py-3 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition";
 
         const badge = getPostTypeBadge(data);

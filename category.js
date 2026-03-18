@@ -113,7 +113,7 @@ async function loadCategoryQuizzes(categoryId) {
         }
         const item = document.createElement('div');
         item.className = 'border rounded-lg p-4 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition cursor-pointer';
-        item.addEventListener('click', () => { window.location.href = `quiz.html?id=${quizId}`; });
+        item.addEventListener('click', () => { window.location.href = `view.html?id=${quizId}`; });
         item.innerHTML = `
             <div class="font-bold text-sm text-[#169976]">${quiz.type === 'superquiz' ? 'TOPIC' : quiz.type === 'quiz' ? 'PICK' : 'POST'}</div>
             <div class="text-lg font-semibold mt-1">${quiz.title || '제목 없음'}</div>
