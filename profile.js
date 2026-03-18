@@ -110,28 +110,29 @@ async function loadMyVotes() {
     });
 }
 
-// 내 댓글 - questions/{id}/comments 구조로 조회
+// 내 댓글
 async function loadMyComments() {
     const user = auth.currentUser;
     if (!user) return;
     const container = document.getElementById('my-comments-list');
     if (!container) return;
     container.innerHTML = '<p class="text-slate-400">불러오는 중...</p>';
-    const postsSnap = await getDocs(query(collection(db, 'questions'), orderBy('createdAt', 'desc'), limit(100)));
-    const results = [];
-    await Promise.all(postsSnap.docs.map(async postDoc => {
-        const commentsSnap = await getDocs(query(collection(db, `questions/${postDoc.id}/comments`), where('userId', '==', user.uid)));
-        commentsSnap.forEach(c => {
-            results.push({ postId: postDoc.id, postTitle: postDoc.data().title || '', content: c.data().content || '' });
-        });
-    }));
-    if (results.length === 0) { container.innerHTML = '<p class="text-slate-400">작성한 댓글이 없습니다.</p>'; return; }
+
+    const snap = await getDocs(query(
+        collection(db, 'allComments'),
+        where('uid', '==', user.uid),
+        orderBy('createdAt', 'desc'),
+        limit(PAGE_SIZE)
+    ));
+
+    if (snap.empty) { container.innerHTML = '<p class="text-slate-400">작성한 댓글이 없습니다.</p>'; return; }
     container.innerHTML = '';
-    results.slice(0, PAGE_SIZE).forEach(c => {
+    snap.forEach(docSnap => {
+        const c = docSnap.data();
         const item = document.createElement('a');
-        item.href = `view.html?id=${c.postId}`;
+        item.href = c.questionId ? `view.html?id=${c.questionId}` : '#';
         item.className = 'block border rounded-lg px-4 py-3 bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 transition';
-        item.innerHTML = `<div class="flex items-center gap-2"><span class="flex-1 truncate">${c.content}</span><span class="text-xs text-slate-400 flex-shrink-0">→ ${c.postTitle.substring(0, 15)}...</span></div>`;
+        item.innerHTML = `<div class="flex items-center gap-2"><span class="flex-1 truncate">${c.text || ''}</span><span class="text-xs text-slate-400 flex-shrink-0">→ ${(c.questionTitle || '').substring(0, 15)}...</span></div>`;
         container.appendChild(item);
     });
 }

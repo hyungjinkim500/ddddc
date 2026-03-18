@@ -1,0 +1,166 @@
+import { auth, db } from './firebase-config.js';
+import { getAuth } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+import { collection, doc, addDoc, deleteDoc, getDocs, query, orderBy, updateDoc, increment, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { updatePopularityScore } from './quiz-main.js';
+
+export async function loadComments(postId, postTitle) {
+    const commentList = document.getElementById('comment-list');
+    if (!commentList) return;
+    commentList.innerHTML = '';
+
+    const commentsRef = collection(db, 'questions', postId, 'comments');
+    const q = query(commentsRef, orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+    const auth = getAuth();
+
+    const commentCountEl = document.getElementById('detail-comment-count');
+    if (commentCountEl) commentCountEl.textContent = '댓글 ' + snapshot.size;
+
+    for (const docSnap of snapshot.docs) {
+        const data = docSnap.data();
+        const timeText = formatTime(data.createdAt);
+
+        let deleteButtonHTML = '';
+        if (auth.currentUser && data.uid === auth.currentUser.uid) {
+            deleteButtonHTML = `<button class="comment-delete text-xs text-red-500" data-comment-id="${docSnap.id}">삭제</button>`;
+        }
+
+        const commentEl = document.createElement('div');
+        commentEl.className = 'border rounded-lg p-3 text-sm';
+        commentEl.innerHTML = `
+            <div class="flex justify-between items-start">
+                <div>
+                    <div class="text-slate-800 dark:text-slate-200 break-all">${data.text}</div>
+                    <div class="text-xs text-slate-400 mt-1">${data.nickname || '익명'} · ${timeText}</div>
+                    <button class="comment-reply text-xs text-sky-500 mt-1" data-comment-id="${docSnap.id}">답글</button>
+                </div>
+                ${deleteButtonHTML}
+            </div>
+        `;
+        commentList.appendChild(commentEl);
+
+        // 답글 로드
+        const repliesContainer = document.createElement('div');
+        repliesContainer.className = 'mt-2';
+        commentEl.appendChild(repliesContainer);
+
+        const repliesRef = collection(db, 'questions', postId, 'comments', docSnap.id, 'replies');
+        const repliesSnapshot = await getDocs(query(repliesRef, orderBy('createdAt', 'asc')));
+
+        repliesSnapshot.forEach(replyDoc => {
+            const replyData = replyDoc.data();
+            const replyTime = formatTime(replyData.createdAt);
+            let replyDeleteHTML = '';
+            if (auth.currentUser && replyData.uid === auth.currentUser.uid) {
+                replyDeleteHTML = `<button class="reply-delete text-xs text-red-500" data-reply-id="${replyDoc.id}" data-comment-id="${docSnap.id}">삭제</button>`;
+            }
+            const replyEl = document.createElement('div');
+            replyEl.className = 'ml-6 mt-2 text-sm border-l-2 border-slate-200 pl-3';
+            replyEl.innerHTML = `
+                <div class="flex justify-between items-start">
+                    <div>
+                        <div class="text-slate-800 dark:text-slate-200 break-all">${replyData.text}</div>
+                        <div class="text-xs text-slate-400 mt-1">${replyData.nickname || '익명'} · ${replyTime}</div>
+                    </div>
+                    ${replyDeleteHTML}
+                </div>
+            `;
+            repliesContainer.appendChild(replyEl);
+        });
+    }
+
+    // 댓글 삭제
+    commentList.querySelectorAll('.comment-delete').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const commentRef = doc(db, 'questions', postId, 'comments', btn.dataset.commentId);
+            await deleteDoc(commentRef);
+            await updateDoc(doc(db, 'questions', postId), { commentsCount: increment(-1) });
+            await loadComments(postId, postTitle);
+            await updatePopularityScore(postId);
+        });
+    });
+
+    // 답글 삭제
+    commentList.querySelectorAll('.reply-delete').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const replyRef = doc(db, 'questions', postId, 'comments', btn.dataset.commentId, 'replies', btn.dataset.replyId);
+            await deleteDoc(replyRef);
+            await loadComments(postId, postTitle);
+        });
+    });
+
+    // 답글 작성
+    commentList.querySelectorAll('.comment-reply').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const existing = btn.closest('.border').querySelector('.reply-input');
+            if (existing) { existing.closest('.mt-2').remove(); return; }
+            const commentId = btn.dataset.commentId;
+            const replyBox = document.createElement('div');
+            replyBox.className = 'mt-2 w-full';
+            replyBox.innerHTML = `
+                <div class="flex gap-2">
+                    <input type="text" placeholder="답글을 입력하세요" class="reply-input flex-1 border rounded-lg px-3 py-1 text-sm dark:bg-slate-800 dark:border-slate-600"/>
+                    <button class="reply-submit bg-sky-500 text-white px-3 py-1 rounded text-sm">작성</button>
+                </div>
+                <div class="text-xs text-slate-400 mt-1 text-right reply-char-count">0 / 200</div>
+            `;
+            btn.closest('.border').appendChild(replyBox);
+            const input = replyBox.querySelector('.reply-input');
+            const charCount = replyBox.querySelector('.reply-char-count');
+            input.addEventListener('input', () => {
+                charCount.textContent = input.value.length + ' / 200';
+                charCount.classList.toggle('text-red-500', input.value.length > 200);
+            });
+            replyBox.querySelector('.reply-submit').addEventListener('click', async () => {
+                const user = getAuth().currentUser;
+                if (!user) { alert('로그인이 필요합니다.'); return; }
+                const text = input.value.trim();
+                if (!text || text.length > 200) return;
+                await addDoc(collection(db, 'questions', postId, 'comments', commentId, 'replies'), {
+                    text, uid: user.uid, nickname: user.displayName || '익명', createdAt: serverTimestamp()
+                });
+                await loadComments(postId, postTitle);
+            });
+        });
+    });
+}
+
+export async function submitComment(postId, postTitle) {
+    const user = getAuth().currentUser;
+    if (!user) { alert('로그인이 필요합니다.'); return; }
+    const commentInput = document.getElementById('comment-input');
+    if (!commentInput) return;
+    const text = commentInput.value.trim();
+    if (!text || text.length > 200) return;
+
+    const commentData = {
+        text,
+        uid: user.uid,
+        nickname: user.displayName || '익명',
+        createdAt: serverTimestamp()
+    };
+
+    // questions/{id}/comments 에 저장
+    await addDoc(collection(db, 'questions', postId, 'comments'), commentData);
+
+    // allComments 최상위 컬렉션에 병행 저장
+    await addDoc(collection(db, 'allComments'), {
+        ...commentData,
+        questionId: postId,
+        questionTitle: postTitle || ''
+    });
+
+    await updateDoc(doc(db, 'questions', postId), { commentsCount: increment(1) });
+    commentInput.value = '';
+    await loadComments(postId, postTitle);
+    await updatePopularityScore(postId);
+}
+
+function formatTime(timestamp) {
+    if (!timestamp || !timestamp.toDate) return '';
+    const diff = Math.floor((new Date() - timestamp.toDate()) / 1000);
+    if (diff < 60) return '방금 전';
+    if (diff < 3600) return Math.floor(diff / 60) + '분 전';
+    if (diff < 86400) return Math.floor(diff / 3600) + '시간 전';
+    return Math.floor(diff / 86400) + '일 전';
+}
