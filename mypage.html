@@ -77,10 +77,12 @@
 
             <div>
                 <h3 class="font-bold text-slate-900 dark:text-white mb-3">나의 활동</h3>
-                <ul class="space-y-2 text-slate-600 dark:text-slate-300">
-                    <li><a href="#" class="hover:text-teal">내 퀴즈</a></li>
-                    <li><a href="#" class="hover:text-teal">내 댓글</a></li>
-                    <li><a href="#" class="hover:text-teal">내 포인트</a></li>
+                <ul class="space-y-2 text-slate-600 dark:text-slate-300 text-sm">
+                    <li><a href="#" class="sidebar-tab hover:text-teal" data-tab="my-posts">내 퀴즈/게시글</a></li>
+                    <li><a href="#" class="sidebar-tab hover:text-teal" data-tab="my-votes">내 투표</a></li>
+                    <li><a href="#" class="sidebar-tab hover:text-teal" data-tab="my-comments">내 댓글</a></li>
+                    <li><a href="#" class="sidebar-tab hover:text-teal" data-tab="my-likes">좋아요한 글</a></li>
+                    <li><a href="#" class="sidebar-tab hover:text-teal" data-tab="my-points">내 포인트</a></li>
                 </ul>
             </div>
 
@@ -88,10 +90,10 @@
 
             <div>
                 <h3 class="font-bold text-slate-900 dark:text-white mb-3">개인정보</h3>
-                <ul class="space-y-2 text-slate-600 dark:text-slate-300">
-                    <li><a href="#" class="hover:text-teal">개인정보 변경</a></li>
-                    <li><a href="#" class="hover:text-teal">비밀번호 변경</a></li>
-                    <li><a href="#" class="hover:text-teal">회원 탈퇴</a></li>
+                <ul class="space-y-2 text-slate-600 dark:text-slate-300 text-sm">
+                    <li><a href="#" class="sidebar-tab hover:text-teal" data-tab="change-nickname">닉네임 변경</a></li>
+                    <li><a href="#" id="logout-link" class="hover:text-teal">로그아웃</a></li>
+                    <li><a href="#" id="withdraw-link" class="hover:text-red-500 text-red-400">회원 탈퇴</a></li>
                 </ul>
             </div>
         </div>
@@ -142,10 +144,59 @@
 
         </div>
 
-        <div class="bg-white dark:bg-slate-800 rounded-xl shadow p-6">
-            <p class="text-slate-900 dark:text-white">
-                마이페이지 콘텐츠 영역
-            </p>
+        <!-- 탭 콘텐츠 영역 -->
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow p-6 min-h-64">
+
+            <!-- 내 퀴즈/게시글 -->
+            <div id="tab-my-posts" class="tab-content hidden">
+                <h3 class="font-bold text-lg mb-4">내 퀴즈 / 게시글</h3>
+                <div id="my-posts-list" class="space-y-2 text-sm"></div>
+                <div id="my-posts-pagination" class="mt-4 flex justify-center gap-2"></div>
+            </div>
+
+            <!-- 내 투표 -->
+            <div id="tab-my-votes" class="tab-content hidden">
+                <h3 class="font-bold text-lg mb-4">내 투표</h3>
+                <div id="my-votes-list" class="space-y-2 text-sm"></div>
+                <div id="my-votes-pagination" class="mt-4 flex justify-center gap-2"></div>
+            </div>
+
+            <!-- 내 댓글 -->
+            <div id="tab-my-comments" class="tab-content hidden">
+                <h3 class="font-bold text-lg mb-4">내 댓글</h3>
+                <div id="my-comments-list" class="space-y-2 text-sm"></div>
+                <div id="my-comments-pagination" class="mt-4 flex justify-center gap-2"></div>
+            </div>
+
+            <!-- 좋아요한 글 -->
+            <div id="tab-my-likes" class="tab-content hidden">
+                <h3 class="font-bold text-lg mb-4">좋아요한 글</h3>
+                <div id="my-likes-list" class="space-y-2 text-sm"></div>
+                <div id="my-likes-pagination" class="mt-4 flex justify-center gap-2"></div>
+            </div>
+
+            <!-- 내 포인트 -->
+            <div id="tab-my-points" class="tab-content hidden">
+                <h3 class="font-bold text-lg mb-4">내 포인트</h3>
+                <div id="my-points-summary" class="mb-4 p-4 bg-slate-50 dark:bg-slate-700 rounded-lg text-sm"></div>
+            </div>
+
+            <!-- 닉네임 변경 -->
+            <div id="tab-change-nickname" class="tab-content hidden">
+                <h3 class="font-bold text-lg mb-4">닉네임 변경</h3>
+                <p class="text-sm text-slate-500 mb-4">닉네임은 1년에 1회만 변경 가능합니다.</p>
+                <div class="max-w-sm space-y-3">
+                    <input id="new-nickname-input" type="text" maxlength="20" placeholder="새 닉네임을 입력하세요" class="w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#169976]">
+                    <button id="change-nickname-btn" class="w-full py-2 bg-[#169976] text-white rounded-lg text-sm font-semibold hover:opacity-90 transition">변경하기</button>
+                    <p id="nickname-change-msg" class="text-sm text-center"></p>
+                </div>
+            </div>
+
+            <!-- 기본 안내 (탭 미선택 시) -->
+            <div id="tab-default">
+                <p class="text-slate-400 text-sm">왼쪽 메뉴에서 항목을 선택해주세요.</p>
+            </div>
+
         </div>
 
     </div>

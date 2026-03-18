@@ -1,20 +1,9 @@
 import { auth, db } from './firebase-config.js';
 import { onAuthStateChanged, signOut, getAuth } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { collection, doc, runTransaction, onSnapshot, getDoc, setDoc, deleteDoc, addDoc, serverTimestamp, query, orderBy, limit, getDocs, where, startAfter, updateDoc, increment } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { collection, doc, onSnapshot, getDoc, setDoc, deleteDoc, addDoc, serverTimestamp, query, orderBy, limit, getDocs, where, startAfter, updateDoc, increment } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { handleVote } from './vote-system.js';
 import { createQuizCard, formatTime } from './modules/quiz-card.js';
-import { handleCardLike, handleDetailLike, restoreAllLikeStates, restoreDetailLikeState } from './modules/likes.js';
-
-const quizListeners = new Map();
-const quizCache = new Map();
-const firestoreListeners = {
-    questions: null,
-    comments: new Map(),
-    likes: new Map()
-};
-
-let imageGallery = [];
-let currentImageIndex = 0;
+import { handleCardLike, restoreAllLikeStates } from './modules/likes.js';
 
 function getPostTypeBadge(data){
     if(!data.type) return "POST";
@@ -27,57 +16,19 @@ function hasImage(data){
     return Array.isArray(data.imageUrls) && data.imageUrls.length > 0;
 }
 
-function updateImageCounter() {
-  const counter = document.getElementById("image-counter");
-  if (!counter) return;
-
-  counter.textContent =
-    (currentImageIndex + 1) + " / " + imageGallery.length;
-}
-
-function getContentType(data) {
-    if (!data || !data.type) {
-        return "post";
-    }
-
-    if (data.type === "quiz") {
-        return "quiz";
-    }
-
-    if (data.type === "superquiz") {
-        return "superquiz";
-    }
-
-    return "post";
-}
-
 function setupQuestionsListener() {
-
-    if (firestoreListeners.questionsCollection) {
-        return;
-    }
-
     const unsubscribe = onSnapshot(collection(db, "questions"), (snapshot) => {
-
         snapshot.docChanges().forEach(change => {
-
             const quizId = change.doc.id;
             const data = change.doc.data();
-
             const quizCard = document.querySelector(`[data-quiz-id="${quizId}"]`);
-
             if (!quizCard) return;
-
             const likeCountSpan = quizCard.querySelector('.like-count');
             if (likeCountSpan) {
                 likeCountSpan.textContent = data.likesCount || 0;
             }
-
         });
-
     });
-
-    firestoreListeners.questionsCollection = unsubscribe;
 }
 
 async function restoreUserVotes(user) {
@@ -131,6 +82,7 @@ export async function loadHeader() {
     }
 }
 
+const quizCache = new Map();
 const categoryPageState = {};
 
 const DEBUG = false;
@@ -140,11 +92,6 @@ const realtimePageState = {
   loading: false,
   hasMore: true
 };
-
-const params = new URLSearchParams(window.location.search);
-const quizIdFromUrl = params.get("id");
-
-if (DEBUG) console.log("Quiz ID from URL:", quizIdFromUrl);
 
 async function handleSearch(keyword) {
     const trimmedKeyword = keyword.trim();
@@ -406,7 +353,7 @@ function renderCategoryPosts(categoryId, posts) {
 
     posts.forEach(post => {
         const item = document.createElement("a");
-        item.href = `post.html?id=${post.id}`;
+        item.href = `view.html?id=${post.id}`;
         item.className = "block border rounded-lg px-4 py-3 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition";
 
         const badge = getPostTypeBadge(post);
@@ -656,7 +603,7 @@ async function renderRealtimePosts() {
             </span>
 
             <span class="text-xs text-slate-400 ml-2">
-                👁 ${data.views || 0}
+                👁 ${post.views || 0}
             </span>
 
         </div>
@@ -777,269 +724,6 @@ async function renderPopularQuizSection() {
     }
 }
 
-async function loadSingleQuiz(quizId) {
-    if (firestoreListeners.questions) {
-        return;
-    }
-
-    const container = document.getElementById("quiz-detail-container");
-    if (!container) return;
-
-    // Ensure stable UI structure
-    if (!document.getElementById("detail-title")) {
-        const title = document.createElement("div");
-        title.id = "detail-title";
-        container.appendChild(title);
-    }
-    if (!document.getElementById("detail-description")) {
-        const description = document.createElement("div");
-        description.id = "detail-description";
-        container.appendChild(description);
-    }
-    if (!document.getElementById("detail-images")) {
-        const imageContainer = document.createElement("div");
-        imageContainer.id = "detail-images";
-        imageContainer.className = "mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3";
-        container.appendChild(imageContainer);
-    }
-    if (!document.getElementById("detail-participation")) {
-        const participation = document.createElement("div");
-        participation.id = "detail-participation";
-        const bar = document.createElement("div");
-        bar.id = "participation-bar";
-        const text = document.createElement("div");
-        text.id = "participation-text";
-        participation.appendChild(bar);
-        participation.appendChild(text);
-        container.appendChild(participation);
-    }
-    if (!document.getElementById("detail-results")) {
-        const results = document.createElement("div");
-        results.id = "detail-results";
-        container.appendChild(results);
-    }
-    if (!document.getElementById("detail-options")) {
-        const options = document.createElement("div");
-        options.id = "detail-options";
-        container.appendChild(options);
-    }
-    if (!document.getElementById("detail-actions")) {
-        const actions = document.createElement("div");
-        actions.id = "detail-actions";
-        const likeButton = document.createElement("button");
-        likeButton.id = "detail-like-button";
-        const shareButton = document.createElement("button");
-        shareButton.id = "detail-share-button";
-        actions.appendChild(likeButton);
-        actions.appendChild(shareButton);
-        container.appendChild(actions);
-    }
-    if (!document.getElementById("detail-like-count")) {
-        const likeCount = document.createElement("span");
-        likeCount.id = "detail-like-count";
-        const actions = document.getElementById("detail-actions");
-        if(actions) actions.appendChild(likeCount);
-    }
-
-    if (!document.getElementById("comments-section")) {
-        const comments = document.createElement("div");
-        comments.id = "comments-section";
-
-        const commentHeader = document.createElement('div');
-        commentHeader.className = 'flex items-center gap-2 mb-2';
-        commentHeader.innerHTML = '<span id="comment-count" class="text-sm text-slate-500">댓글 (0)</span>';
-        comments.appendChild(commentHeader);
-
-        const input = document.createElement("input");
-        input.id = "comment-input";
-        const submit = document.createElement("button");
-        submit.id = "comment-submit";
-        const list = document.createElement("div");
-        list.id = "comment-list";
-        comments.appendChild(input);
-        comments.appendChild(submit);
-        comments.appendChild(list);
-        container.appendChild(comments);
-    }
-
-    const quizRef = doc(db, "questions", quizId);
-
-    if (sessionStorage.getItem("viewed_" + quizId) !== "true") {
-        await updateDoc(quizRef, {
-            views: increment(1)
-        });
-        sessionStorage.setItem("viewed_" + quizId, "true");
-    }
-
-    const unsubscribe = onSnapshot(quizRef, async (quizSnap) => {
-        if (!quizSnap.exists()) {
-            container.innerHTML = "<p class='text-center text-red-500'>퀴즈를 찾을 수 없습니다.</p>";
-            return;
-        }
-
-        const quiz = quizSnap.data();
-
-        const titleElement = document.getElementById("detail-title");
-        if (titleElement) {
-            titleElement.textContent = quiz.title;
-        }
-
-        const descriptionElement = document.getElementById("detail-description");
-        if (descriptionElement) {
-            descriptionElement.textContent = quiz.description;
-        }
-
-        const imageContainer = document.getElementById("detail-images");
-        if (imageContainer) {
-            imageContainer.innerHTML = "";
-            if (Array.isArray(quiz.imageUrls)) {
-                imageGallery = quiz.imageUrls;
-                quiz.imageUrls.forEach((url) => {
-                    const img = document.createElement("img");
-                    img.src = url;
-                    img.loading = "lazy";
-                    img.decoding = "async";
-                    img.referrerPolicy = "no-referrer";
-                    img.draggable = false;
-                    img.className =
-                        "w-full rounded-lg object-cover max-h-[400px]";
-                    img.style.cursor = "zoom-in";
-                    img.addEventListener("click", () => {
-                        const modal = document.getElementById("image-modal");
-                        if (!modal) return;
-                        const modalImg = modal.querySelector("img");
-                        currentImageIndex = imageGallery.indexOf(url);
-                        if (modalImg) {
-                            modalImg.src = url;
-                        }
-                        modal.classList.remove("hidden");
-                        updateImageCounter();
-                    });
-                    imageContainer.appendChild(img);
-                });
-            }
-        }
-
-        const optionsContainer = document.getElementById("detail-options");
-        if (optionsContainer && Array.isArray(quiz.options)) {
-            optionsContainer.innerHTML = "";
-            quiz.options.forEach((option) => {
-                const button = document.createElement("button");
-                button.className = "vote-option-btn w-full text-left px-4 py-3 rounded-lg border border-slate-300 hover:bg-slate-50 transition";
-                button.dataset.optionId = option.id;
-                button.dataset.quizId = quizId;
-                button.textContent = option.label;
-                button.addEventListener("click", async () => {
-                    const allButtons = optionsContainer.querySelectorAll(".vote-option-btn");
-                    allButtons.forEach(btn => {
-                        btn.classList.remove("ring-2", "ring-[#169976]", "ring-offset-2");
-                    });
-                    button.classList.add("ring-2", "ring-[#169976]", "ring-offset-2");
-
-                    const voteSuccessful = await handleVote(quizId, option.id);
-                    if (voteSuccessful) {
-                        await updatePopularityScore(quizId);
-                        if (quizIdFromUrl) {
-                            await loadSingleQuiz(quizIdFromUrl);
-                        }
-                        const auth = getAuth();
-                        if (auth.currentUser) {
-                            restoreUserVotes(auth.currentUser);
-                        }
-                    }
-                });
-                optionsContainer.appendChild(button);
-            });
-        }
-
-        const resultsContainer = document.getElementById("detail-results");
-        if (resultsContainer && Array.isArray(quiz.options)) {
-            resultsContainer.innerHTML = "";
-            const votes = quiz.vote || {};
-            const totalVotes = Object.values(votes).reduce((a, b) => a + b, 0);
-            quiz.options.forEach(option => {
-                const count = votes[option.id] || 0;
-                const percent = totalVotes === 0 ? 0 : Math.round((count / totalVotes) * 100);
-                const wrapper = document.createElement("div");
-                wrapper.className = "space-y-1";
-                const label = document.createElement("div");
-                label.className = "flex justify-between text-sm text-slate-600";
-                label.innerHTML = `
-                    <span>${option.label}</span>
-                    <span>${percent}% (${count})</span>
-                `;
-                const bar = document.createElement("div");
-                bar.className = "w-full bg-slate-200 rounded h-3";
-                const fill = document.createElement("div");
-                fill.className = "bg-[#169976] h-3 rounded";
-                fill.style.width = percent + "%";
-                bar.appendChild(fill);
-                wrapper.appendChild(label);
-                wrapper.appendChild(bar);
-                resultsContainer.appendChild(wrapper);
-            });
-        }
-
-        const participationContainer = document.getElementById("detail-participation");
-        if (participationContainer) {
-            const participants = quiz.participants || [];
-            const maxParticipants = quiz.participantLimit || 0;
-            const current = participants.length;
-            const percent = maxParticipants === 0 ? 0 : Math.round((current / maxParticipants) * 100);
-            const bar = document.getElementById("participation-bar");
-            if (bar) {
-                bar.style.width = percent + "%";
-            }
-            const text = document.getElementById("participation-text");
-            if (text) {
-                text.textContent = `${current} / ${maxParticipants} 참여`;
-            }
-            if (maxParticipants === 0) {
-                participationContainer.classList.add("hidden");
-            } else {
-                participationContainer.classList.remove("hidden");
-            }
-        }
-
-        const likeButton = document.getElementById("detail-like-button");
-        if(likeButton && !likeButton.querySelector('#like-icon-outline')) {
-            likeButton.innerHTML = '<svg id="like-icon-outline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"/></svg><svg id="like-icon-filled" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 text-red-500 hidden"><path d="M12 21s-8.5-4.6-8.5-11.1C3.5 6.4 5.9 4 8.8 4c1.9 0 3.6 1 4.2 2.6C13.6 5 15.3 4 17.2 4 20.1 4 22.5 6.4 22.5 9.9 22.5 16.4 12 21 12 21z"/></svg>';
-            likeButton.className = "px-3 py-1 rounded bg-slate-200 hover:bg-slate-300 transition";
-            likeButton.onclick = () => handleDetailLike(quizId);
-        }
-
-        const auth = getAuth();
-        if (auth.currentUser) {
-            restoreUserVotes(auth.currentUser);
-            await restoreDetailLikeState(quizId, auth.currentUser.uid);
-        }
-
-        const likeCountEl = document.getElementById("detail-like-count");
-        if (likeCountEl) {
-            likeCountEl.textContent = quiz.likesCount || 0;
-        }
-
-        const likeCount = document.getElementById("detail-like-count");
-        if (likeCount) {
-            likeCount.className = "ml-2 text-sm text-slate-600";
-        }
-
-        const shareButton = document.getElementById("detail-share-button");
-        if(shareButton) {
-            shareButton.onclick = () => {
-                const url = window.location.href;
-                navigator.clipboard.writeText(url).then(() => {
-                    alert("퀴즈 링크가 복사되었습니다!");
-                }, () => {
-                    alert("링크 복사에 실패했습니다.");
-                });
-            };
-        }
-    });
-
-    firestoreListeners.questions = unsubscribe;
-}
-
 function calculatePopularityScore(data) {
   const likes = data.likes || 0;
   const votes = data.votes || 0;
@@ -1078,341 +762,6 @@ export async function updatePopularityScore(quizId) {
     });
 
     await updateDoc(quizRef, { popularityScore });
-}
-
-async function loadComments(quizId) {
-    const commentList = document.getElementById("comment-list");
-    if (!commentList) return;
-
-    commentList.innerHTML = "";
-
-    const commentsRef = collection(db, "questions", quizId, "comments");
-    const q = query(commentsRef, orderBy("createdAt", "desc"));
-    const snapshot = await getDocs(q);
-    const auth = getAuth();
-
-    const commentCountEl = document.getElementById("comment-count");
-    if (commentCountEl) {
-        commentCountEl.textContent = `댓글 (${snapshot.size})`;
-    }
-
-    for (const docSnap of snapshot.docs) {
-        const data = docSnap.data();
-        const commentEl = document.createElement("div");
-        commentEl.className = "border rounded-lg p-3 text-sm";
-
-        let deleteButtonHTML = "";
-        if (auth.currentUser && data.uid === auth.currentUser.uid) {
-            deleteButtonHTML = `
-                <button class="comment-delete text-xs text-red-500" data-comment-id="${docSnap.id}">
-                    삭제
-                </button>
-            `;
-        }
-
-        let timeText = "";
-        if (data.createdAt && data.createdAt.toDate) {
-            const created = data.createdAt.toDate();
-            const now = new Date();
-            const diff = Math.floor((now - created) / 1000);
-
-            if (diff < 60) {
-                timeText = "방금 전";
-            } else if (diff < 3600) {
-                timeText = Math.floor(diff / 60) + "분 전";
-            } else if (diff < 86400) {
-                timeText = Math.floor(diff / 3600) + "시간 전";
-            } else {
-                timeText = Math.floor(diff / 86400) + "일 전";
-            }
-        }
-
-        commentEl.innerHTML = `
-            <div class="flex justify-between items-start">
-                <div>
-                    <div class="text-slate-800 break-all">${data.text}</div>
-                    <div class="text-xs text-slate-400 mt-1">
-                        ${data.nickname || "익명"} · ${timeText}
-                    </div>
-                    <button 
-                      class="comment-reply text-xs text-sky-500 mt-1"
-                      data-comment-id="${docSnap.id}"
-                    >
-                    답글
-                    </button>
-                </div>
-                ${deleteButtonHTML}
-            </div>
-        `;
-        commentList.appendChild(commentEl);
-
-        const repliesContainer = document.createElement("div");
-        repliesContainer.className = "mt-2 hidden";
-        commentEl.appendChild(repliesContainer);
-
-        const repliesRef = collection(
-            db,
-            "questions",
-            quizId,
-            "comments",
-            docSnap.id,
-            "replies"
-        );
-
-        const repliesQuery = query(repliesRef, orderBy("createdAt", "asc"));
-        const repliesSnapshot = await getDocs(repliesQuery);
-
-        if (!repliesSnapshot.empty) {
-          repliesContainer.classList.remove("hidden");
-        }
-
-        repliesSnapshot.forEach(replyDoc => {
-            const replyData = replyDoc.data();
-
-            let replyTimeText = "";
-            if (replyData.createdAt && replyData.createdAt.toDate) {
-              const created = replyData.createdAt.toDate();
-              const now = new Date();
-              const diff = Math.floor((now - created) / 1000);
-            
-              if (diff < 60) {
-                replyTimeText = "방금 전";
-              } else if (diff < 3600) {
-                replyTimeText = Math.floor(diff / 60) + "분 전";
-              } else if (diff < 86400) {
-                replyTimeText = Math.floor(diff / 3600) + "시간 전";
-              } else {
-                replyTimeText = Math.floor(diff / 86400) + "일 전";
-              }
-            }
-
-            const replyEl = document.createElement("div");
-            replyEl.className = "ml-6 mt-2 text-sm border-l-2 border-slate-200 pl-3";
-
-            let replyDeleteButtonHTML = "";
-
-            if (auth.currentUser && replyData.uid === auth.currentUser.uid) {
-              replyDeleteButtonHTML = `
-                <button
-                  class="reply-delete text-xs text-red-500"
-                  data-reply-id="${replyDoc.id}"
-                  data-comment-id="${docSnap.id}"
-                >
-                  삭제
-                </button>
-              `;
-            }
-
-            replyEl.innerHTML = `
-            <div class="flex justify-between items-start">
-              <div>
-                <div class="text-slate-800 break-all">${replyData.text}</div>
-                <div class="text-xs text-slate-400 mt-1">
-                  ${replyData.nickname || "익명"} · ${replyTimeText}
-                </div>
-              </div>
-            
-              ${replyDeleteButtonHTML}
-            
-            </div>
-            `;
-            repliesContainer.appendChild(replyEl);
-        });
-    }
-
-    commentList.querySelectorAll(".comment-delete").forEach(btn => {
-        btn.addEventListener("click", async () => {
-            const commentId = btn.dataset.commentId;
-            const commentRef = doc(db, "questions", quizId, "comments", commentId);
-            const quizRef = doc(db, "questions", quizId);
-            await deleteDoc(commentRef);
-            await updateDoc(quizRef, { commentsCount: increment(-1) });
-            await loadComments(quizId);
-            await updatePopularityScore(quizId);
-        });
-    });
-
-    commentList.querySelectorAll(".reply-delete").forEach(btn => {
-        btn.addEventListener("click", async () => {
-    
-            const replyId = btn.dataset.replyId;
-            const commentId = btn.dataset.commentId;
-    
-            const replyRef = doc(
-                db,
-                "questions",
-                quizId,
-                "comments",
-                commentId,
-                "replies",
-                replyId
-            );
-    
-            await deleteDoc(replyRef);
-    
-            await loadComments(quizId);
-        });
-    });
-
-    commentList.querySelectorAll(".comment-reply").forEach(btn => {
-        btn.addEventListener("click", () => {
-            const existingReplyBox = btn.closest(".border").querySelector(".reply-input");
-            if (existingReplyBox) {
-              existingReplyBox.closest(".mt-2").remove();
-              return;
-            }
-
-            const commentId = btn.dataset.commentId;
-
-            const replyBox = document.createElement("div");
-            replyBox.style.width = "100%";
-            replyBox.className = "mt-2 w-full";
-
-            replyBox.innerHTML = `
-            <div class="w-full">
-              <div class="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="답글을 입력하세요"
-                  class="reply-input flex-1 border rounded-lg px-3 py-1 text-sm"
-                />
-                <button
-                  class="reply-submit bg-sky-500 text-white px-3 py-1 rounded text-sm"
-                >
-                  작성
-                </button>
-              </div>
-            
-              <div class="text-xs text-slate-400 mt-1 text-right reply-char-count">
-                0 / 200
-              </div>
-            </div>
-            `;
-
-            btn.closest(".border").appendChild(replyBox);
-
-            const replyInput = replyBox.querySelector(".reply-input");
-            const replySubmit = replyBox.querySelector(".reply-submit");
-            const replyCharCount = replyBox.querySelector(".reply-char-count");
-
-            replyInput.addEventListener("input", () => {
-              const length = replyInput.value.length;
-            
-              if (replyCharCount) {
-                replyCharCount.textContent = `${length} / 200`;
-              }
-            
-              if (length > 200) {
-                replyCharCount.classList.add("text-red-500");
-              } else {
-                replyCharCount.classList.remove("text-red-500");
-              }
-            });
-
-            replySubmit.addEventListener("click", async () => {
-                const auth = getAuth();
-                const user = auth.currentUser;
-
-                if (!user) {
-                    alert("로그인이 필요합니다.");
-                    return;
-                }
-
-                const text = replyInput.value.trim();
-
-                if (!text) return;
-
-                if (text.length > 200) {
-                    alert("답글은 200자까지 입력 가능합니다.");
-                    return;
-                }
-
-                const repliesRef = collection(
-                    db,
-                    "questions",
-                    quizId,
-                    "comments",
-                    commentId,
-                    "replies"
-                );
-
-                await addDoc(repliesRef, {
-                    text: text,
-                    uid: user.uid,
-                    nickname: user.displayName || "익명",
-                    createdAt: serverTimestamp()
-                });
-
-                await loadComments(quizId);
-            });
-        });
-    });
-}
-
-
-
-function setupCommentListener(quizId) {
-    // This listener is redundant because the new collection listener handles comment count updates.
-}
-
-function createCommentElement(commentId, comment) {
-    const div = document.createElement('div');
-    div.className = 'flex items-start gap-3 text-sm';
-    const createdAt = comment.createdAt?.toDate().toLocaleString('ko-KR', { dateStyle: 'short', timeStyle: 'short'}) || '';
-
-    div.innerHTML = `
-        <div class="flex-shrink-0 w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center font-bold text-xs text-slate-500 dark:text-slate-400">
-            ${(comment.authorDisplayName || 'U').charAt(0)}
-        </div>
-        <div class="flex-1">
-            <p class="font-semibold text-slate-800 dark:text-slate-200">${comment.authorDisplayName || 'Anonymous'} <span class="text-xs font-normal text-slate-400 dark:text-slate-500 ml-1">${createdAt}</span></p>
-            <p class="text-slate-600 dark:text-slate-300 mt-0.5 whitespace-pre-wrap">${comment.content}</p>
-        </div>
-    `;
-    return div;
-}
-
-function createCommentForm(quizId) {
-    const form = document.createElement('form');
-    form.className = 'comment-form flex items-start gap-2';
-    form.innerHTML = `
-        <textarea name="comment" placeholder="댓글을 입력하세요..." class="flex-1 px-3 py-2 text-sm rounded-md bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-teal transition" rows="1"></textarea>
-        <button type="submit" class="px-3 py-2 rounded-md bg-teal text-pm-navy font-semibold text-sm transition-opacity hover:opacity-90">등록</button>
-    `;
-    form.addEventListener('submit', (e) => handleCommentSubmit(e, quizId));
-    return form;
-}
-
-async function handleCommentSubmit(e, quizId) {
-    e.preventDefault();
-    const form = e.target;
-    const textarea = form.querySelector('textarea');
-    const content = textarea.value.trim();
-
-    if (!content) return;
-
-    const user = auth.currentUser;
-    if (!user) {
-        alert('댓글을 작성하려면 로그인이 필요합니다.');
-        return;
-    }
-
-    try {
-        const quizRef = doc(db, `questions/${quizId}`);
-        await addDoc(collection(db, `questions/${quizId}/comments`), {
-            content: content,
-            authorUid: user.uid,
-            authorDisplayName: user.displayName || '익명',
-            createdAt: serverTimestamp()
-        });
-        await updateDoc(quizRef, { commentsCount: increment(1) });
-        textarea.value = '';
-        textarea.style.height = 'auto';
-        await updatePopularityScore(quizId);
-    } catch (error) {
-        console.error("Error adding comment: ", error);
-        alert('댓글 등록에 실패했습니다.');
-    }
 }
 
 function initializeHeader() {
@@ -1495,82 +844,6 @@ function initializeHeader() {
 window.initializeHeader = initializeHeader;
 
 document.addEventListener('DOMContentLoaded', async () => {
-    const imageModal = document.getElementById("image-modal");
-    if (imageModal) {
-        const closeBtn = document.getElementById("image-modal-close");
-        if (closeBtn) {
-            closeBtn.addEventListener("click", () => {
-                imageModal.classList.add("hidden");
-            });
-        }
-        imageModal.addEventListener("click", (e) => {
-            if (e.target === imageModal) {
-                imageModal.classList.add("hidden");
-            }
-        });
-        document.addEventListener("keydown", (e) => {
-            if (e.key === "Escape") {
-                imageModal.classList.add("hidden");
-            }
-        });
-    }
-    document.addEventListener("keydown", (e) => {
-        const modal = document.getElementById("image-modal");
-        if (!modal || modal.classList.contains("hidden") || imageGallery.length === 0) return;
-
-        if (e.key === "ArrowRight") {
-            currentImageIndex = (currentImageIndex + 1) % imageGallery.length;
-        }
-
-        if (e.key === "ArrowLeft") {
-            currentImageIndex = (currentImageIndex - 1 + imageGallery.length) % imageGallery.length;
-        }
-
-        const modalImg = modal.querySelector("img");
-        if (modalImg) {
-            modalImg.src = imageGallery[currentImageIndex];
-        }
-        updateImageCounter();
-    });
-
-    const prevBtn = document.getElementById("image-prev");
-    const nextBtn = document.getElementById("image-next");
-
-    if (prevBtn) {
-      prevBtn.addEventListener("click", () => {
-        if (imageGallery.length === 0) return;
-
-        currentImageIndex =
-          (currentImageIndex - 1 + imageGallery.length) % imageGallery.length;
-
-        const modal = document.getElementById("image-modal");
-        const modalImg = modal.querySelector("img");
-
-        if (modalImg) {
-          modalImg.src = imageGallery[currentImageIndex];
-        }
-
-        updateImageCounter();
-      });
-    }
-
-    if (nextBtn) {
-      nextBtn.addEventListener("click", () => {
-        if (imageGallery.length === 0) return;
-
-        currentImageIndex =
-          (currentImageIndex + 1) % imageGallery.length;
-
-        const modal = document.getElementById("image-modal");
-        const modalImg = modal.querySelector("img");
-
-        if (modalImg) {
-          modalImg.src = imageGallery[currentImageIndex];
-        }
-
-        updateImageCounter();
-      });
-    }
 
     setupQuestionsListener();
     await preloadQuizzes();
@@ -1584,88 +857,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    if (quizIdFromUrl) {
-        renderCategoryNavbar();
-        const superQuizSection = document.getElementById("super-quiz-section");
-        if (superQuizSection) superQuizSection.style.display = "none";
-        const popularQuizSection = document.getElementById("popular-quiz-section");
-        if (popularQuizSection) popularQuizSection.style.display = "none";
-        const realtimeQuizSection = document.getElementById("realtime-quiz-section");
-        if (realtimeQuizSection) realtimeQuizSection.style.display = "none";
-        const categorySections = document.getElementById("category-sections");
-        if (categorySections) categorySections.style.display = "none";
-        const rightWidgetArea = document.getElementById("right-widget-area");
-        if (rightWidgetArea) rightWidgetArea.style.display = "none";
-        const quizContainer = document.getElementById("quiz-container");
-        if (quizContainer) quizContainer.style.display = "none";
-
-        const detailContainer = document.getElementById("quiz-detail-container");
-        if (detailContainer) {
-            detailContainer.classList.remove("hidden");
-        } 
-
-        await loadSingleQuiz(quizIdFromUrl);
-        await loadComments(quizIdFromUrl);
-
-        const commentInput = document.getElementById("comment-input");
-        const commentLength = document.getElementById("comment-length");
-
-        if (commentInput && commentLength) {
-            commentInput.addEventListener("input", () => {
-                const length = commentInput.value.length;
-                commentLength.textContent = length + " / 200";
-            });
-        }
-
-        if (commentInput) {
-            commentInput.addEventListener("keydown", async (e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    const submitBtn = document.getElementById("comment-submit");
-                    if (submitBtn) {
-                        submitBtn.click();
-                    }
-                }
-            });
-        }
-
-        const commentSubmit = document.getElementById("comment-submit");
-
-        if (commentSubmit) {
-            commentSubmit.addEventListener("click", async () => {
-                const auth = getAuth();
-                const user = auth.currentUser;
-
-                if (!user) {
-                    alert("로그인이 필요합니다.");
-                    return;
-                }
-
-                const text = commentInput.value.trim();
-                if (text.length > 200) {
-                    alert("댓글은 200자 까지만 입력 가능합니다.");
-                    return;
-                }
-                if (!text) return;
-
-                const commentsRef = collection(db, "questions", quizIdFromUrl, "comments");
-                const quizRef = doc(db, "questions", quizIdFromUrl);
-
-                await addDoc(commentsRef, {
-                    text: text,
-                    uid: user.uid,
-                    nickname: user.displayName || "익명",
-                    createdAt: serverTimestamp()
-                });
-                await updateDoc(quizRef, { commentsCount: increment(1) });
-
-                commentInput.value = "";
-
-                await loadComments(quizIdFromUrl);
-                await updatePopularityScore(quizIdFromUrl);
-            });
-        }
-    } else if (window.location.pathname.includes('search.html')) {
+    if (window.location.pathname.includes('search.html')) {
         // Search page logic is handled by its own inline script
     } else {
         renderCategoryNavbar();
@@ -2006,10 +1198,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
             restoreUserVotes(user);
             
-            document.querySelectorAll('[data-quiz-id]').forEach(card => {
-                const quizId = card.dataset.quizId;
-                updateCommentFormVisibility(quizId, user);
-            });
             restoreAllLikeStates(user.uid);
 
         } else {
@@ -2020,10 +1208,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             document.querySelectorAll('.vote-option-btn').forEach(btn => {
                 btn.classList.remove('opacity-50', 'ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', 'ring-[#169976]', 'ring-red-400', 'ring-slate-400', 'ring-[#169976]');
-            });
-
-            document.querySelectorAll('.comment-form-container').forEach(container => {
-                container.innerHTML = '';
             });
 
             restoreAllLikeStates(null);

@@ -216,7 +216,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const quizType = data['quiz-type'];
-    console.log("participantLimit 값:", data.participantLimit, "quizType:", quizType);
 
     // Poll participant limit validation
     if (quizType) {
@@ -328,7 +327,6 @@ document.addEventListener("DOMContentLoaded", () => {
         const compressedBlob = await compressImage(file);
         selectedImages.push(compressedBlob);
       } catch (error) {
-        console.error("Image compression failed:", error);
         alert("이미지 압축에 실패했습니다.");
       }
     }
