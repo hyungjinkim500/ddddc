@@ -4,6 +4,7 @@ import { collection, doc, onSnapshot, getDoc, setDoc, deleteDoc, addDoc, serverT
 import { handleVote } from './vote-system.js';
 import { createQuizCard, formatTime } from './modules/quiz-card.js';
 import { handleCardLike, restoreAllLikeStates } from './modules/likes.js';
+import { loadHeader } from './header.js';
 
 function getPostTypeBadge(data){
     if(!data.type) return "POST";
@@ -66,20 +67,6 @@ async function restoreUserVotes(user) {
     });
 
     await Promise.all(votePromises);
-}
-
-
-export async function loadHeader() {
-    const container = document.getElementById("header-container");
-    if (!container) return;
-
-    const res = await fetch("/components/header.html");
-    const html = await res.text();
-
-    container.innerHTML = html;
-    if (window.initializeHeader) {
-        window.initializeHeader();
-    }
 }
 
 const quizCache = new Map();
@@ -764,75 +751,6 @@ export async function updatePopularityScore(quizId) {
     await updateDoc(quizRef, { popularityScore });
 }
 
-function initializeHeader() {
-    // --- Theme Toggle --- //
-    const themeToggle = document.getElementById('theme-toggle');
-    if(themeToggle) {
-        const html = document.documentElement;
-        const icon = themeToggle.querySelector('i');
-        const savedTheme = localStorage.getItem('theme') || 'light';
-        html.classList.add(savedTheme);
-        if (savedTheme === 'dark') {
-            icon.classList.remove('fa-moon');
-            icon.classList.add('fa-sun');
-        } else {
-            icon.classList.remove('fa-sun');
-            icon.classList.add('fa-moon');
-        }
-        themeToggle.addEventListener('click', () => {
-            if (html.classList.contains('dark')) {
-                html.classList.remove('dark'); html.classList.add('light'); localStorage.setItem('theme', 'light');
-                icon.classList.remove('fa-sun'); icon.classList.add('fa-moon');
-            } else {
-                html.classList.remove('light'); html.classList.add('dark'); localStorage.setItem('theme', 'dark');
-                icon.classList.remove('fa-moon'); icon.classList.add('fa-sun');
-            }
-        });
-    }
-
-    // --- User Avatar Dropdown --- //
-    const avatar = document.getElementById("user-avatar");
-    const menu = document.getElementById("user-menu");
-
-    if (avatar && menu) {
-        avatar.addEventListener("click", (e) => {
-            e.stopPropagation();
-            menu.classList.toggle("hidden");
-        });
-
-        document.addEventListener("click", (e) => {
-            if (!menu.contains(e.target) && !avatar.contains(e.target)) {
-                menu.classList.add("hidden");
-            }
-        });
-    }
-    // --- Modal elements & Auth buttons ---
-    const loginModal = document.getElementById('login-modal');
-    const loginModalButton = document.getElementById('login-modal-button');
-    const loginModalCloseButton = document.getElementById('login-modal-close-button');
-    const logoutButton = document.getElementById('logout-button');
-
-    // --- Modal Control ---
-    function openModal() {
-        if(loginModal) loginModal.classList.add('show');
-        document.body.style.overflow = 'hidden';
-    }
-
-    function closeModal() {
-        if(loginModal) loginModal.classList.remove('show');
-        document.body.style.overflow = '';
-    }
-
-    if(loginModalButton) loginModalButton.addEventListener('click', openModal);
-    if(loginModalCloseButton) loginModalCloseButton.addEventListener('click', closeModal);
-    if(loginModal) loginModal.addEventListener('click', (e) => { 
-        if (e.target === loginModal) closeModal();
-    });
-    // --- Logout Logic ---
-}
-
-window.initializeHeader = initializeHeader;
-
 document.addEventListener('DOMContentLoaded', async () => {
 
     setupQuestionsListener();
@@ -847,166 +765,174 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    if (window.location.pathname.includes('search.html')) {
-        // Search page logic is handled by its own inline script
-    } else {
-        renderCategoryNavbar();
-        renderCategorySections().then(() => {
-            const auth = getAuth();
-            if (auth.currentUser) restoreAllLikeStates(auth.currentUser.uid);
-        });
-        renderRealtimeSection();
-        renderRealtimePosts();
-        renderSuperQuizSection().then(() => {
-            const auth = getAuth();
-            if (auth.currentUser) restoreAllLikeStates(auth.currentUser.uid);
-        });
-        renderPopularQuizSection().then(() => {
-            const auth = getAuth();
-            if (auth.currentUser) {
-                restoreUserVotes(auth.currentUser);
-                restoreAllLikeStates(auth.currentUser.uid);
+    renderCategoryNavbar();
+    renderCategorySections().then(() => {
+        const auth = getAuth();
+        if (auth.currentUser) restoreAllLikeStates(auth.currentUser.uid);
+    });
+    renderRealtimeSection();
+    renderRealtimePosts();
+    renderSuperQuizSection().then(() => {
+        const auth = getAuth();
+        if (auth.currentUser) restoreAllLikeStates(auth.currentUser.uid);
+    });
+    renderPopularQuizSection().then(() => {
+        const auth = getAuth();
+        if (auth.currentUser) {
+            restoreUserVotes(auth.currentUser);
+            restoreAllLikeStates(auth.currentUser.uid);
+        }
+    });
+    loadTrendingKeywords();
+
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            restoreUserVotes(user);
+            restoreAllLikeStates(user.uid);
+        } else {
+            document.querySelectorAll('.vote-option-btn').forEach(btn => {
+                btn.classList.remove('opacity-50', 'ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', 'ring-[#169976]', 'ring-red-400', 'ring-slate-400');
+            });
+            restoreAllLikeStates(null);
+        }
+    });
+
+    const realtimePrevBtn = document.getElementById('realtime-prev');
+    const realtimeNextBtn = document.getElementById('realtime-next');
+
+    if (realtimeNextBtn) {
+        realtimeNextBtn.onclick = async () => {
+            const snapshot = await getDocs(query(collection(db, "questions"), orderBy("createdAt", "desc"), limit(50)));
+            if ((realtimePage + 1) * REALTIME_PAGE_SIZE < snapshot.size) {
+                realtimePage++;
+                renderRealtimePosts();
+            }
+        };
+    }
+
+    if (realtimePrevBtn) {
+        realtimePrevBtn.onclick = () => {
+            realtimePage = Math.max(0, realtimePage - 1);
+            renderRealtimePosts();
+        };
+    }
+
+    const realtimeSlider = document.getElementById('realtime-slider');
+    const realtimeLeftBtn = document.getElementById('realtime-slider-left');
+    const realtimeRightBtn = document.getElementById('realtime-slider-right');
+
+    if (realtimeSlider && realtimeLeftBtn && realtimeRightBtn) {
+        let currentIndex = 0;
+        const moveStep = 2;
+        const cardWidth = 316;
+
+        realtimeRightBtn.onclick = async () => {
+            currentIndex += moveStep;
+            realtimeSlider.scrollTo({
+                left: currentIndex * cardWidth,
+                behavior: "smooth"
+            });
+
+            if (realtimeSlider.scrollLeft + realtimeSlider.clientWidth >= realtimeSlider.scrollWidth - 400 && realtimePageState.hasMore) {
+                const newQuizzes = await loadRealtimeQuizzes();
+                newQuizzes.forEach(quiz => {
+                    if (!realtimeSlider.querySelector(`[data-quiz-id="${quiz.id}"]`)) {
+                        const card = createQuizCard(quiz.id, quiz);
+                        card.dataset.quizId = quiz.id;
+                        realtimeSlider.appendChild(card);
+                    }
+                });
+            }
+        };
+
+        realtimeLeftBtn.onclick = () => {
+            currentIndex = Math.max(0, currentIndex - moveStep);
+            realtimeSlider.scrollTo({
+                left: currentIndex * cardWidth,
+                behavior: "smooth"
+            });
+        };
+    }
+
+    const superSlider = document.getElementById("super-quiz-slider");
+    const superLeft = document.getElementById("super-slider-left");
+    const superRight = document.getElementById("super-slider-right");
+
+    if (superSlider && superLeft && superRight) {
+        let currentPage = 0;
+
+        const updateButtons = () => {
+            const pageCount = superSlider.querySelectorAll('.super-quiz-page').length;
+            
+            superLeft.disabled = currentPage === 0;
+            superRight.disabled = currentPage >= pageCount - 1;
+            
+            superLeft.style.cursor = superLeft.disabled ? 'not-allowed' : 'pointer';
+            superRight.style.cursor = superRight.disabled ? 'not-allowed' : 'pointer';
+            superLeft.style.opacity = superLeft.disabled ? '0.5' : '1';
+            superRight.style.opacity = superRight.disabled ? '0.5' : '1';
+        };
+
+        superRight.addEventListener('click', () => {
+            const pageCount = superSlider.querySelectorAll('.super-quiz-page').length;
+            if (currentPage < pageCount - 1) {
+                currentPage++;
+                superSlider.style.transform = `translateX(-${currentPage * 100}%)`;
+                updateButtons();
             }
         });
-        loadTrendingKeywords();
 
-        const realtimePrevBtn = document.getElementById('realtime-prev');
-        const realtimeNextBtn = document.getElementById('realtime-next');
-
-        if (realtimeNextBtn) {
-            realtimeNextBtn.onclick = async () => {
-                const snapshot = await getDocs(query(collection(db, "questions"), orderBy("createdAt", "desc"), limit(50)));
-                if ((realtimePage + 1) * REALTIME_PAGE_SIZE < snapshot.size) {
-                    realtimePage++;
-                    renderRealtimePosts();
-                }
-            };
-        }
-
-        if (realtimePrevBtn) {
-            realtimePrevBtn.onclick = () => {
-                realtimePage = Math.max(0, realtimePage - 1);
-                renderRealtimePosts();
-            };
-        }
-
-        const realtimeSlider = document.getElementById('realtime-slider');
-        const realtimeLeftBtn = document.getElementById('realtime-slider-left');
-        const realtimeRightBtn = document.getElementById('realtime-slider-right');
-
-        if (realtimeSlider && realtimeLeftBtn && realtimeRightBtn) {
-            let currentIndex = 0;
-            const moveStep = 2;
-            const cardWidth = 316;
-
-            realtimeRightBtn.onclick = async () => {
-                currentIndex += moveStep;
-                realtimeSlider.scrollTo({
-                    left: currentIndex * cardWidth,
-                    behavior: "smooth"
-                });
-
-                if (realtimeSlider.scrollLeft + realtimeSlider.clientWidth >= realtimeSlider.scrollWidth - 400 && realtimePageState.hasMore) {
-                    const newQuizzes = await loadRealtimeQuizzes();
-                    newQuizzes.forEach(quiz => {
-                        if (!realtimeSlider.querySelector(`[data-quiz-id="${quiz.id}"]`)) {
-                            const card = createQuizCard(quiz.id, quiz);
-                            card.dataset.quizId = quiz.id;
-                            realtimeSlider.appendChild(card);
-                        }
-                    });
-                }
-            };
-
-            realtimeLeftBtn.onclick = () => {
-                currentIndex = Math.max(0, currentIndex - moveStep);
-                realtimeSlider.scrollTo({
-                    left: currentIndex * cardWidth,
-                    behavior: "smooth"
-                });
-            };
-        }
-
-        const superSlider = document.getElementById("super-quiz-slider");
-        const superLeft = document.getElementById("super-slider-left");
-        const superRight = document.getElementById("super-slider-right");
-
-        if (superSlider && superLeft && superRight) {
-            let currentPage = 0;
-
-            const updateButtons = () => {
-                const pageCount = superSlider.querySelectorAll('.super-quiz-page').length;
-                
-                superLeft.disabled = currentPage === 0;
-                superRight.disabled = currentPage >= pageCount - 1;
-                
-                superLeft.style.cursor = superLeft.disabled ? 'not-allowed' : 'pointer';
-                superRight.style.cursor = superRight.disabled ? 'not-allowed' : 'pointer';
-                superLeft.style.opacity = superLeft.disabled ? '0.5' : '1';
-                superRight.style.opacity = superRight.disabled ? '0.5' : '1';
-            };
-
-            superRight.addEventListener('click', () => {
-                const pageCount = superSlider.querySelectorAll('.super-quiz-page').length;
-                if (currentPage < pageCount - 1) {
-                    currentPage++;
-                    superSlider.style.transform = `translateX(-${currentPage * 100}%)`;
-                    updateButtons();
-                }
-            });
-
-            superLeft.addEventListener('click', () => {
-                if (currentPage > 0) {
-                    currentPage--;
-                    superSlider.style.transform = `translateX(-${currentPage * 100}%)`;
-                    updateButtons();
-                }
-            });
-
-            const observer = new MutationObserver(() => {
-                currentPage = 0;
-                superSlider.style.transform = `translateX(0%)`;
+        superLeft.addEventListener('click', () => {
+            if (currentPage > 0) {
+                currentPage--;
+                superSlider.style.transform = `translateX(-${currentPage * 100}%)`;
                 updateButtons();
-            });
-            observer.observe(superSlider, { childList: true });
+            }
+        });
 
+        const observer = new MutationObserver(() => {
+            currentPage = 0;
+            superSlider.style.transform = `translateX(0%)`;
             updateButtons();
-        }
+        });
+        observer.observe(superSlider, { childList: true });
 
-        const popularSlider = document.getElementById("popular-quiz-slider");
-        const popularLeft = document.getElementById("popular-slider-left");
-        const popularRight = document.getElementById("popular-slider-right");
+        updateButtons();
+    }
 
-        if (popularSlider && popularLeft && popularRight) {
-            let currentPage = 0;
+    const popularSlider = document.getElementById("popular-quiz-slider");
+    const popularLeft = document.getElementById("popular-slider-left");
+    const popularRight = document.getElementById("popular-slider-right");
 
-            const updatePopularButtons = () => {
-                const pageCount = popularSlider.querySelectorAll('.super-quiz-page').length;
-                popularLeft.disabled = currentPage === 0;
-                popularRight.disabled = currentPage >= pageCount - 1;
-                popularLeft.style.opacity = popularLeft.disabled ? '0.5' : '1';
-                popularRight.style.opacity = popularRight.disabled ? '0.5' : '1';
-            };
+    if (popularSlider && popularLeft && popularRight) {
+        let currentPage = 0;
 
-            popularRight.addEventListener('click', () => {
-                const pageCount = popularSlider.querySelectorAll('.super-quiz-page').length;
-                if (currentPage < pageCount - 1) {
-                    currentPage++;
-                    popularSlider.style.transform = `translateX(-${currentPage * 100}%)`;
-                    updatePopularButtons();
-                }
-            });
+        const updatePopularButtons = () => {
+            const pageCount = popularSlider.querySelectorAll('.super-quiz-page').length;
+            popularLeft.disabled = currentPage === 0;
+            popularRight.disabled = currentPage >= pageCount - 1;
+            popularLeft.style.opacity = popularLeft.disabled ? '0.5' : '1';
+            popularRight.style.opacity = popularRight.disabled ? '0.5' : '1';
+        };
 
-            popularLeft.addEventListener('click', () => {
-                if (currentPage > 0) {
-                    currentPage--;
-                    popularSlider.style.transform = `translateX(-${currentPage * 100}%)`;
-                    updatePopularButtons();
-                }
-            });
+        popularRight.addEventListener('click', () => {
+            const pageCount = popularSlider.querySelectorAll('.super-quiz-page').length;
+            if (currentPage < pageCount - 1) {
+                currentPage++;
+                popularSlider.style.transform = `translateX(-${currentPage * 100}%)`;
+                updatePopularButtons();
+            }
+        });
 
-            updatePopularButtons();
-        }
+        popularLeft.addEventListener('click', () => {
+            if (currentPage > 0) {
+                currentPage--;
+                popularSlider.style.transform = `translateX(-${currentPage * 100}%)`;
+                updatePopularButtons();
+            }
+        });
+
+        updatePopularButtons();
     }
 
     const quizContentArea = document.getElementById('quiz-content-area');
@@ -1111,119 +1037,4 @@ document.addEventListener('DOMContentLoaded', async () => {
             e.target.classList.remove('text-slate-600', 'dark:text-slate-300', 'hover:bg-slate-100', 'dark:hover:bg-slate-700');
         });
     }
-
-    const loginView = document.getElementById('login-view');
-    const registerView = document.getElementById('register-view');
-    const showRegisterLink = document.getElementById('show-register-view-link');
-    const showLoginLink = document.getElementById('show-login-view-link');
-
-
-    // --- Tab Switching ---
-    if(showRegisterLink) {
-        showRegisterLink.addEventListener('click', (e) => {
-            e.preventDefault();
-            if(loginView) loginView.style.display = 'none';
-            if(registerView) registerView.style.display = 'block';
-        });
-    }
-    if(showLoginLink) {
-        showLoginLink.addEventListener('click', (e) => {
-            e.preventDefault();
-            if(registerView) registerView.style.display = 'none';
-            if(loginView) loginView.style.display = 'block';
-        });
-    }
-
-    function updateCommentFormVisibility(quizId, user) {
-        const quizCard = document.querySelector(`[data-quiz-id="${quizId}"]`);
-        if (!quizCard) return;
-        const container = quizCard.querySelector('.comment-form-container');
-        if (!container) return;
-        container.innerHTML = '';
-        if (user) {
-            container.appendChild(createCommentForm(quizId));
-        }
-    }
-
-    // --- Auth State Listener & UI Update ---
-    onAuthStateChanged(auth, async (user) => {
-        const loginButton = document.getElementById('login-modal-button');
-        const logoutButton = document.getElementById('logout-button');
-        const userProfileInfo = document.getElementById('user-profile-info');
-        const userNickname = document.getElementById('user-nickname');
-        const userPoints = document.getElementById('user-points');
-
-        const headerAvatar = document.getElementById("user-avatar");
-
-        const userRef = doc(db, "userProfiles", user.uid);
-
-        onSnapshot(userRef, (docSnap) => {
-
-         if (!docSnap.exists()) return;
-
-         const data = docSnap.data();
-
-         if (headerAvatar && data.photoURL) {
-         headerAvatar.src = data.photoURL;
-         }
-
-     });
-
-        if (user) {
-            if(loginButton) loginButton.classList.add('hidden');
-            if(logoutButton) logoutButton.classList.remove('hidden');
-            if(userProfileInfo) userProfileInfo.classList.remove('hidden');
-            if(userProfileInfo) userProfileInfo.classList.add('flex');
-
-            const userRef = doc(db, "userProfiles", user.uid);
-            onSnapshot(userRef, (doc) => {
-                if (doc.exists()) {
-                    const userData = doc.data();
-                    if(userNickname) userNickname.textContent = userData.displayName || "사용자";
-                    if(userPoints) userPoints.textContent = `${userData.points || 0} P`;
-                } else {
-                    if(userNickname) userNickname.textContent = user.displayName || "사용자";
-                    if(userPoints) userPoints.textContent = "0 P";
-                }
-            });
-            restoreUserVotes(user);
-            
-            restoreAllLikeStates(user.uid);
-
-        } else {
-            if(loginButton) loginButton.classList.remove('hidden');
-            if(logoutButton) logoutButton.classList.add('hidden');
-            if(userProfileInfo) userProfileInfo.classList.add('hidden');
-            if(userProfileInfo) userProfileInfo.classList.remove('flex');
-
-            document.querySelectorAll('.vote-option-btn').forEach(btn => {
-                btn.classList.remove('opacity-50', 'ring-2', 'ring-offset-2', 'dark:ring-offset-slate-800', 'ring-[#169976]', 'ring-red-400', 'ring-slate-400', 'ring-[#169976]');
-            });
-
-            restoreAllLikeStates(null);
-        }
-        const profileNameEl = document.getElementById("profile-name");
-        const profilePointsEl = document.getElementById("profile-points");
-        const profileImageEl = document.getElementById("profile-image");
-
-        if (user && profileNameEl && profilePointsEl) {
-
-            const userRef = doc(db, "userProfiles", user.uid);
-            const snap = await getDoc(userRef);
-
-            if (snap.exists()) {
-
-                const data = snap.data();
-
-                profileNameEl.textContent = data.displayName || "사용자";
-                profilePointsEl.textContent = (data.points || 0) + " 포인트";
-
-                if (profileImageEl && data.photoURL) {
-                    profileImageEl.src = data.photoURL;
-                }
-
-            }
-
-        }
-    });
 });

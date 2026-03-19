@@ -45,51 +45,29 @@
         <h2 class="text-2xl font-bold mb-6">
             '<span id="search-keyword"></span>'에 대한 검색 결과
         </h2>
-        <div id="search-results-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <!-- Search results will be loaded here -->
+
+        <!-- 필터 영역 -->
+        <div class="flex items-center gap-3 mb-6 flex-wrap">
+            <select id="filter-sort" class="border rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 dark:border-slate-600">
+                <option value="latest">최신순</option>
+                <option value="popular">인기순</option>
+            </select>
+            <select id="filter-category" class="border rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 dark:border-slate-600">
+                <option value="">전체 카테고리</option>
+            </select>
+            <span id="result-count" class="text-sm text-slate-500 ml-auto"></span>
         </div>
+
+        <!-- 리스트 영역 -->
+        <div id="search-results-container" class="space-y-2"></div>
+
+        <!-- 페이지네이션 -->
+        <div id="pagination" class="mt-6 flex justify-center items-center gap-2 text-sm"></div>
     </main>
     
-    <script type="module" src="quiz-main.js"></script>
-    <script type="module">
-        import { db } from './firebase-config.js';
-        import { collection, query, where, getDocs, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
-        import { createQuizCard } from './quiz-main.js';
-
-        const params = new URLSearchParams(window.location.search);
-        const keyword = params.get('q');
-        
-        const searchKeywordEl = document.getElementById('search-keyword');
-        const searchInput = document.getElementById('search-input');
-        const resultsContainer = document.getElementById('search-results-container');
-
-        if (keyword) {
-            searchKeywordEl.textContent = keyword;
-            searchInput.value = keyword;
-            performSearch(keyword);
-        }
-
-        async function performSearch(searchTerm) {
-            if (!searchTerm) return;
-            resultsContainer.innerHTML = '<p>검색 중...</p>';
-
-            const questionsRef = collection(db, 'questions');
-            const q = query(questionsRef, where('title', '>=', searchTerm), where('title', '<=', searchTerm + '\uf8ff'));
-            
-            const snapshot = await getDocs(q);
-            
-            resultsContainer.innerHTML = '';
-            if (snapshot.empty) {
-                resultsContainer.innerHTML = '<p>검색 결과가 없습니다.</p>';
-                return;
-            }
-
-            snapshot.forEach(doc => {
-                const quiz = { id: doc.id, ...doc.data() };
-                const card = createQuizCard(quiz.id, quiz);
-                resultsContainer.appendChild(card);
-            });
-        }
-    </script>
+    <script type="module" src="firebase-config.js" defer></script>
+    <script type="module" src="auth.js" defer></script>
+    <script type="module" src="header.js" defer></script>
+    <script type="module" src="search.js"></script>
 </body>
 </html>

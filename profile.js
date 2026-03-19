@@ -232,9 +232,23 @@ document.getElementById('withdraw-link')?.addEventListener('click', async (e) =>
 });
 
 // 초기화
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
     if (user) {
         initTabs();
+        // 프로필 정보 로드
+        const profileNameEl = document.getElementById('profile-name');
+        const profilePointsEl = document.getElementById('profile-points');
+        const profileImageEl = document.getElementById('profile-image');
+        if (profileNameEl || profilePointsEl || profileImageEl) {
+            const userRef = doc(db, 'userProfiles', user.uid);
+            const snap = await getDoc(userRef);
+            if (snap.exists()) {
+                const data = snap.data();
+                if (profileNameEl) profileNameEl.textContent = data.displayName || '사용자';
+                if (profilePointsEl) profilePointsEl.textContent = data.points || 0;
+                if (profileImageEl && data.photoURL) profileImageEl.src = data.photoURL;
+            }
+        }
     } else {
         // 프로필 카드 영역을 로그인 필요 메시지로 교체
         const profileCard = document.querySelector('.bg-white.dark\\:bg-slate-800.rounded-xl.shadow.p-6.mb-6');
