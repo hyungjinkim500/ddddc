@@ -1,5 +1,5 @@
 import { db, auth } from './firebase-config.js';
-import { collection, query, orderBy, limit, startAfter, getDocs, where } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { collection, query, orderBy, limit, startAfter, getDocs, where, doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { handleVote } from './vote-system.js';
 import { handleCardLike } from './modules/likes.js';
@@ -80,6 +80,41 @@ function getVotePercent(data) {
     });
 }
 
+function updateCardVoteUI(card, data, uid, selectedOptionId = null) {
+    const options = getVotePercent(data);
+    if (options.length < 2) return;
+
+    // 선택한 옵션 ID 가져오기 (인자로 없으면 data.vote 기반으로 추론 불가 → 그냥 퍼센트만 업데이트)
+    const barA = card.querySelector('.vote-bar-a');
+    const barB = card.querySelector('.vote-bar-b');
+    const btnA = card.querySelectorAll('.vote-option-btn')[0];
+    const btnB = card.querySelectorAll('.vote-option-btn')[1];
+
+    if (barA) barA.style.width = options[0].percent + '%';
+    if (barA) barA.textContent = options[0].percent + '%';
+    if (barB) barB.textContent = options[1].percent + '%';
+
+    // 버튼 강조 항상 초기화 먼저
+    [btnA, btnB].forEach(btn => {
+        if (!btn) return;
+        btn.classList.remove('opacity-50', 'ring-[3px]', 'ring-inset', 'ring-[#169976]', 'ring-orange-400');
+    });
+
+    // 투표한 버튼 강조 (내부 테두리 방식)
+    if (selectedOptionId) {
+        [btnA, btnB].forEach(btn => {
+            if (!btn) return;
+            if (btn.dataset.optionId === selectedOptionId) {
+                btn.classList.add('ring-[3px]', 'ring-inset',
+                    btn.classList.contains('border-orange-400') ? 'ring-orange-400' : 'ring-[#169976]'
+                );
+            } else {
+                btn.classList.add('opacity-50');
+            }
+        });
+    }
+}
+
 function createFeedCard(id, data) {
     const card = document.createElement('div');
     card.className = 'bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden';
@@ -98,13 +133,13 @@ function createFeedCard(id, data) {
         voteHTML = `
         <div class="px-4 pb-1 pt-2">
             <!-- 결과 바 -->
-            <div class="relative h-10 rounded-xl overflow-hidden flex mb-3" style="background:#e2e8f0;">
-                <div class="h-full flex items-center justify-start pl-3 font-bold text-white text-sm transition-all duration-500"
-                    style="width:${optA.percent}%; background:#169976; min-width:30px;">
+            <div class="relative h-5 rounded-lg overflow-hidden flex mb-3" style="background:#e2e8f0;">
+                <div class="vote-bar-a h-full flex items-center justify-start pl-2 font-bold text-slate-700 text-xs transition-all duration-500"
+                    style="width:${optA.percent}%; background:rgba(22, 153, 118, 0.3); min-width:20px;">
                     ${optA.percent}%
                 </div>
-                <div class="h-full flex items-center justify-end pr-3 font-bold text-white text-sm transition-all duration-500 flex-1"
-                    style="background:#f97316;">
+                <div class="vote-bar-b h-full flex items-center justify-end pr-2 font-bold text-slate-700 text-xs transition-all duration-500 flex-1"
+                    style="background:rgba(249, 115, 22, 0.3);">
                     ${optB.percent}%
                 </div>
             </div>
@@ -175,12 +210,31 @@ function createFeedCard(id, data) {
     card.querySelectorAll('.vote-option-btn').forEach(btn => {
         btn.addEventListener('click', async () => {
             const user = auth.currentUser;
-            if (!user) { alert('로그인이 필요합니다.'); return; }
+            if (!user) {
+                document.getElementById('login-modal-button')?.click();
+                return;
+            }
             const optionId = btn.dataset.optionId;
             const success = await handleVote(id, optionId);
-            if (success) await updatePopularityScore(id);
+            if (success) {
+                await updatePopularityScore(id);
+                const snap = await getDoc(doc(db, 'questions', id));
+                // 취소(같은 옵션 재클릭)인지 확인
+                const voteSnap = await getDoc(doc(db, `questions/${id}/userVotes/${user.uid}`));
+                const currentSelected = voteSnap.exists() ? voteSnap.data().selectedOption : null;
+                if (snap.exists()) updateCardVoteUI(card, snap.data(), user.uid, currentSelected);
+            }
         });
     });
+
+    // 로드 시 투표 상태 복원
+    if (auth.currentUser) {
+        getDoc(doc(db, `questions/${id}/userVotes/${auth.currentUser.uid}`)).then(voteSnap => {
+            if (voteSnap.exists()) {
+                updateCardVoteUI(card, data, auth.currentUser.uid, voteSnap.data().selectedOption);
+            }
+        });
+    }
 
     return card;
 }
@@ -247,7 +301,7 @@ function initInfiniteScroll() {
 
 function initAuthUI() {
     onAuthStateChanged(auth, (user) => {
-        const loginBtn = document.getElementById('header-login-btn');
+        const loginBtn = document.getElementById('login-modal-button');
         const userArea = document.getElementById('header-user-area');
         const avatar = document.getElementById('header-avatar');
         if (user) {
@@ -274,4 +328,38 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('header-avatar')?.addEventListener('click', () => {
         window.location.href = 'mypage.html';
     });
+
+    // --- 숨쉬는 헤더 기능 (Hide-on-Scroll) ---
+    const feedContainer = document.getElementById('feed-container');
+    const feedTabs = document.getElementById('feed-tabs');
+    
+    if (feedContainer && feedTabs) {
+        let lastScrollTop = 0;
+        const delta = 5; // 최소 스크롤 인식 거리
+
+        feedContainer.addEventListener('scroll', () => {
+            const st = feedContainer.scrollTop;
+
+            // 스크롤 위치가 최상단 근처면 탭 무조건 보이기
+            if (st < delta) {
+                feedTabs.classList.remove('hidden-tab');
+                feedTabs.classList.add('visible-tab');
+                lastScrollTop = st;
+                return;
+            }
+
+            // 아래로 스크롤 중이면 탭 숨기기
+            if (st > lastScrollTop && st > feedTabs.offsetHeight) {
+                feedTabs.classList.add('hidden-tab');
+                feedTabs.classList.remove('visible-tab');
+            } 
+            // 위로 스크롤 중이면 탭 보이기
+            else if (st < lastScrollTop) {
+                feedTabs.classList.remove('hidden-tab');
+                feedTabs.classList.add('visible-tab');
+            }
+
+            lastScrollTop = st;
+        });
+    }
 });

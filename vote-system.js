@@ -62,7 +62,7 @@ export async function handleVote(quizId, optionId) {
                     updatedVotes[previousOptionId] = Math.max(0, (updatedVotes[previousOptionId] || 0) - 1);
                 }
                 updatedVotes[clickedOptionId] = (updatedVotes[clickedOptionId] || 0) + 1;
-                transaction.set(userVoteRef, { selectedOption: clickedOptionId });
+                transaction.set(userVoteRef, { selectedOption: clickedOptionId }, { merge: true });
 
                 if (entryFee > 0 && !participants.includes(user.uid)) {
                     if (userPoints < entryFee) {
