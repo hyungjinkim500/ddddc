@@ -40,12 +40,16 @@ profileUpload.addEventListener("change", async (event) => {
 
 // 탭 전환
 function initTabs() {
-    document.querySelectorAll('.sidebar-tab').forEach(tab => {
+    document.querySelectorAll('.my-tab-btn').forEach(tab => {
         tab.addEventListener('click', (e) => {
             e.preventDefault();
+            document.querySelectorAll('.my-tab-btn').forEach(b => b.classList.remove('active'));
+            tab.classList.add('active');
             showTab(tab.dataset.tab);
         });
     });
+    // 첫 탭 자동 로드
+    showTab('my-posts');
 }
 
 function showTab(tabName) {
@@ -211,7 +215,7 @@ document.getElementById('logout-link')?.addEventListener('click', async (e) => {
     e.preventDefault();
     const { signOut } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js');
     await signOut(auth);
-    window.location.href = 'quiz.html';
+    window.location.href = 'index.html';
 });
 
 // 회원 탈퇴
@@ -225,7 +229,7 @@ document.getElementById('withdraw-link')?.addEventListener('click', async (e) =>
         await updateDoc(doc(db, 'userProfiles', user.uid), { deleted: true, deletedAt: new Date() });
         await user.delete();
         alert('탈퇴가 완료되었습니다.');
-        window.location.href = 'quiz.html';
+        window.location.href = 'index.html';
     } catch (error) {
         alert('탈퇴 처리 중 오류가 발생했습니다. 재로그인 후 다시 시도해주세요.');
     }
@@ -250,23 +254,30 @@ onAuthStateChanged(auth, async (user) => {
             }
         }
     } else {
-        // 프로필 카드 영역을 로그인 필요 메시지로 교체
-        const profileCard = document.querySelector('.bg-white.dark\\:bg-slate-800.rounded-xl.shadow.p-6.mb-6');
-        if (profileCard) {
-            profileCard.innerHTML = `
-                <div class="text-center py-4">
-                    <p class="text-black-500 text-xl mb-80">마이페이지 조회는 로그인이 필요합니다.</p>
-                    <button onclick="document.getElementById('login-modal-button').click()" 
-                        class="px-6 py-2 bg-[#169976] text-white rounded-lg font-semibold hover:opacity-90 transition">
-                        로그인
-                    </button>
+        // 헤더 버튼을 로그인으로 변경 (index.html 스타일)
+        const logoutBtn = document.getElementById('logout-link');
+        if (logoutBtn) {
+            logoutBtn.textContent = '로그인';
+            logoutBtn.className = 'text-sm font-bold px-3 py-1.5 rounded-lg bg-[#169976] text-white cursor-pointer';
+            logoutBtn.onclick = (e) => {
+                e.preventDefault();
+                const loginModal = document.getElementById('login-modal');
+                if(loginModal) loginModal.classList.add('show');
+            };
+        }
+
+        // content-area guest 모드
+        const contentArea = document.getElementById('content-area');
+        if (contentArea) contentArea.classList.add('guest-mode');
+
+        // 프로필 카드 + 탭 전체를 로그인 필요 메시지로 교체
+        if (contentArea) {
+            contentArea.innerHTML = `
+                <div class="flex flex-col items-center justify-center py-16 px-4">
+                    <i class="fas fa-user-circle text-slate-300 text-6xl mb-4"></i>
+                    <p class="text-slate-500 text-base">로그인이 필요합니다.</p>
                 </div>`;
         }
-        // 탭 콘텐츠 영역도 숨김
-        const contentCard = document.querySelector('.bg-white.dark\\:bg-slate-800.rounded-xl.shadow.p-6.min-h-64');
-        if (contentCard) contentCard.classList.add('hidden');
-        // 사이드바도 숨김
-        const sidebar = document.querySelector('.col-span-3');
-        if (sidebar) sidebar.classList.add('hidden');
+
     }
 });
