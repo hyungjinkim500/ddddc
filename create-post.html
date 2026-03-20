@@ -3,188 +3,217 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create Post | 픽스</title>
+    <title>픽스 | 글쓰기</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="tailwind.config.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-   <style>
-       @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Pretendard:wght@400;600;700&display=swap');
-       
-       :root {
-           --pm-navy: #0e1117;
-           --pm-teal: #00d395; 
-           --pm-teal-dark: #00a876;
-           --bg-primary-light: #f8f7f4;
-           --bg-primary-dark: #020617;
-           --text-primary-light: #1e293b;
-           --text-primary-dark: #e2e8f0;
-           --card-bg-light: white;
-           --card-bg-dark: #0f172a;
-           --border-light: #e2e8f0;
-           --border-dark: #1e293b;
-       }
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700&display=swap');
+        body { font-family: 'Pretendard', sans-serif; background-color: #f1f5f9; }
+        html.dark body { background-color: #0f172a; }
+        #app { max-width: 480px; margin: 0 auto; min-height: 100vh; background: white; display: flex; flex-direction: column; }
+        html.dark #app { background: #1e293b; }
+        #top-header { position: sticky; top: 0; z-index: 50; background: white; border-bottom: 1px solid #e2e8f0; }
+        html.dark #top-header { background: #1e293b; border-color: #334155; }
+        #content-area { flex: 1; overflow-y: auto; padding-bottom: 40px; }
 
-       body {
-           font-family: 'Pretendard', sans-serif;
-           letter-spacing: -0.025em;
-           word-break: keep-all;
-           background-color: var(--bg-primary-light);
-           color: var(--text-primary-light);
-       }
-       html.dark body {
-           background-color: var(--bg-primary-dark);
-           color: var(--text-primary-dark);
-       }
-       
-       .btn-primary { background-color: var(--pm-teal); color: var(--pm-navy); }
-   </style>
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(14,17,23,0.6); display: flex; align-items: center; justify-content: center; z-index: 100; opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0s linear 0.3s; }
+        .modal-overlay.show { opacity: 1; visibility: visible; transition: opacity 0.3s ease; }
+        .modal-content { background: white; padding: 1.5rem; border-radius: 1rem; width: 90%; max-width: 400px; position: relative; max-height: 80vh; overflow-y: auto; }
+        html.dark .modal-content { background: #1e293b; color: white; }
+    </style>
 </head>
-<body class="transition-colors duration-300">
+<body>
+<div id="app">
 
-<header class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
-    <div class="container mx-auto px-4 py-4 flex justify-between items-center">
-        <a href="index.html" class="text-2xl font-bold text-teal">픽스</a>
-        <div class="flex items-center gap-4">
-            <button id="theme-toggle" class="text-slate-400 hover:text-teal dark:text-slate-500 dark:hover:text-teal transition-colors duration-300 px-2"><i class="fa-solid fa-moon text-lg"></i></button>
-            <a href="quiz.html" class="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-teal">퀴즈 목록</a>
+    <!-- 상단 헤더 -->
+    <header id="top-header">
+        <div class="flex items-center justify-between px-4 py-3">
+            <button onclick="history.back()" class="text-slate-500 dark:text-slate-400">
+                <i class="fas fa-times text-lg"></i>
+            </button>
+            <span class="font-bold text-slate-800 dark:text-white text-sm">새 게시물</span>
+            <button type="submit" form="create-quiz-form"
+                class="text-sm font-bold text-white bg-[#169976] px-4 py-1.5 rounded-lg">
+                등록
+            </button>
+        </div>
+    </header>
+
+    <main id="content-area">
+        <form id="create-quiz-form" novalidate class="divide-y divide-slate-100 dark:divide-slate-700">
+
+            <!-- 게시물 이용안내 버튼 -->
+            <div class="px-4 py-3">
+                <button type="button" id="guide-btn"
+                    class="flex items-center gap-2 w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-700 text-sm text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600">
+                    <i class="fas fa-info-circle text-[#169976]"></i>
+                    <span>게시물 이용안내</span>
+                    <i class="fas fa-chevron-right text-slate-400 ml-auto text-xs"></i>
+                </button>
+            </div>
+
+            <!-- Pick 유형 -->
+            <div class="px-4 py-4 space-y-2">
+                <p class="text-xs font-bold text-slate-500 uppercase tracking-wide">픽 유형 (선택)</p>
+                <div class="flex gap-3">
+                    <label class="flex-1 flex items-center gap-2 px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 cursor-pointer">
+                        <input type="radio" name="quiz-type" value="quiz" class="text-[#169976]">
+                        <span class="text-sm font-semibold">VS Pick</span>
+                    </label>
+                    <label class="flex-1 flex items-center gap-2 px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 cursor-pointer">
+                        <input type="radio" name="quiz-type" value="superquiz" class="text-[#169976]">
+                        <span class="text-sm font-semibold">Topic</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- 카테고리 -->
+            <div class="px-4 py-4">
+                <p class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">카테고리</p>
+                <select id="quiz-category" name="category"
+                    class="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-[#169976]">
+                    <option value="">카테고리 선택</option>
+                    <option value="international">국제</option>
+                    <option value="game">게임</option>
+                    <option value="economy">경제/금융</option>
+                    <option value="realestate">부동산</option>
+                    <option value="sports">스포츠</option>
+                    <option value="entertainment">연예</option>
+                    <option value="society">사회</option>
+                    <option value="culture">문화</option>
+                    <option value="tech">과학/기술</option>
+                    <option value="free">잡담</option>
+                </select>
+            </div>
+
+            <!-- 제목 -->
+            <div class="px-4 py-4">
+                <p class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">제목</p>
+                <input type="text" id="quiz-title" name="title" required
+                    placeholder="제목을 입력하세요"
+                    maxlength="100"
+                    class="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-[#169976]">
+            </div>
+
+            <!-- 본문 -->
+            <div class="px-4 py-4">
+                <div class="flex justify-between mb-2">
+                    <p class="text-xs font-bold text-slate-500 uppercase tracking-wide">본문 텍스트 (선택 사항)</p>
+                    <span id="description-counter" class="text-xs text-slate-400">0 / 2000</span>
+                </div>
+                <textarea id="quiz-description" name="description" rows="3"
+                    placeholder="내용을 입력하세요"
+                    maxlength="2000"
+                    class="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-[#169976] resize-none"></textarea>
+            </div>
+
+            <!-- 이미지 업로드 -->
+            <div class="px-4 py-4 space-y-2">
+                <p class="text-xs font-bold text-slate-500 uppercase tracking-wide">사진 업로드 (최대 5장)</p>
+                <label class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 cursor-pointer text-sm text-slate-500">
+                    <i class="fas fa-image text-[#169976]"></i>
+                    <span>사진 선택</span>
+                    <input type="file" id="image-input" accept="image/*" multiple class="hidden">
+                </label>
+                <div id="image-preview" class="grid grid-cols-3 gap-2"></div>
+            </div>
+
+            <!-- 픽 설정 (PIX 선택 시만 표시) -->
+            <div id="poll-settings" class="hidden px-4 py-4 space-y-4">
+                <p class="text-xs font-bold text-slate-500 uppercase tracking-wide">픽 설정</p>
+
+                <!-- VS Pick 테마 -->
+                <div id="pick-theme-container" class="hidden">
+                    <p class="text-xs text-slate-500 mb-1">VS Pick 테마</p>
+                    <select id="pick-theme-select" name="theme"
+                        class="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-[#169976]">
+                        <option value="">테마 선택</option>
+                        <option value="yesno">그렇다 / 아니다</option>
+                        <option value="updown">Up / Down</option>
+                        <option value="winlose">승 / 패</option>
+                        <option value="onetwo">1번 / 2번</option>
+                        <option value="yyyn">ㅇㅇ / ㄴㄴ</option>
+                        <option value="custom">커스텀</option>
+                    </select>
+                </div>
+
+                <!-- 선택지 -->
+                <div id="options-container" class="hidden">
+                    <p class="text-xs text-slate-500 mb-1">선택지</p>
+                    <div id="options-list" class="space-y-2"></div>
+                    <button type="button" id="add-option-btn"
+                        class="hidden mt-2 text-sm font-semibold text-[#169976]">+ 선택지 추가</button>
+                </div>
+
+                <!-- 참가자 제한 -->
+                <div>
+                    <p class="text-xs text-slate-500 mb-1">참가자 제한 (10~500)</p>
+                    <input type="number" id="participant-limit" name="participantLimit"
+                        placeholder="예: 100" min="10" max="500"
+                        class="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-[#169976]">
+                </div>
+
+                <!-- 종료 기간 -->
+                <div>
+                    <p class="text-xs text-slate-500 mb-1">종료 기간</p>
+                    <select id="duration-days" name="durationDays"
+                        class="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-[#169976]">
+                        <option value="1">1일</option>
+                        <option value="2">2일</option>
+                        <option value="3">3일</option>
+                        <option value="4">4일</option>
+                        <option value="5">5일</option>
+                        <option value="6">6일</option>
+                        <option value="7">7일</option>
+                    </select>
+                </div>
+
+                <!-- 무투표 댓글 허용 -->
+                <label class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 cursor-pointer">
+                    <input type="checkbox" id="allow-no-vote-comment" class="w-4 h-4 text-[#169976] rounded">
+                    <div>
+                        <p class="text-sm font-semibold text-slate-700 dark:text-slate-200">무투표 댓글 허용</p>
+                        <p class="text-xs text-slate-400">체크 시 투표 안 해도 댓글 작성 가능</p>
+                    </div>
+                </label>
+            </div>
+
+        </form>
+    </main>
+</div>
+
+<!-- 게시물 이용안내 모달 -->
+<div id="guide-modal" class="modal-overlay">
+    <div class="modal-content">
+        <button onclick="document.getElementById('guide-modal').classList.remove('show')"
+            class="absolute top-3 right-4 text-slate-400 text-xl">&times;</button>
+        <h2 class="text-lg font-bold mb-3">게시물 이용안내</h2>
+        <div class="text-sm text-slate-600 dark:text-slate-300 space-y-2">
+            <p>• 허위사실, 비방, 욕설이 포함된 게시물은 삭제될 수 있습니다.</p>
+            <p>• 저작권 침해 콘텐츠는 게시할 수 없습니다.</p>
+            <p>• 도배, 광고성 게시물은 제재 대상입니다.</p>
+            <p>• 커뮤니티 규정을 위반할 경우 계정이 정지될 수 있습니다.</p>
+            <p class="text-xs text-slate-400 pt-2">※ 이용안내 내용은 추후 업데이트될 수 있습니다.</p>
         </div>
     </div>
-</header>
-
-<main class="container mx-auto px-4 sm:px-6 py-8 md:py-12">
-    <div class="max-w-2xl mx-auto bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-md">
-        <h1 class="text-3xl font-bold text-slate-900 dark:text-white mb-6">VS Pick 만들기</h1>
-        <form id="create-quiz-form" novalidate class="space-y-6">
-            <div>
-              <label class="block text-sm font-semibold mb-2 text-slate-700 dark:text-slate-200">Pick 유형</label>
-              <div class="flex gap-4">
-                <label class="flex items-center gap-2">
-                  <input type="radio" name="quiz-type" value="quiz">
-                  <span>VS Pick</span>
-                </label>
-                <label class="flex items-center gap-2">
-                  <input type="radio" name="quiz-type" value="superquiz">
-                  <span>Topic</span>
-                </label>
-              </div>
-            </div>
-            <div>
-              <label for="quiz-category" class="block text-sm font-semibold mb-2 text-slate-700 dark:text-slate-200">카테고리</label>
-              <select id="quiz-category" name="category"
-                class="w-full px-4 py-3 rounded-md bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-teal transition">
-                <option value="">카테고리 선택</option>
-                <option value="international">국제</option>
-                <option value="game">게임</option>
-                <option value="economy">경제/금융</option>
-                <option value="realestate">부동산</option>
-                <option value="sports">스포츠</option>
-                <option value="entertainment">연예</option>
-                <option value="society">사회</option>
-                <option value="culture">문화</option>
-                <option value="tech">과학/기술</option>
-                <option value="free">잡담</option>
-              </select>
-            </div>
-            <div id="poll-settings" style="display:none;" class="space-y-4 p-4 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-              <div>
-                <label for="participant-limit" class="block text-sm font-semibold mb-1">참가자 제한</label>
-                <input type="number" id="participant-limit" name="participantLimit" placeholder="최소 10, 최대 500" min="10" max="500" class="w-full px-4 py-3 rounded-md bg-slate-100 dark:bg-slate-700">
-              </div>
-              <div>
-                <label for="duration-days" class="block text-sm font-semibold mb-1">종료 기간</label>
-                <select id="duration-days" name="durationDays" class="w-full px-4 py-3 rounded-md bg-slate-100 dark:bg-slate-700">
-                  <option value="1">1일</option>
-                  <option value="2">2일</option>
-                  <option value="3">3일</option>
-                  <option value="4">4일</option>
-                  <option value="5">5일</option>
-                  <option value="6">6일</option>
-                  <option value="7">7일</option>
-                </select>
-              </div>
-            </div>
-            <div>
-                <label for="quiz-title" class="block text-sm font-semibold mb-2 text-slate-700 dark:text-slate-200">Pick 제목</label>
-                <input type="text" id="quiz-title" name="title" required placeholder="예: 2024년 미국 대선 승자는?" class="w-full px-4 py-3 rounded-md bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-teal transition" maxlength="100">
-            </div>
-            <div>
-                <label for="quiz-description" class="flex justify-between text-sm font-semibold mb-2 text-slate-700 dark:text-slate-200">
-                  <span>설명 (선택)</span>
-                  <span id="description-counter" class="text-xs text-slate-400">0 / 2000</span>
-                </label>
-                <textarea id="quiz-description" name="description" rows="3" placeholder="Pick에 대한 추가적인 정보를 입력하세요。" maxlength="2000"
-                  class="w-full px-4 py-3 rounded-md bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-teal transition"></textarea>
-            </div>
-            <div id="image-upload-section" class="space-y-3">
-              <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200">
-                사진 업로드 (최대 5장, 각 10MB)
-              </label>
-            
-              <input 
-                type="file"
-                id="image-input"
-                accept="image/*"
-                multiple
-                class="block w-full text-sm text-slate-600"
-              />
-            
-              <div id="image-preview"
-                class="grid grid-cols-3 gap-3">
-              </div>
-            </div>
-            <div id="pick-theme-container" style="display:none;" class="space-y-2">
-              <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200">
-                VS Pick 테마
-              </label>
-            
-              <select id="pick-theme-select"
-              name="theme" class="w-full px-4 py-3 rounded-md bg-slate-100 dark:bg-slate-700">
-            
-                <option value="">테마 선택</option>
-            
-                <option value="yesno">그렇다 / 아니다</option>
-                <option value="updown">Up / Down</option>
-                <option value="winlose">승 / 패</option>
-                <option value="onetwo">1번 / 2번</option>
-                <option value="yyyn">ㅇㅇ / ㄴㄴ</option>
-                <option value="custom">커스텀</option>
-            
-              </select>
-            </div>
-            <div id="options-container" style="display:none;">
-                <label class="block text-sm font-semibold mb-2 text-slate-700 dark:text-slate-200">선택지</label>
-                <div id="options-list" class="space-y-3"></div>
-            </div>
-            <button type="button" id="add-option-btn" class="text-sm font-semibold text-teal hover:underline" style="display:none;">+ 선택지 추가</button>
-            
-            <div class="pt-4">
-                <button type="submit" class="w-full btn-primary px-6 py-4 rounded-lg font-bold text-lg transition-all hover:opacity-90">Pick 생성하기</button>
-            </div>
-        </form>
-    </div>
-</main>
+</div>
 
 <script type="module" src="firebase-config.js"></script>
 <script type="module" src="create-post.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // Basic theme toggle for consistency
-        document.getElementById('theme-toggle').addEventListener('click', () => {
-            const html = document.documentElement;
-            if (html.classList.contains('dark')) {
-                html.classList.remove('dark');
-                html.classList.add('light');
-                localStorage.setItem('theme', 'light');
-            } else {
-                html.classList.remove('light');
-                html.classList.add('dark');
-                localStorage.setItem('theme', 'dark');
-            }
-        });
         const savedTheme = localStorage.getItem('theme') || 'light';
         document.documentElement.classList.add(savedTheme);
+
+        document.getElementById('guide-btn')?.addEventListener('click', () => {
+            document.getElementById('guide-modal').classList.add('show');
+        });
+        document.getElementById('guide-modal')?.addEventListener('click', (e) => {
+            if (e.target === document.getElementById('guide-modal'))
+                document.getElementById('guide-modal').classList.remove('show');
+        });
     });
 </script>
-
 </body>
 </html>

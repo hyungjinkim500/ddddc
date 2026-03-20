@@ -104,36 +104,33 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   const setupOptions = () => {
-    if (!optionsContainer) {
-      console.error("Options container not found");
-      return;
-    }
+    if (!optionsContainer) return;
     optionsContainer.innerHTML = "";
     const selectedRadio = form.querySelector('input[name="quiz-type"]:checked');
     const optionsWrapper = document.getElementById('options-container');
 
     if (!selectedRadio) {
-      pollSettings.style.display = "none";
-      optionsWrapper.style.display = "none";
-      addOptionBtn.style.display = "none";
-      pickThemeContainer.style.display = "none";
+      pollSettings.classList.add('hidden');
+      optionsWrapper.classList.add('hidden');
+      addOptionBtn.classList.add('hidden');
+      pickThemeContainer.classList.add('hidden');
       return;
     }
 
-    pollSettings.style.display = "block";
-    optionsWrapper.style.display = "block";
+    pollSettings.classList.remove('hidden');
+    optionsWrapper.classList.remove('hidden');
 
     const selectedType = selectedRadio.value;
 
     if (selectedType === "quiz") {
-      pickThemeContainer.style.display = "block";
-      addOptionBtn.style.display = "none";
+      pickThemeContainer.classList.remove('hidden');
+      addOptionBtn.classList.add('hidden');
     } else if (selectedType === "superquiz") {
-      pickThemeContainer.style.display = "none";
+      pickThemeContainer.classList.add('hidden');
       optionsContainer.appendChild(createOptionElement(true));
       optionsContainer.appendChild(createOptionElement(true));
       optionsContainer.appendChild(createOptionElement(true));
-      addOptionBtn.style.display = "block";
+      addOptionBtn.classList.remove('hidden');
     }
   };
   
@@ -269,6 +266,7 @@ document.addEventListener("DOMContentLoaded", () => {
         commentsCount: 0,
         theme: data.theme,
         imageUrls: [],
+        allowNoVoteComment: document.getElementById('allow-no-vote-comment')?.checked || false,
       };
 
       if (quizType) {
@@ -297,7 +295,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       }
 
-      window.location.href = "quiz.html";
+      window.location.href = "index.html";
     } catch (error) { 
       console.error("Error adding document: ", error);
       alert("게시물 생성 중 오류가 발생했습니다. 다시 시도해 주세요.");

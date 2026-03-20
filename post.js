@@ -304,6 +304,23 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (commentSubmit) {
         commentSubmit.addEventListener('click', async () => {
+            const user = auth.currentUser;
+            if (!user) { document.getElementById('login-modal-button')?.click(); return; }
+
+            // PIX 게시글이고 무투표댓글 비허용 시 투표 여부 체크
+            const postSnap2 = await getDoc(doc(db, 'questions', postId));
+            if (postSnap2.exists()) {
+                const postData = postSnap2.data();
+                const isPix = postData.type === 'quiz' || postData.type === 'superquiz';
+                const allowNoVote = postData.allowNoVoteComment === true;
+                if (isPix && !allowNoVote) {
+                    const voteSnap = await getDoc(doc(db, `questions/${postId}/userVotes/${user.uid}`));
+                    if (!voteSnap.exists()) {
+                        alert('이 게시글은 투표 후 댓글을 작성할 수 있습니다.');
+                        return;
+                    }
+                }
+            }
             await submitComment(postId, postTitle);
         });
     }

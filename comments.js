@@ -25,8 +25,13 @@ export async function loadComments(postId, postTitle) {
             deleteButtonHTML = `<button class="comment-delete text-xs text-red-500" data-comment-id="${docSnap.id}">삭제</button>`;
         }
 
+        // 투표 옵션에 따른 배경색
+        let bgClass = 'bg-white dark:bg-slate-800';
+        if (data.votedOption === 'option_1') bgClass = 'bg-green-50 dark:bg-green-900/20 border-green-200';
+        else if (data.votedOption === 'option_2') bgClass = 'bg-orange-50 dark:bg-orange-900/20 border-orange-200';
+
         const commentEl = document.createElement('div');
-        commentEl.className = 'border rounded-lg p-3 text-sm';
+        commentEl.className = `border rounded-lg p-3 text-sm ${bgClass}`;
         commentEl.innerHTML = `
             <div class="flex justify-between items-start">
                 <div>
@@ -133,11 +138,20 @@ export async function submitComment(postId, postTitle) {
     const text = commentInput.value.trim();
     if (!text || text.length > 200) return;
 
+    // 유저가 어떤 옵션에 투표했는지 확인
+    let votedOption = null;
+    try {
+        const { doc: fsDoc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+        const voteSnap = await getDoc(fsDoc(db, `questions/${postId}/userVotes/${user.uid}`));
+        if (voteSnap.exists()) votedOption = voteSnap.data().selectedOption;
+    } catch (e) {}
+
     const commentData = {
         text,
         uid: user.uid,
         nickname: user.displayName || '익명',
-        createdAt: serverTimestamp()
+        createdAt: serverTimestamp(),
+        ...(votedOption && { votedOption })
     };
 
     // questions/{id}/comments 에 저장
