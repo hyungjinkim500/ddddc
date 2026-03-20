@@ -333,15 +333,32 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     onAuthStateChanged(auth, async (user) => {
-        const loginBtn = document.getElementById('login-modal-button');
-        const userArea = document.getElementById('header-user-area');
+        const headerLoginBtn = document.getElementById('header-login-btn');
+        const headerUserArea = document.getElementById('header-user-area');
+        const headerAvatar = document.getElementById('header-avatar');
+
         if (user) {
-            if (loginBtn) loginBtn.classList.add('hidden');
-            if (userArea) { userArea.classList.remove('hidden'); userArea.classList.add('flex'); }
+            if (headerLoginBtn) headerLoginBtn.classList.add('hidden');
+            if (headerUserArea) { headerUserArea.classList.remove('hidden'); headerUserArea.classList.add('flex'); }
+            // 프사 로드
+            getDoc(doc(db, 'userProfiles', user.uid)).then(snap => {
+                if (snap.exists() && snap.data().photoURL && headerAvatar) {
+                    headerAvatar.src = snap.data().photoURL;
+                }
+            });
+            if (headerAvatar) {
+                headerAvatar.onclick = () => window.location.href = 'mypage.html';
+            }
             await restoreUserVotes(user);
         } else {
-            if (loginBtn) loginBtn.classList.remove('hidden');
-            if (userArea) { userArea.classList.add('hidden'); userArea.classList.remove('flex'); }
+            if (headerLoginBtn) {
+                headerLoginBtn.classList.remove('hidden');
+                headerLoginBtn.onclick = () => {
+                    const modal = document.getElementById('login-modal');
+                    if (modal) modal.classList.add('show');
+                };
+            }
+            if (headerUserArea) { headerUserArea.classList.add('hidden'); headerUserArea.classList.remove('flex'); }
         }
     });
 });

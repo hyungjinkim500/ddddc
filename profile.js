@@ -210,9 +210,10 @@ function initNicknameChange() {
     };
 }
 
-// 로그아웃
+// 로그아웃 (로그인 상태일 때만)
 document.getElementById('logout-link')?.addEventListener('click', async (e) => {
     e.preventDefault();
+    if (!auth.currentUser) return;
     const { signOut } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js');
     await signOut(auth);
     window.location.href = 'index.html';
