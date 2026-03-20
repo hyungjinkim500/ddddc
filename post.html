@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ko" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>픽스 | 게시물</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="tailwind.config.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700&display=swap');
+        body { font-family: 'Pretendard', sans-serif; background-color: #f1f5f9; }
+        html.dark body { background-color: #0f172a; }
+        #app { max-width: 480px; margin: 0 auto; min-height: 100vh; background: #f8f7f4; display: flex; flex-direction: column; }
+        html.dark #app { background: #1e293b; }
+        #top-header { position: sticky; top: 0; z-index: 50; background: white; border-bottom: 1px solid #e2e8f0; }
+        html.dark #top-header { background: #1e293b; border-color: #334155; }
+        #content-area { flex: 1; overflow-y: auto; padding-bottom: 80px; }
+        #bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: white; border-top: 1px solid #e2e8f0; display: flex; z-index: 50; }
+        html.dark #bottom-nav { background: #1e293b; border-color: #334155; }
+        .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px 0; font-size: 10px; color: #94a3b8; cursor: pointer; text-decoration: none; gap: 3px; }
+        .nav-btn.active { color: #169976; }
+        .nav-btn i { font-size: 20px; }
+        .nav-btn.pick-btn .pick-circle { width: 48px; height: 48px; background: #169976; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-top: -20px; box-shadow: 0 4px 12px rgba(22,153,118,0.4); }
+        .nav-btn.pick-btn .pick-circle i { font-size: 22px; color: white; }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(14,17,23,0.6); display: flex; align-items: center; justify-content: center; z-index: 100; opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0s linear 0.3s; }
+        .modal-overlay.show { opacity: 1; visibility: visible; transition: opacity 0.3s ease; }
+        .modal-content { background: white; padding: 2rem; border-radius: 1rem; width: 90%; max-width: 400px; position: relative; max-height: 90vh; overflow-y: auto; }
+        html.dark .modal-content { background: #1e293b; }
+    </style>
+</head>
+<body>
+<div id="app">
+
+    <header id="top-header">
+        <div class="flex items-center justify-between px-4 py-3">
+            <button onclick="history.back()" class="text-slate-500 dark:text-slate-400 hover:text-slate-700 transition">
+                <i class="fas fa-arrow-left text-lg"></i>
+            </button>
+            <span class="font-bold text-slate-800 dark:text-white text-sm">게시물</span>
+            <button id="detail-share-button" class="text-slate-500 dark:text-slate-400 hover:text-slate-700 transition">
+                <i class="fas fa-share-alt text-lg"></i>
+            </button>
+        </div>
+    </header>
+
+    <main id="content-area">
+        <div id="detail-container" class="bg-white dark:bg-slate-800 px-4 py-4 space-y-4">
+
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-600 overflow-hidden flex-shrink-0">
+                        <img id="detail-author-avatar" onerror="this.style.display='none'" class="w-full h-full object-cover">
+                    </div>
+                    <div>
+                        <span id="detail-author" class="text-sm font-semibold text-slate-800 dark:text-white"></span>
+                        <span id="detail-created-at" class="text-xs text-slate-400 ml-2"></span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 text-xs text-slate-400">
+                    <span id="detail-view-count"></span>
+                    <span id="detail-comment-count"></span>
+                </div>
+            </div>
+
+            <div id="detail-category" class="text-xs font-bold text-[#169976]"></div>
+            <h1 id="detail-title" class="text-xl font-bold text-slate-900 dark:text-white leading-snug"></h1>
+            <p id="detail-description" class="text-slate-600 dark:text-slate-300 text-sm leading-relaxed break-words"></p>
+            <div id="detail-images" class="space-y-2"></div>
+
+            <div id="detail-participation" class="space-y-1 hidden">
+                <div class="text-xs text-slate-500">참여율</div>
+                <div class="w-full bg-slate-200 rounded h-2">
+                    <div id="participation-bar" class="bg-[#169976] h-2 rounded w-0 transition-all"></div>
+                </div>
+                <div id="participation-text" class="text-xs text-slate-400"></div>
+            </div>
+
+            <!-- PIX 투표 영역 -->
+            <div id="detail-vote-area" class="hidden space-y-3">
+                <div class="relative h-8 rounded-xl overflow-hidden flex" style="background:#e2e8f0;">
+                    <div id="vote-bar-a" class="h-full flex items-center justify-start pl-3 font-bold text-slate-700 text-xs transition-all duration-500"
+                        style="width:50%; background:rgba(22,153,118,0.3); min-width:30px;">50%</div>
+                    <div id="vote-bar-b" class="h-full flex items-center justify-end pr-3 font-bold text-slate-700 text-xs transition-all duration-500 flex-1"
+                        style="background:rgba(249,115,22,0.3);">50%</div>
+                </div>
+                <div id="detail-options" class="grid grid-cols-2 gap-2"></div>
+            </div>
+
+            <!-- 비PIX 결과바 -->
+            <div id="detail-results" class="space-y-3"></div>
+
+            <div class="flex items-center gap-4 pt-3 border-t border-slate-200 dark:border-slate-700">
+                <button id="detail-like-button" class="flex items-center gap-1.5 text-slate-400 hover:text-red-500 transition">
+                    <i class="far fa-heart text-lg"></i>
+                    <span id="detail-like-count" class="text-sm">0</span>
+                </button>
+            </div>
+        </div>
+
+        <div id="comments-section" class="bg-white dark:bg-slate-800 mt-2 px-4 py-4">
+            <h3 class="text-sm font-bold mb-3 text-slate-800 dark:text-white">댓글</h3>
+            <div class="flex gap-2 mb-2">
+                <input id="comment-input" type="text" placeholder="댓글을 입력하세요"
+                    class="flex-1 border rounded-lg px-3 py-2 text-sm dark:bg-slate-700 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-[#169976]"/>
+                <button id="comment-submit" class="bg-[#169976] text-white px-4 py-2 rounded-lg text-sm font-bold">작성</button>
+            </div>
+            <div id="comment-length" class="text-xs text-slate-400 mb-3 text-right">0 / 200</div>
+            <div id="comment-list" class="space-y-3"></div>
+        </div>
+    </main>
+
+    <nav id="bottom-nav">
+        <a href="index.html" class="nav-btn">
+            <i class="fas fa-home"></i>
+            <span>홈</span>
+        </a>
+        <a href="explore.html" class="nav-btn">
+            <i class="fas fa-compass"></i>
+            <span>탐색</span>
+        </a>
+        <a href="create-post.html" class="nav-btn pick-btn">
+            <div class="pick-circle"><i class="fas fa-plus"></i></div>
+            <span style="color:#169976; font-size:10px; margin-top:2px;">픽하기</span>
+        </a>
+        <a href="#" class="nav-btn">
+            <i class="fas fa-bell"></i>
+            <span>알림</span>
+        </a>
+        <a href="mypage.html" class="nav-btn">
+            <i class="fas fa-user"></i>
+            <span>마이</span>
+        </a>
+    </nav>
+</div>
+
+<div id="login-modal" class="modal-overlay">
+    <div class="modal-content">
+        <button id="login-modal-close-button" class="absolute top-3 right-4 text-slate-400 hover:text-slate-600 text-2xl">&times;</button>
+        <div id="login-view">
+            <h2 class="text-xl font-bold mb-4 text-center">로그인</h2>
+            <form id="login-form" class="space-y-3">
+                <input type="email" name="email" placeholder="이메일" class="w-full px-3 py-2 border rounded-lg text-sm dark:bg-slate-700 dark:border-slate-600" required>
+                <input type="password" name="password" placeholder="비밀번호" class="w-full px-3 py-2 border rounded-lg text-sm dark:bg-slate-700 dark:border-slate-600" required>
+                <button type="submit" class="w-full bg-[#169976] text-white py-2 rounded-lg font-bold text-sm">로그인</button>
+            </form>
+            <button id="google-login-button" class="w-full mt-3 border border-slate-300 py-2 rounded-lg text-sm font-semibold hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-700">구글로 로그인</button>
+            <p class="text-center text-xs mt-4 text-slate-500">계정이 없으신가요? <a href="#" id="show-register-view-link" class="text-[#169976] font-bold">회원가입</a></p>
+        </div>
+        <div id="register-view" style="display:none;">
+            <h2 class="text-xl font-bold mb-4 text-center">회원가입</h2>
+            <form id="register-form" class="space-y-3">
+                <input type="text" name="nickname" placeholder="닉네임" class="w-full px-3 py-2 border rounded-lg text-sm dark:bg-slate-700 dark:border-slate-600" required>
+                <input type="email" name="email" placeholder="이메일" class="w-full px-3 py-2 border rounded-lg text-sm dark:bg-slate-700 dark:border-slate-600" required>
+                <input type="password" name="password" placeholder="비밀번호" class="w-full px-3 py-2 border rounded-lg text-sm dark:bg-slate-700 dark:border-slate-600" required>
+                <button type="submit" class="w-full bg-[#169976] text-white py-2 rounded-lg font-bold text-sm">가입하기</button>
+            </form>
+            <p class="text-center text-xs mt-4 text-slate-500">이미 계정이 있으신가요? <a href="#" id="show-login-view-link-from-terms" class="text-[#169976] font-bold">로그인</a></p>
+        </div>
+    </div>
+</div>
+
+<div id="image-modal" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center">
+    <button id="image-modal-close" class="absolute top-5 right-6 text-white text-3xl font-bold">×</button>
+    <button id="image-prev" class="absolute left-6 text-white text-4xl font-bold">‹</button>
+    <img class="max-h-[90vh] max-w-[90vw] rounded-lg shadow-xl"/>
+    <button id="image-next" class="absolute right-6 text-white text-4xl font-bold">›</button>
+    <div id="image-counter" class="absolute bottom-6 text-white text-sm"></div>
+</div>
+
+<script type="module" src="firebase-config.js"></script>
+<script type="module" src="auth.js"></script>
+<script type="module" src="comments.js"></script>
+<script type="module" src="post.js"></script>
+</body>
+</html>

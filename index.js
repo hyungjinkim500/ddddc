@@ -170,7 +170,7 @@ function createFeedCard(id, data) {
             ${isPix ? '<span class="text-xs font-bold text-[#169976] bg-green-50 dark:bg-green-900/30 px-2 py-0.5 rounded-full">PIX</span>' : ''}
         </div>
         <!-- 제목 -->
-        <a href="view.html?id=${id}" class="block px-4 pb-3">
+        <a href="post.html?id=${id}" class="block px-4 pb-3">
             <p class="font-bold text-slate-900 dark:text-white text-base leading-snug">${data.title || ''}</p>
             ${data.description ? `<p class="text-sm text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">${data.description}</p>` : ''}
         </a>
@@ -184,7 +184,7 @@ function createFeedCard(id, data) {
                 <i class="far fa-heart text-base"></i>
                 <span class="like-count text-sm">${likesCount}</span>
             </button>
-            <a href="view.html?id=${id}" class="flex items-center gap-1.5 text-slate-400 hover:text-sky-500 transition">
+            <a href="post.html?id=${id}" class="flex items-center gap-1.5 text-slate-400 hover:text-sky-500 transition">
                 <i class="far fa-comment text-base"></i>
                 <span class="text-sm">${commentsCount}</span>
             </a>
@@ -202,7 +202,7 @@ function createFeedCard(id, data) {
     // 공유
     card.querySelector('.share-btn').addEventListener('click', (e) => {
         const btn = e.currentTarget;
-        const url = `${location.origin}${location.pathname.replace('index.html', '')}view.html?id=${btn.dataset.id}`;
+        const url = `${location.origin}${location.pathname.replace('index.html', '')}post.html?id=${btn.dataset.id}`;
         navigator.clipboard?.writeText(url).then(() => alert('링크가 복사됐어요!'));
     });
 
@@ -215,17 +215,35 @@ function createFeedCard(id, data) {
                 return;
             }
             const optionId = btn.dataset.optionId;
+
+            // 현재 선택 상태 파악 (낙관적 UI용)
+            const isSelected = btn.classList.contains('ring-[3px]');
+            const newSelected = isSelected ? null : optionId;
+
+            // ① 즉시 UI 업데이트 (서버 응답 안 기다림)
+            updateCardVoteUI(card, card._cachedData || {options: []}, user.uid, newSelected);
+
+            // ② 서버 저장 (백그라운드)
             const success = await handleVote(id, optionId);
             if (success) {
-                await updatePopularityScore(id);
+                // ③ getDoc 1번만 - 실제 데이터로 보정
                 const snap = await getDoc(doc(db, 'questions', id));
-                // 취소(같은 옵션 재클릭)인지 확인
-                const voteSnap = await getDoc(doc(db, `questions/${id}/userVotes/${user.uid}`));
-                const currentSelected = voteSnap.exists() ? voteSnap.data().selectedOption : null;
-                if (snap.exists()) updateCardVoteUI(card, snap.data(), user.uid, currentSelected);
+                if (snap.exists()) {
+                    card._cachedData = snap.data();
+                    updateCardVoteUI(card, snap.data(), user.uid, newSelected);
+                }
+                // popularityScore는 UI와 무관 → 백그라운드
+                updatePopularityScore(id);
+            } else {
+                // 실패 시 원래 상태로 복원
+                const snap = await getDoc(doc(db, 'questions', id));
+                if (snap.exists()) updateCardVoteUI(card, snap.data(), user.uid, isSelected ? optionId : null);
             }
         });
     });
+
+    // 카드 데이터 캐시 저장
+    card._cachedData = data;
 
     // 로드 시 투표 상태 복원
     if (auth.currentUser) {
