@@ -47,6 +47,53 @@ async function restoreUserVotes(user) {
     });
 }
 
+function buildPostImageGrid(urls) {
+    const n = urls.length;
+    const wrapper = document.createElement('div');
+
+    const makeImg = (url, idx) => {
+        const img = document.createElement('img');
+        img.src = url;
+        img.loading = 'lazy';
+        img.className = 'w-full h-full object-cover cursor-zoom-in rounded-lg';
+        img.addEventListener('click', () => {
+            const modal = document.getElementById('image-modal');
+            if (!modal) return;
+            currentImageIndex = idx;
+            modal.querySelector('img').src = url;
+            modal.classList.remove('hidden');
+            updateImageCounter();
+        });
+        return img;
+    };
+
+    if (n === 1) {
+        wrapper.className = 'w-full overflow-hidden rounded-xl';
+        wrapper.style.height = '224px';
+        wrapper.appendChild(makeImg(urls[0], 0));
+    } else if (n === 2) {
+        wrapper.className = 'grid grid-cols-2 gap-1 overflow-hidden rounded-xl';
+        wrapper.style.height = '224px';
+        urls.forEach((u, i) => { const d = document.createElement('div'); d.className = 'overflow-hidden h-full'; d.appendChild(makeImg(u, i)); wrapper.appendChild(d); });
+    } else if (n === 3) {
+        wrapper.className = 'grid gap-1 overflow-hidden rounded-xl';
+        wrapper.style.height = '224px';
+        wrapper.style.gridTemplateColumns = '1fr 1fr';
+        wrapper.style.gridTemplateRows = '1fr 1fr';
+        const left = document.createElement('div');
+        left.className = 'overflow-hidden';
+        left.style.gridRow = 'span 2';
+        left.appendChild(makeImg(urls[0], 0));
+        wrapper.appendChild(left);
+        [1, 2].forEach(i => { const d = document.createElement('div'); d.className = 'overflow-hidden'; d.appendChild(makeImg(urls[i], i)); wrapper.appendChild(d); });
+    } else {
+        wrapper.className = 'grid grid-cols-2 gap-1 overflow-hidden rounded-xl';
+        wrapper.style.height = '224px';
+        urls.slice(0, 4).forEach((u, i) => { const d = document.createElement('div'); d.className = 'overflow-hidden'; d.style.height = 'calc(224px / 2 - 2px)'; d.appendChild(makeImg(u, i)); wrapper.appendChild(d); });
+    }
+    return wrapper;
+}
+
 function updateVoteBarUI(post) {
     const options = getVotePercent(post);
     if (options.length < 2) return;
@@ -121,62 +168,40 @@ async function loadPost(postId) {
         const commentEl = document.getElementById('detail-comment-count');
         if (commentEl) commentEl.textContent = '댓글 ' + (post.commentsCount || 0);
 
-        // 이미지 슬라이드 (최초 1회만 렌더링)
+        // 이미지 그리드 (최초 1회만 렌더링)
         const imgContainer = document.getElementById('detail-images');
         if (imgContainer && imgContainer.children.length === 0) {
             if (Array.isArray(post.imageUrls) && post.imageUrls.length > 0) {
                 imageGallery = post.imageUrls;
-                const slideWrapper = document.createElement('div');
-                slideWrapper.className = 'flex gap-2 overflow-x-auto pb-1';
-                slideWrapper.style.scrollbarWidth = 'none';
-                slideWrapper.style.cursor = 'grab';
-                slideWrapper.style.webkitOverflowScrolling = 'touch';
-
-                // 마우스 드래그
-                let isDown = false, startX = 0, scrollLeft = 0;
-                slideWrapper.addEventListener('mousedown', (e) => {
-                    isDown = true; slideWrapper.style.cursor = 'grabbing';
-                    startX = e.pageX - slideWrapper.offsetLeft;
-                    scrollLeft = slideWrapper.scrollLeft;
-                });
-                document.addEventListener('mouseup', () => { if (isDown) { isDown = false; slideWrapper.style.cursor = 'grab'; } });
-                document.addEventListener('mousemove', (e) => {
-                    if (!isDown) return;
-                    e.preventDefault();
-                    const x = e.pageX - slideWrapper.offsetLeft;
-                    slideWrapper.scrollLeft = scrollLeft - (x - startX) * 1.5;
-                });
-                post.imageUrls.forEach((url, idx) => {
-                    const img = document.createElement('img');
-                    img.src = url;
-                    img.loading = 'lazy';
-                    img.className = 'flex-shrink-0 rounded-xl object-cover cursor-zoom-in';
-                    img.style.height = '220px';
-                    img.style.width = post.imageUrls.length === 1 ? '100%' : '85%';
-                    img.addEventListener('click', () => {
-                        const modal = document.getElementById('image-modal');
-                        if (!modal) return;
-                        currentImageIndex = idx;
-                        modal.querySelector('img').src = url;
-                        modal.classList.remove('hidden');
-                        updateImageCounter();
-                    });
-                    slideWrapper.appendChild(img);
-                });
-                imgContainer.appendChild(slideWrapper);
+                imgContainer.style.overflow = 'hidden';
+                const grid = buildPostImageGrid(post.imageUrls);
+                imgContainer.appendChild(grid);
             }
         }
 
-        // 참여율
+        // 투표인원 현황
+        const maxP = post.participantLimit || 0;
+        const votes = post.vote || {};
+        const totalVotes = Object.values(votes).reduce((a, b) => a + b, 0);
+
         const participationContainer = document.getElementById('detail-participation');
-        if (participationContainer) {
-            const maxP = post.participantLimit || 0;
-            const cur = (post.participants || []).length;
-            const bar = document.getElementById('participation-bar');
-            if (bar) bar.style.width = (maxP === 0 ? 0 : Math.round(cur / maxP * 100)) + '%';
-            const text = document.getElementById('participation-text');
-            if (text) text.textContent = `${cur} / ${maxP} 참여`;
-            participationContainer.classList.toggle('hidden', maxP === 0);
+        const voteTotalLabel = document.getElementById('vote-total-label');
+
+        if (maxP > 0) {
+            // 참가자 제한 있음 → 참여 bar 표시
+            if (participationContainer) {
+                const cur = (post.participants || []).length;
+                const bar = document.getElementById('participation-bar');
+                if (bar) bar.style.width = (Math.round(cur / maxP * 100)) + '%';
+                const text = document.getElementById('participation-text');
+                if (text) text.textContent = `${cur} / ${maxP} 참여`;
+                participationContainer.classList.remove('hidden');
+            }
+            if (voteTotalLabel) voteTotalLabel.textContent = '';
+        } else {
+            // 참가자 제한 없음 → 투표인원 수 표시
+            if (participationContainer) participationContainer.classList.add('hidden');
+            if (voteTotalLabel) voteTotalLabel.textContent = totalVotes > 0 ? `총 ${totalVotes}명 투표` : '';
         }
 
         // PIX 투표 UI

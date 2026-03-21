@@ -69,7 +69,7 @@ function showTab(tabName) {
 async function loadMyPosts() {
     const user = auth.currentUser;
     if (!user) return;
-    const container = document.getElementById('my-posts-list');
+    const container = document.getElementById('tab-my-posts');
     if (!container) return;
     container.innerHTML = '<p class="text-slate-400">불러오는 중...</p>';
     const q = query(collection(db, 'questions'), where('creatorId', '==', user.uid), orderBy('createdAt', 'desc'), limit(PAGE_SIZE));
@@ -80,7 +80,7 @@ async function loadMyPosts() {
         const d = docSnap.data();
         const badge = d.type === 'superquiz' ? 'TOPIC' : d.type === 'quiz' ? 'PICK' : 'POST';
         const item = document.createElement('a');
-        item.href = `view.html?id=${docSnap.id}`;
+        item.href = `post.html?id=${docSnap.id}`;
         item.className = 'block border rounded-lg px-4 py-3 bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 transition';
         item.innerHTML = `<div class="flex items-center gap-2"><span class="text-xs font-bold text-[#169976]">[${badge}]</span><span class="flex-1 truncate">${d.title || '제목 없음'}</span><span class="text-xs text-slate-400">👁 ${d.views || 0}</span><span class="text-xs text-slate-400">♥ ${d.likesCount || 0}</span></div>`;
         container.appendChild(item);
@@ -91,7 +91,7 @@ async function loadMyPosts() {
 async function loadMyVotes() {
     const user = auth.currentUser;
     if (!user) return;
-    const container = document.getElementById('my-votes-list');
+    const container = document.getElementById('tab-my-votes');
     if (!container) return;
     container.innerHTML = '<p class="text-slate-400">불러오는 중...</p>';
     const postsSnap = await getDocs(query(collection(db, 'questions'), orderBy('createdAt', 'desc'), limit(100)));
@@ -107,7 +107,7 @@ async function loadMyVotes() {
     container.innerHTML = '';
     results.forEach(v => {
         const item = document.createElement('a');
-        item.href = `view.html?id=${v.postId}`;
+        item.href = `post.html?id=${v.postId}`;
         item.className = 'block border rounded-lg px-4 py-3 bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 transition';
         item.innerHTML = `<div class="flex items-center gap-2"><span class="flex-1 truncate">${v.title}</span><span class="text-xs text-[#169976] font-semibold">${v.selectedOption || ''}</span></div>`;
         container.appendChild(item);
@@ -118,7 +118,7 @@ async function loadMyVotes() {
 async function loadMyComments() {
     const user = auth.currentUser;
     if (!user) return;
-    const container = document.getElementById('my-comments-list');
+    const container = document.getElementById('tab-my-comments');
     if (!container) return;
     container.innerHTML = '<p class="text-slate-400">불러오는 중...</p>';
 
@@ -134,7 +134,7 @@ async function loadMyComments() {
     snap.forEach(docSnap => {
         const c = docSnap.data();
         const item = document.createElement('a');
-        item.href = c.questionId ? `view.html?id=${c.questionId}` : '#';
+        item.href = c.questionId ? `post.html?id=${c.questionId}` : '#';
         item.className = 'block border rounded-lg px-4 py-3 bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 transition';
         item.innerHTML = `<div class="flex items-center gap-2"><span class="flex-1 truncate">${c.text || ''}</span><span class="text-xs text-slate-400 flex-shrink-0">→ ${(c.questionTitle || '').substring(0, 15)}...</span></div>`;
         container.appendChild(item);
@@ -145,7 +145,7 @@ async function loadMyComments() {
 async function loadMyLikes() {
     const user = auth.currentUser;
     if (!user) return;
-    const container = document.getElementById('my-likes-list');
+    const container = document.getElementById('tab-my-likes');
     if (!container) return;
     container.innerHTML = '<p class="text-slate-400">불러오는 중...</p>';
     const postsSnap = await getDocs(query(collection(db, 'questions'), orderBy('createdAt', 'desc'), limit(100)));
@@ -159,7 +159,7 @@ async function loadMyLikes() {
     container.innerHTML = '';
     results.forEach(l => {
         const item = document.createElement('a');
-        item.href = `view.html?id=${l.postId}`;
+        item.href = `post.html?id=${l.postId}`;
         item.className = 'block border rounded-lg px-4 py-3 bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 transition';
         item.innerHTML = `<div class="flex items-center gap-2"><span class="flex-1 truncate">${l.title}</span><span class="text-red-400">♥</span></div>`;
         container.appendChild(item);

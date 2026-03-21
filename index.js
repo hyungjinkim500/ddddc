@@ -53,6 +53,68 @@ function buildQuery(tab, lastVisible) {
     return q;
 }
 
+// 이미지 모달 (전역 1개)
+function ensureImageModal() {
+    if (document.getElementById('feed-image-modal')) return;
+    const modal = document.createElement('div');
+    modal.id = 'feed-image-modal';
+    modal.className = 'hidden fixed inset-0 bg-black/90 z-[200] flex items-center justify-center';
+    modal.innerHTML = `
+        <button id="fim-close" class="absolute top-4 right-5 text-white text-3xl font-bold z-10">×</button>
+        <button id="fim-prev" class="absolute left-4 text-white text-4xl font-bold z-10">‹</button>
+        <img id="fim-img" class="max-h-[90vh] max-w-[90vw] rounded-lg select-none">
+        <button id="fim-next" class="absolute right-4 text-white text-4xl font-bold z-10">›</button>
+        <div id="fim-counter" class="absolute bottom-5 text-white text-sm"></div>
+    `;
+    document.body.appendChild(modal);
+
+    let gallery = [], idx = 0;
+
+    window._openFeedImageModal = (urls, startIdx) => {
+        gallery = urls; idx = startIdx;
+        document.getElementById('fim-img').src = gallery[idx];
+        document.getElementById('fim-counter').textContent = gallery.length > 1 ? (idx+1)+' / '+gallery.length : '';
+        modal.classList.remove('hidden');
+    };
+
+    document.getElementById('fim-close').onclick = () => modal.classList.add('hidden');
+    modal.addEventListener('click', e => { if (e.target === modal) modal.classList.add('hidden'); });
+
+    const move = (d) => {
+        idx = (idx + d + gallery.length) % gallery.length;
+        document.getElementById('fim-img').src = gallery[idx];
+        document.getElementById('fim-counter').textContent = gallery.length > 1 ? (idx+1)+' / '+gallery.length : '';
+    };
+    document.getElementById('fim-prev').onclick = () => move(-1);
+    document.getElementById('fim-next').onclick = () => move(1);
+    document.addEventListener('keydown', e => {
+        if (modal.classList.contains('hidden')) return;
+        if (e.key === 'ArrowLeft') move(-1);
+        if (e.key === 'ArrowRight') move(1);
+        if (e.key === 'Escape') modal.classList.add('hidden');
+    });
+}
+
+function buildImageGrid(urls, postId) {
+    ensureImageModal();
+    const n = urls.length;
+    const imgEl = (url, idx) =>
+        `<img src="${url}" loading="lazy" class="object-cover cursor-pointer w-full h-full rounded-lg"
+            onclick="window._openFeedImageModal(${JSON.stringify(urls)}, ${idx})">`;
+
+    const wrap = (inner) => `<div class="overflow-hidden rounded-xl" style="height:208px;">${inner}</div>`;
+
+    if (n === 1) return wrap(`<div class="w-full h-full">${imgEl(urls[0], 0)}</div>`);
+    if (n === 2) return wrap(`<div class="grid grid-cols-2 gap-1 h-full">${urls.map((u,i) => `<div class="overflow-hidden h-full">${imgEl(u,i)}</div>`).join('')}</div>`);
+    if (n === 3) return wrap(`
+        <div class="grid gap-1 h-full" style="grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr;">
+            <div class="overflow-hidden" style="grid-row:span 2;">${imgEl(urls[0],0)}</div>
+            <div class="overflow-hidden">${imgEl(urls[1],1)}</div>
+            <div class="overflow-hidden">${imgEl(urls[2],2)}</div>
+        </div>`);
+    return wrap(`<div class="grid grid-cols-2 gap-1 h-full">${urls.map((u,i) => `<div class="overflow-hidden h-full" style="height:calc(208px/2 - 2px)">${imgEl(u,i)}</div>`).join('')}</div>`);
+}
+
 function formatTime(timestamp) {
     if (!timestamp?.toDate) return '';
     const diff = Math.floor((new Date() - timestamp.toDate()) / 1000);
@@ -128,12 +190,24 @@ function createFeedCard(id, data) {
     const likesCount = data.likesCount || 0;
     const commentsCount = data.commentsCount || 0;
 
+    const maxP = data.participantLimit || 0;
+    const voteObj = data.vote || {};
+    const totalVotes = Object.values(voteObj).reduce((a, b) => a + b, 0);
+    const curP = (data.participants || []).length;
+
     let voteHTML = '';
     if (isPix && options.length >= 2) {
+        const participationBar = maxP > 0 ? `
+            <div class="w-full bg-slate-200 rounded h-1.5 mt-1">
+                <div class="bg-[#169976] h-1.5 rounded transition-all" style="width:${Math.round(curP / maxP * 100)}%"></div>
+            </div>
+            <div class="text-xs text-slate-400 mt-0.5">${curP} / ${maxP} 참여</div>
+        ` : '';
+
         voteHTML = `
-        <div class="px-4 pb-1 pt-2">
+        <div class="px-4 pb-1 pt-3 mt-1">
             <!-- 결과 바 -->
-            <div class="relative h-5 rounded-lg overflow-hidden flex mb-3" style="background:#e2e8f0;">
+            <div class="relative h-5 rounded-lg overflow-hidden flex" style="background:#e2e8f0;">
                 <div class="vote-bar-a h-full flex items-center justify-start pl-2 font-bold text-slate-700 text-xs transition-all duration-500"
                     style="width:${optA.percent}%; background:rgba(22, 153, 118, 0.3); min-width:20px;">
                     ${optA.percent}%
@@ -143,8 +217,9 @@ function createFeedCard(id, data) {
                     ${optB.percent}%
                 </div>
             </div>
+            ${participationBar}
             <!-- 투표 버튼 -->
-            <div class="grid grid-cols-2 gap-2 mb-3">
+            <div class="grid grid-cols-2 gap-2 mt-2 mb-2">
                 <button class="vote-option-btn border-2 border-[#169976] text-[#169976] font-bold py-2.5 rounded-xl text-sm hover:bg-[#169976] hover:text-white transition"
                     data-option-id="${data.options?.[0]?.id || 'A'}">
                     ${optA.label || 'A'}
@@ -174,17 +249,8 @@ function createFeedCard(id, data) {
             <p class="font-bold text-slate-900 dark:text-white text-base leading-snug">${data.title || ''}</p>
             ${data.description ? `<p class="text-sm text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">${data.description}</p>` : ''}
         </a>
-        <!-- 이미지 슬라이드 -->
-        ${data.imageUrls?.length > 0 ? `
-        <div class="relative overflow-hidden img-slide-outer">
-            <div class="img-slide-inner flex gap-2 overflow-x-auto px-4 pb-2" style="scrollbar-width:none; -webkit-overflow-scrolling:touch; cursor:grab;">
-                ${data.imageUrls.map(url => `
-                    <img src="${url}" loading="lazy"
-                        class="flex-shrink-0 rounded-xl object-cover pointer-events-none"
-                        style="height:200px; width:${data.imageUrls.length === 1 ? '100%' : '80%'};">
-                `).join('')}
-            </div>
-        </div>` : ''}
+        <!-- 이미지 그리드 -->
+        ${data.imageUrls?.length > 0 ? `<div class="px-3 pb-3">${buildImageGrid(data.imageUrls, id)}</div>` : ''}
         <!-- 투표 영역 -->
         ${voteHTML}
         <!-- 하단 액션 -->
@@ -197,6 +263,10 @@ function createFeedCard(id, data) {
                 <i class="far fa-comment text-base"></i>
                 <span class="text-sm">${commentsCount}</span>
             </a>
+            ${isPix ? `<span class="flex items-center gap-1 text-slate-400 text-sm">
+                <i class="fas fa-poll text-base"></i>
+                <span>${maxP > 0 ? `${curP}/${maxP}` : totalVotes > 0 ? `${totalVotes}명` : '0명'}</span>
+            </span>` : ''}
             <button class="share-btn flex items-center gap-1.5 text-slate-400 hover:text-slate-600 transition ml-auto" data-id="${id}" data-title="${data.title || ''}">
                 <i class="fas fa-share-alt text-base"></i>
             </button>

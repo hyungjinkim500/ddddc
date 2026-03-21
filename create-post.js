@@ -21,7 +21,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const pickThemeContainer = document.getElementById("pick-theme-container");
   const pickThemeSelect = document.getElementById("pick-theme-select");
   const pollSettings = document.getElementById("poll-settings");
-  const quizTypeRadios = form.querySelectorAll('input[name="quiz-type"]');
+  const quizTypeRadios = form.querySelectorAll('input[name=\"quiz-type\"]');
   const imageInput = document.getElementById("image-input");
   const imagePreview = document.getElementById("image-preview");
   const descriptionInput = document.getElementById("quiz-description");
@@ -89,7 +89,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (isTopic) {
         const removeBtn = document.createElement("button");
         removeBtn.type = "button";
-        removeBtn.innerHTML = '<i class="fa-solid fa-times text-slate-400"></i>';
+        removeBtn.innerHTML = '<i class=\"fa-solid fa-times text-slate-400\"></i>';
         removeBtn.addEventListener("click", () => {
             if (optionsContainer.children.length > 3) {
                 optionDiv.remove();
@@ -106,7 +106,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const setupOptions = () => {
     if (!optionsContainer) return;
     optionsContainer.innerHTML = "";
-    const selectedRadio = form.querySelector('input[name="quiz-type"]:checked');
+    const selectedRadio = form.querySelector('input[name=\"quiz-type\"]:checked');
     const optionsWrapper = document.getElementById('options-container');
 
     if (!selectedRadio) {
@@ -172,7 +172,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   addOptionBtn.addEventListener("click", () => {
     const selectedType =
-      form.querySelector('input[name="quiz-type"]:checked').value;
+      form.querySelector('input[name=\"quiz-type\"]:checked').value;
     if (selectedType === "superquiz") {
       if (optionsContainer.children.length >= 5) {
         alert("Topic은 최대 5개의 선택지만 가능합니다.");
@@ -232,7 +232,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
-    const optionInputs = Array.from(form.querySelectorAll('[name="option"]')).filter(input => input.value.trim() !== "");
+    const optionInputs = Array.from(form.querySelectorAll('[name=\"option\"]')).filter(input => input.value.trim() !== "");
 
     if (quizType === 'quiz' && !data.theme) {
       alert('VS Pick 테마를 선택해주세요.');
@@ -311,8 +311,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const files = Array.from(e.target.files);
   
     for (const file of files) {
-      if (selectedImages.length >= 5) {
-        alert("이미지는 최대 5장까지 업로드 가능합니다.");
+      if (selectedImages.length >= 4) {
+        alert("이미지는 최대 4장까지 업로드 가능합니다.");
         break;
       }
   
