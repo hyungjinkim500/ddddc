@@ -179,7 +179,7 @@ function updateCardVoteUI(card, data, uid, selectedOptionId = null) {
 
 function createFeedCard(id, data) {
     const card = document.createElement('div');
-    card.className = 'bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden';
+    card.className = 'bg-white dark:bg-slate-800 overflow-hidden border-b border-slate-100 dark:border-slate-700';
     card.dataset.quizId = id;
 
     const isPix = data.type === 'quiz' || data.type === 'superquiz';
@@ -410,8 +410,17 @@ function initTabs() {
 function initInfiniteScroll() {
     const container = document.getElementById('feed-container');
     if (!container) return;
+
+    // feed-container 자체 스크롤
     container.addEventListener('scroll', () => {
         if (container.scrollTop + container.clientHeight >= container.scrollHeight - 200) {
+            loadFeed();
+        }
+    });
+
+    // window 스크롤 (feed-container가 전체 높이일 때)
+    window.addEventListener('scroll', () => {
+        if (window.innerHeight + window.scrollY >= document.body.scrollHeight - 200) {
             loadFeed();
         }
     });

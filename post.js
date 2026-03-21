@@ -165,8 +165,8 @@ async function loadPost(postId) {
         // 조회수 / 댓글수
         const viewEl = document.getElementById('detail-view-count');
         if (viewEl) viewEl.textContent = '조회 ' + (post.views || 0);
-        const commentEl = document.getElementById('detail-comment-count');
-        if (commentEl) commentEl.textContent = '댓글 ' + (post.commentsCount || 0);
+        const commentMetaEl = document.getElementById('detail-comment-count-meta');
+        if (commentMetaEl) commentMetaEl.textContent = '댓글 ' + (post.commentsCount || 0);
 
         // 이미지 그리드 (최초 1회만 렌더링)
         const imgContainer = document.getElementById('detail-images');
@@ -185,7 +185,6 @@ async function loadPost(postId) {
         const totalVotes = Object.values(votes).reduce((a, b) => a + b, 0);
 
         const participationContainer = document.getElementById('detail-participation');
-        const voteTotalLabel = document.getElementById('vote-total-label');
 
         if (maxP > 0) {
             // 참가자 제한 있음 → 참여 bar 표시
@@ -197,11 +196,9 @@ async function loadPost(postId) {
                 if (text) text.textContent = `${cur} / ${maxP} 참여`;
                 participationContainer.classList.remove('hidden');
             }
-            if (voteTotalLabel) voteTotalLabel.textContent = '';
         } else {
-            // 참가자 제한 없음 → 투표인원 수 표시
+            // 참가자 제한 없음
             if (participationContainer) participationContainer.classList.add('hidden');
-            if (voteTotalLabel) voteTotalLabel.textContent = totalVotes > 0 ? `총 ${totalVotes}명 투표` : '';
         }
 
         // PIX 투표 UI
@@ -270,6 +267,17 @@ async function loadPost(postId) {
                     resultsContainer.appendChild(wrapper);
                 });
             }
+        }
+
+        // 투표인원 표시
+        const voteStatEl = document.getElementById('detail-vote-stat');
+        if (voteStatEl && isPix) {
+            const maxP2 = post.participantLimit || 0;
+            const curP2 = (post.participants || []).length;
+            const voteObj2 = post.vote || {};
+            const totalVotes2 = Object.values(voteObj2).reduce((a, b) => a + b, 0);
+            voteStatEl.classList.remove('hidden');
+            voteStatEl.querySelector('span').textContent = maxP2 > 0 ? `${curP2}/${maxP2}` : totalVotes2 > 0 ? `${totalVotes2}명` : '0명';
         }
 
         // 좋아요 수

@@ -39,8 +39,8 @@ function createReplyEl(replyData, replyId, commentId, postId, postTitle, auth) {
 function updateTotalCount(delta) {
     const el = document.getElementById('detail-comment-count');
     if (!el) return;
-    const current = parseInt(el.textContent.replace('댓글 ', '')) || 0;
-    el.textContent = '댓글 ' + Math.max(0, current + delta);
+    const current = parseInt(el.textContent.replace(/[()]/g, '')) || 0;
+    el.textContent = '(' + Math.max(0, current + delta) + ')';
 }
 
 function updateReplyBadge(btn, delta) {
@@ -78,7 +78,7 @@ export async function loadComments(postId, postTitle) {
     }
 
     const commentCountEl = document.getElementById('detail-comment-count');
-    if (commentCountEl) commentCountEl.textContent = '댓글 ' + totalCount;
+    if (commentCountEl) commentCountEl.textContent = '(' + totalCount + ')';
 
     for (const docSnap of snapshot.docs) {
         const data = docSnap.data();
