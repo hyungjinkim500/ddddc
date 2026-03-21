@@ -263,14 +263,12 @@ function createFeedCard(id, data) {
             startX = e.pageX - slideInner.offsetLeft;
             scrollLeft = slideInner.scrollLeft;
         });
-        slideInner.addEventListener('mouseleave', () => { isDown = false; slideInner.style.cursor = 'grab'; });
-        slideInner.addEventListener('mouseup', () => { isDown = false; slideInner.style.cursor = 'grab'; });
-        slideInner.addEventListener('mousemove', (e) => {
+        document.addEventListener('mouseup', () => { if (isDown) { isDown = false; slideInner.style.cursor = 'grab'; } });
+        document.addEventListener('mousemove', (e) => {
             if (!isDown) return;
             e.preventDefault();
             const x = e.pageX - slideInner.offsetLeft;
-            const walk = (x - startX) * 1.5;
-            slideInner.scrollLeft = scrollLeft - walk;
+            slideInner.scrollLeft = scrollLeft - (x - startX) * 1.5;
         });
     }
 

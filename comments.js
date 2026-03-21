@@ -3,6 +3,60 @@ import { getAuth } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-aut
 import { collection, doc, addDoc, deleteDoc, getDocs, query, orderBy, updateDoc, increment, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { updatePopularityScore } from './quiz-main.js';
 
+function createReplyEl(replyData, replyId, commentId, postId, postTitle, auth) {
+    let replyDeleteHTML = '';
+    if (auth.currentUser && replyData.uid === auth.currentUser.uid) {
+        replyDeleteHTML = `<button class="reply-delete text-xs text-red-500" data-reply-id="${replyId}" data-comment-id="${commentId}">삭제</button>`;
+    }
+    let replyBgClass = '';
+    if (replyData.votedOption === 'option_1') replyBgClass = 'bg-green-50 dark:bg-green-900/20';
+    else if (replyData.votedOption === 'option_2') replyBgClass = 'bg-orange-50 dark:bg-orange-900/20';
+
+    const replyEl = document.createElement('div');
+    replyEl.className = `ml-6 mt-2 text-sm border-l-2 border-slate-200 pl-3 rounded-r-lg ${replyBgClass}`;
+    replyEl.dataset.replyId = replyId;
+    replyEl.innerHTML = `
+        <div class="flex justify-between items-start">
+            <div>
+                <div class="text-slate-800 dark:text-slate-200 break-all">${replyData.text}</div>
+                <div class="text-xs text-slate-400 mt-1">${replyData.nickname || '익명'} · 방금 전</div>
+            </div>
+            ${replyDeleteHTML}
+        </div>
+    `;
+
+    replyEl.querySelector('.reply-delete')?.addEventListener('click', async () => {
+        const replyRef = doc(db, 'questions', postId, 'comments', commentId, 'replies', replyId);
+        await deleteDoc(replyRef);
+        await updateDoc(doc(db, 'questions', postId), { commentsCount: increment(-1) });
+        replyEl.remove();
+        updateTotalCount(-1);
+    });
+
+    return replyEl;
+}
+
+function updateTotalCount(delta) {
+    const el = document.getElementById('detail-comment-count');
+    if (!el) return;
+    const current = parseInt(el.textContent.replace('댓글 ', '')) || 0;
+    el.textContent = '댓글 ' + Math.max(0, current + delta);
+}
+
+function updateReplyBadge(btn, delta) {
+    let badge = btn.querySelector('.reply-count-badge');
+    if (!badge) {
+        if (delta <= 0) return;
+        badge = document.createElement('span');
+        badge.className = 'reply-count-badge';
+        btn.appendChild(document.createTextNode(' '));
+        btn.appendChild(badge);
+    }
+    const current = parseInt(badge.textContent.replace(/[()]/g, '')) || 0;
+    const next = Math.max(0, current + delta);
+    badge.textContent = `(${next})`;
+}
+
 export async function loadComments(postId, postTitle) {
     const commentList = document.getElementById('comment-list');
     if (!commentList) return;
@@ -13,7 +67,6 @@ export async function loadComments(postId, postTitle) {
     const snapshot = await getDocs(q);
     const auth = getAuth();
 
-    // 전체 댓글+답글 수 계산
     let totalCount = 0;
     const replyCountMap = {};
     for (const docSnap of snapshot.docs) {
@@ -44,14 +97,13 @@ export async function loadComments(postId, postTitle) {
 
         const commentEl = document.createElement('div');
         commentEl.className = `border rounded-lg p-3 text-sm ${bgClass}`;
+        commentEl.dataset.commentId = docSnap.id;
         commentEl.innerHTML = `
             <div class="flex justify-between items-start">
                 <div>
                     <div class="text-slate-800 dark:text-slate-200 break-all">${data.text}</div>
                     <div class="text-xs text-slate-400 mt-1">${data.nickname || '익명'} · ${timeText}</div>
-                    <button class="comment-reply text-xs text-sky-500 mt-1" data-comment-id="${docSnap.id}">
-                        답글${replyCount > 0 ? ` <span class="reply-count-badge">(${replyCount})</span>` : ''}
-                    </button>
+                    <button class="comment-reply text-xs text-sky-500 mt-1" data-comment-id="${docSnap.id}">답글${replyCount > 0 ? ` <span class="reply-count-badge">(${replyCount})</span>` : ''}</button>
                 </div>
                 ${deleteButtonHTML}
             </div>
@@ -66,114 +118,85 @@ export async function loadComments(postId, postTitle) {
 
         // 기존 답글 렌더링
         replyDocs.forEach(replyDoc => {
-            const replyData = replyDoc.data();
-            const replyTime = formatTime(replyData.createdAt);
-            let replyDeleteHTML = '';
-            if (auth.currentUser && replyData.uid === auth.currentUser.uid) {
-                replyDeleteHTML = `<button class="reply-delete text-xs text-red-500" data-reply-id="${replyDoc.id}" data-comment-id="${docSnap.id}">삭제</button>`;
-            }
-            let replyBgClass = '';
-            if (replyData.votedOption === 'option_1') replyBgClass = 'bg-green-50 dark:bg-green-900/20';
-            else if (replyData.votedOption === 'option_2') replyBgClass = 'bg-orange-50 dark:bg-orange-900/20';
-            const replyEl = document.createElement('div');
-            replyEl.className = `ml-6 mt-2 text-sm border-l-2 border-slate-200 pl-3 rounded-r-lg ${replyBgClass}`;
-            replyEl.innerHTML = `
-                <div class="flex justify-between items-start">
-                    <div>
-                        <div class="text-slate-800 dark:text-slate-200 break-all">${replyData.text}</div>
-                        <div class="text-xs text-slate-400 mt-1">${replyData.nickname || '익명'} · ${replyTime}</div>
-                    </div>
-                    ${replyDeleteHTML}
-                </div>
-            `;
-            repliesContainer.appendChild(replyEl);
+            repliesContainer.appendChild(createReplyEl(replyDoc.data(), replyDoc.id, docSnap.id, postId, postTitle, auth));
         });
-    }
 
-    // 댓글 삭제
-    commentList.querySelectorAll('.comment-delete').forEach(btn => {
-        btn.addEventListener('click', async () => {
-            const commentId = btn.dataset.commentId;
-            // 답글 수 먼저 파악
-            const repliesRef = collection(db, 'questions', postId, 'comments', commentId, 'replies');
+        // 답글 입력창 (항상 repliesContainer 안에 미리 생성)
+        const replyBox = document.createElement('div');
+        replyBox.className = 'mt-2 ml-6 reply-input-box';
+        replyBox.innerHTML = `
+            <div class="flex gap-2">
+                <input type="text" placeholder="답글을 입력하세요" class="reply-input flex-1 border rounded-lg px-3 py-1 text-sm dark:bg-slate-800 dark:border-slate-600"/>
+                <button class="reply-submit bg-sky-500 text-white px-3 py-1 rounded text-sm">작성</button>
+            </div>
+            <div class="text-xs text-slate-400 mt-1 text-right reply-char-count">0 / 200</div>
+        `;
+        repliesContainer.appendChild(replyBox);
+
+        const replyInput = replyBox.querySelector('.reply-input');
+        const charCount = replyBox.querySelector('.reply-char-count');
+        replyInput.addEventListener('input', () => {
+            charCount.textContent = replyInput.value.length + ' / 200';
+            charCount.classList.toggle('text-red-500', replyInput.value.length > 200);
+        });
+
+        replyBox.querySelector('.reply-submit').addEventListener('click', async (e) => {
+            const submitBtn = e.currentTarget;
+            if (submitBtn.disabled) return;
+            submitBtn.disabled = true;
+            const user = getAuth().currentUser;
+            if (!user) { alert('로그인이 필요합니다.'); submitBtn.disabled = false; return; }
+            const text = replyInput.value.trim();
+            if (!text || text.length > 200) { submitBtn.disabled = false; return; }
+
+            let votedOption = null;
+            try {
+                const { doc: fsDoc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+                const voteSnap = await getDoc(fsDoc(db, `questions/${postId}/userVotes/${user.uid}`));
+                if (voteSnap.exists()) votedOption = voteSnap.data().selectedOption;
+            } catch (e) {}
+
+            const replyData = {
+                text, uid: user.uid, nickname: user.displayName || '익명', createdAt: serverTimestamp(),
+                ...(votedOption && { votedOption })
+            };
+            const replyRef = await addDoc(collection(db, 'questions', postId, 'comments', docSnap.id, 'replies'), replyData);
+            await updateDoc(doc(db, 'questions', postId), { commentsCount: increment(1) });
+
+            // DOM 직접 추가 (입력창 바로 위에 삽입)
+            const newReplyEl = createReplyEl({ ...replyData, createdAt: null }, replyRef.id, docSnap.id, postId, postTitle, auth);
+            repliesContainer.insertBefore(newReplyEl, replyBox);
+
+            replyInput.value = '';
+            charCount.textContent = '0 / 200';
+            updateTotalCount(1);
+
+            // 답글 수 뱃지 업데이트
+            const replyBtn = commentEl.querySelector('.comment-reply');
+            updateReplyBadge(replyBtn, 1);
+            submitBtn.disabled = false;
+        });
+
+        // 댓글 삭제
+        commentEl.querySelector('.comment-delete')?.addEventListener('click', async () => {
+            const repliesRef = collection(db, 'questions', postId, 'comments', docSnap.id, 'replies');
             const repliesSnap = await getDocs(repliesRef);
             const replyCount = repliesSnap.size;
-
-            const commentRef = doc(db, 'questions', postId, 'comments', commentId);
-            await deleteDoc(commentRef);
+            await deleteDoc(doc(db, 'questions', postId, 'comments', docSnap.id));
             await updateDoc(doc(db, 'questions', postId), { commentsCount: increment(-(1 + replyCount)) });
-            await loadComments(postId, postTitle);
+            updateTotalCount(-(1 + replyCount));
+            commentEl.remove();
             await updatePopularityScore(postId);
         });
-    });
 
-    // 답글 삭제
-    commentList.querySelectorAll('.reply-delete').forEach(btn => {
-        btn.addEventListener('click', async () => {
-            const replyRef = doc(db, 'questions', postId, 'comments', btn.dataset.commentId, 'replies', btn.dataset.replyId);
-            await deleteDoc(replyRef);
-            await updateDoc(doc(db, 'questions', postId), { commentsCount: increment(-1) });
-            await loadComments(postId, postTitle);
-        });
-    });
-
-    // 답글 펼치기/접기 + 입력창
-    commentList.querySelectorAll('.comment-reply').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const commentId = btn.dataset.commentId;
-            const commentEl = btn.closest('.border');
-            const repliesContainer = commentEl.querySelector(`[data-replies-for="${commentId}"]`);
-            if (!repliesContainer) return;
-
+        // 답글 펼치기/접기
+        commentEl.querySelector('.comment-reply').addEventListener('click', () => {
             const isHidden = repliesContainer.classList.contains('hidden');
-
-            if (isHidden) {
-                // 펼치기
-                repliesContainer.classList.remove('hidden');
-                // 입력창이 없으면 추가
-                if (!repliesContainer.querySelector('.reply-input-box')) {
-                    const replyBox = document.createElement('div');
-                    replyBox.className = 'mt-2 ml-6 reply-input-box';
-                    replyBox.innerHTML = `
-                        <div class="flex gap-2">
-                            <input type="text" placeholder="답글을 입력하세요" class="reply-input flex-1 border rounded-lg px-3 py-1 text-sm dark:bg-slate-800 dark:border-slate-600"/>
-                            <button class="reply-submit bg-sky-500 text-white px-3 py-1 rounded text-sm">작성</button>
-                        </div>
-                        <div class="text-xs text-slate-400 mt-1 text-right reply-char-count">0 / 200</div>
-                    `;
-                    repliesContainer.appendChild(replyBox);
-
-                    const input = replyBox.querySelector('.reply-input');
-                    const charCount = replyBox.querySelector('.reply-char-count');
-                    input.addEventListener('input', () => {
-                        charCount.textContent = input.value.length + ' / 200';
-                        charCount.classList.toggle('text-red-500', input.value.length > 200);
-                    });
-                    replyBox.querySelector('.reply-submit').addEventListener('click', async () => {
-                        const user = getAuth().currentUser;
-                        if (!user) { alert('로그인이 필요합니다.'); return; }
-                        const text = input.value.trim();
-                        if (!text || text.length > 200) return;
-                        let votedOption = null;
-                        try {
-                            const { doc: fsDoc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
-                            const voteSnap = await getDoc(fsDoc(db, `questions/${postId}/userVotes/${user.uid}`));
-                            if (voteSnap.exists()) votedOption = voteSnap.data().selectedOption;
-                        } catch (e) {}
-                        await addDoc(collection(db, 'questions', postId, 'comments', commentId, 'replies'), {
-                            text, uid: user.uid, nickname: user.displayName || '익명', createdAt: serverTimestamp(),
-                            ...(votedOption && { votedOption })
-                        });
-                        await updateDoc(doc(db, 'questions', postId), { commentsCount: increment(1) });
-                        await loadComments(postId, postTitle);
-                    });
-                }
-            } else {
-                // 접기
-                repliesContainer.classList.add('hidden');
-            }
+            repliesContainer.classList.toggle('hidden', !isHidden);
+            if (!isHidden) return;
+            replyInput.focus();
         });
-    });
+    }
 }
 
 export async function submitComment(postId, postTitle) {
@@ -199,16 +222,103 @@ export async function submitComment(postId, postTitle) {
         ...(votedOption && { votedOption })
     };
 
-    await addDoc(collection(db, 'questions', postId, 'comments'), commentData);
+    const commentRef = await addDoc(collection(db, 'questions', postId, 'comments'), commentData);
     await addDoc(collection(db, 'allComments'), {
         ...commentData,
         questionId: postId,
         questionTitle: postTitle || ''
     });
-
     await updateDoc(doc(db, 'questions', postId), { commentsCount: increment(1) });
+
     commentInput.value = '';
-    await loadComments(postId, postTitle);
+
+    // DOM 직접 추가 (최신순이라 맨 위에)
+    const commentList = document.getElementById('comment-list');
+    const auth = getAuth();
+    let bgClass = 'bg-white dark:bg-slate-800';
+    if (votedOption === 'option_1') bgClass = 'bg-green-50 dark:bg-green-900/20 border-green-200';
+    else if (votedOption === 'option_2') bgClass = 'bg-orange-50 dark:bg-orange-900/20 border-orange-200';
+
+    const commentEl = document.createElement('div');
+    commentEl.className = `border rounded-lg p-3 text-sm ${bgClass}`;
+    commentEl.dataset.commentId = commentRef.id;
+    commentEl.innerHTML = `
+        <div class="flex justify-between items-start">
+            <div>
+                <div class="text-slate-800 dark:text-slate-200 break-all">${text}</div>
+                <div class="text-xs text-slate-400 mt-1">${user.displayName || '익명'} · 방금 전</div>
+                <button class="comment-reply text-xs text-sky-500 mt-1" data-comment-id="${commentRef.id}">답글</button>
+            </div>
+            <button class="comment-delete text-xs text-red-500" data-comment-id="${commentRef.id}">삭제</button>
+        </div>
+    `;
+
+    const repliesContainer = document.createElement('div');
+    repliesContainer.className = 'mt-2 hidden';
+    repliesContainer.dataset.repliesFor = commentRef.id;
+    commentEl.appendChild(repliesContainer);
+
+    const replyBox = document.createElement('div');
+    replyBox.className = 'mt-2 ml-6 reply-input-box';
+    replyBox.innerHTML = `
+        <div class="flex gap-2">
+            <input type="text" placeholder="답글을 입력하세요" class="reply-input flex-1 border rounded-lg px-3 py-1 text-sm dark:bg-slate-800 dark:border-slate-600"/>
+            <button class="reply-submit bg-sky-500 text-white px-3 py-1 rounded text-sm">작성</button>
+        </div>
+        <div class="text-xs text-slate-400 mt-1 text-right reply-char-count">0 / 200</div>
+    `;
+    repliesContainer.appendChild(replyBox);
+
+    const replyInput = replyBox.querySelector('.reply-input');
+    const charCount = replyBox.querySelector('.reply-char-count');
+    replyInput.addEventListener('input', () => {
+        charCount.textContent = replyInput.value.length + ' / 200';
+        charCount.classList.toggle('text-red-500', replyInput.value.length > 200);
+    });
+
+    replyBox.querySelector('.reply-submit').addEventListener('click', async (e) => {
+        const sb = e.currentTarget;
+        if (sb.disabled) return;
+        sb.disabled = true;
+        const u = getAuth().currentUser;
+        if (!u) { alert('로그인이 필요합니다.'); sb.disabled = false; return; }
+        const t = replyInput.value.trim();
+        if (!t || t.length > 200) { sb.disabled = false; return; }
+        let vo = null;
+        try {
+            const { doc: fsDoc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+            const vs = await getDoc(fsDoc(db, `questions/${postId}/userVotes/${u.uid}`));
+            if (vs.exists()) vo = vs.data().selectedOption;
+        } catch (e) {}
+        const rd = { text: t, uid: u.uid, nickname: u.displayName || '익명', createdAt: serverTimestamp(), ...(vo && { votedOption: vo }) };
+        const rRef = await addDoc(collection(db, 'questions', postId, 'comments', commentRef.id, 'replies'), rd);
+        await updateDoc(doc(db, 'questions', postId), { commentsCount: increment(1) });
+        const newReplyEl = createReplyEl({ ...rd, createdAt: null }, rRef.id, commentRef.id, postId, postTitle, auth);
+        repliesContainer.insertBefore(newReplyEl, replyBox);
+        replyInput.value = '';
+        charCount.textContent = '0 / 200';
+        updateTotalCount(1);
+        updateReplyBadge(commentEl.querySelector('.comment-reply'), 1);
+        sb.disabled = false;
+    });
+
+    commentEl.querySelector('.comment-delete')?.addEventListener('click', async () => {
+        await deleteDoc(doc(db, 'questions', postId, 'comments', commentRef.id));
+        await updateDoc(doc(db, 'questions', postId), { commentsCount: increment(-1) });
+        updateTotalCount(-1);
+        commentEl.remove();
+        await updatePopularityScore(postId);
+    });
+
+    commentEl.querySelector('.comment-reply').addEventListener('click', () => {
+        const isHidden = repliesContainer.classList.contains('hidden');
+        repliesContainer.classList.toggle('hidden', !isHidden);
+        if (!isHidden) return;
+        replyInput.focus();
+    });
+
+    if (commentList) commentList.insertBefore(commentEl, commentList.firstChild);
+    updateTotalCount(1);
     await updatePopularityScore(postId);
 }
 

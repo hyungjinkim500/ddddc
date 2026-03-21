@@ -139,9 +139,8 @@ async function loadPost(postId) {
                     startX = e.pageX - slideWrapper.offsetLeft;
                     scrollLeft = slideWrapper.scrollLeft;
                 });
-                slideWrapper.addEventListener('mouseleave', () => { isDown = false; slideWrapper.style.cursor = 'grab'; });
-                slideWrapper.addEventListener('mouseup', () => { isDown = false; slideWrapper.style.cursor = 'grab'; });
-                slideWrapper.addEventListener('mousemove', (e) => {
+                document.addEventListener('mouseup', () => { if (isDown) { isDown = false; slideWrapper.style.cursor = 'grab'; } });
+                document.addEventListener('mousemove', (e) => {
                     if (!isDown) return;
                     e.preventDefault();
                     const x = e.pageX - slideWrapper.offsetLeft;
@@ -328,6 +327,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (commentSubmit) {
         commentSubmit.addEventListener('click', async () => {
+            if (commentSubmit.disabled) return;
+            commentSubmit.disabled = true;
+
             const user = auth.currentUser;
             if (!user) { document.getElementById('login-modal-button')?.click(); return; }
 
@@ -346,6 +348,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
             await submitComment(postId, postTitle);
+            commentSubmit.disabled = false;
         });
     }
 
