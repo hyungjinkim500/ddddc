@@ -129,12 +129,20 @@ async function loadPost(postId) {
         const post = snap.data();
         const isPix = post.type === 'quiz' || post.type === 'superquiz';
 
-        // 카테고리
+        // 카테고리 (캐싱)
         const categoryEl = document.getElementById('detail-category');
-        if (categoryEl && post.category) {
+        if (categoryEl && post.category && !categoryEl.textContent) {
             try {
-                const catSnap = await getDoc(doc(db, 'categories', post.category));
-                categoryEl.textContent = catSnap.exists() ? catSnap.data().name : post.category;
+                const cacheKey = 'cat_' + post.category;
+                const cached = sessionStorage.getItem(cacheKey);
+                if (cached) {
+                    categoryEl.textContent = cached;
+                } else {
+                    const catSnap = await getDoc(doc(db, 'categories', post.category));
+                    const name = catSnap.exists() ? catSnap.data().name : post.category;
+                    sessionStorage.setItem(cacheKey, name);
+                    categoryEl.textContent = name;
+                }
             } catch { categoryEl.textContent = post.category; }
         }
 

@@ -67,15 +67,16 @@ export async function loadComments(postId, postTitle) {
     const snapshot = await getDocs(q);
     const auth = getAuth();
 
-    let totalCount = 0;
+    // 답글 수만 병렬로 빠르게 조회 (내용은 클릭 시 로드)
     const replyCountMap = {};
-    for (const docSnap of snapshot.docs) {
-        totalCount++;
+    await Promise.all(snapshot.docs.map(async docSnap => {
         const repliesRef = collection(db, 'questions', postId, 'comments', docSnap.id, 'replies');
         const repliesSnapshot = await getDocs(query(repliesRef, orderBy('createdAt', 'asc')));
         replyCountMap[docSnap.id] = { count: repliesSnapshot.size, docs: repliesSnapshot.docs };
-        totalCount += repliesSnapshot.size;
-    }
+    }));
+
+    const totalReplies = Object.values(replyCountMap).reduce((a, b) => a + b.count, 0);
+    const totalCount = snapshot.size + totalReplies;
 
     const commentCountEl = document.getElementById('detail-comment-count');
     if (commentCountEl) commentCountEl.textContent = '(' + totalCount + ')';

@@ -11,6 +11,7 @@ import {
 import { getStorage, ref, uploadBytes, getDownloadURL } 
 from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import { compressImage } from "./image-compress.js";
+import { getFirestore, doc as fsDoc, getDoc as fsGetDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const storage = getStorage();
 
@@ -254,6 +255,13 @@ document.addEventListener("DOMContentLoaded", () => {
       color: "slate"
     }));
     
+    // userProfiles에서 photoURL 조회
+    let _creatorPhotoURL = '';
+    try {
+        const profileSnap = await fsGetDoc(fsDoc(db, 'userProfiles', currentUser.uid));
+        if (profileSnap.exists()) _creatorPhotoURL = profileSnap.data().photoURL || '';
+    } catch (e) {}
+
     try {
       const postData = {
         category: data.category,
@@ -262,6 +270,7 @@ document.addEventListener("DOMContentLoaded", () => {
         options,
         creatorId: currentUser.uid,
         creatorName: currentUser.displayName,
+        creatorPhotoURL: _creatorPhotoURL || currentUser.photoURL || '',
         createdAt: serverTimestamp(),
         status: "active",
         views: 0,

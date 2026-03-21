@@ -725,12 +725,20 @@ function calculatePopularityScore(data) {
   );
 }
 
-export async function updatePopularityScore(quizId) {
-    const quizRef = doc(db, "questions", quizId);
+const _popularityTimers = {};
+export async function updatePopularityScore(postId) {
+    if (_popularityTimers[postId]) clearTimeout(_popularityTimers[postId]);
+    _popularityTimers[postId] = setTimeout(async () => {
+        delete _popularityTimers[postId];
+        await _doUpdatePopularityScore(postId);
+    }, 300);
+}
+async function _doUpdatePopularityScore(postId) {
+    const quizRef = doc(db, "questions", postId);
     const quizSnap = await getDoc(quizRef);
 
     if (!quizSnap.exists()) {
-        console.error(`Quiz with ID ${quizId} not found.`);
+        console.error(`Quiz with ID ${postId} not found.`);
         return;
     }
 

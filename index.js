@@ -98,21 +98,58 @@ function ensureImageModal() {
 function buildImageGrid(urls, postId) {
     ensureImageModal();
     const n = urls.length;
-    const imgEl = (url, idx) =>
-        `<img src="${url}" loading="lazy" class="object-cover cursor-pointer w-full h-full rounded-lg"
-            onclick="window._openFeedImageModal(${JSON.stringify(urls)}, ${idx})">`;
 
-    const wrap = (inner) => `<div class="overflow-hidden rounded-xl" style="height:208px;">${inner}</div>`;
+    const wrap = document.createElement('div');
+    wrap.className = 'overflow-hidden rounded-xl';
+    wrap.style.height = '208px';
 
-    if (n === 1) return wrap(`<div class="w-full h-full">${imgEl(urls[0], 0)}</div>`);
-    if (n === 2) return wrap(`<div class="grid grid-cols-2 gap-1 h-full">${urls.map((u,i) => `<div class="overflow-hidden h-full">${imgEl(u,i)}</div>`).join('')}</div>`);
-    if (n === 3) return wrap(`
-        <div class="grid gap-1 h-full" style="grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr;">
-            <div class="overflow-hidden" style="grid-row:span 2;">${imgEl(urls[0],0)}</div>
-            <div class="overflow-hidden">${imgEl(urls[1],1)}</div>
-            <div class="overflow-hidden">${imgEl(urls[2],2)}</div>
-        </div>`);
-    return wrap(`<div class="grid grid-cols-2 gap-1 h-full">${urls.map((u,i) => `<div class="overflow-hidden h-full" style="height:calc(208px/2 - 2px)">${imgEl(u,i)}</div>`).join('')}</div>`);
+    const makeImg = (url, idx) => {
+        const img = document.createElement('img');
+        img.src = url;
+        img.loading = 'lazy';
+        img.className = 'object-cover cursor-pointer w-full h-full rounded-lg';
+        img.addEventListener('click', () => window._openFeedImageModal(urls, idx));
+        return img;
+    };
+
+    const makeCell = (url, idx, extraStyle = '') => {
+        const d = document.createElement('div');
+        d.className = 'overflow-hidden h-full';
+        if (extraStyle) d.style.cssText = extraStyle;
+        d.appendChild(makeImg(url, idx));
+        return d;
+    };
+
+    if (n === 1) {
+        wrap.appendChild(makeCell(urls[0], 0));
+    } else if (n === 2) {
+        const grid = document.createElement('div');
+        grid.className = 'grid grid-cols-2 gap-1 h-full';
+        urls.forEach((u, i) => grid.appendChild(makeCell(u, i)));
+        wrap.appendChild(grid);
+    } else if (n === 3) {
+        const grid = document.createElement('div');
+        grid.className = 'grid gap-1 h-full';
+        grid.style.gridTemplateColumns = '1fr 1fr';
+        grid.style.gridTemplateRows = '1fr 1fr';
+        const left = makeCell(urls[0], 0, 'grid-row: span 2;');
+        left.style.gridRow = 'span 2';
+        grid.appendChild(left);
+        grid.appendChild(makeCell(urls[1], 1));
+        grid.appendChild(makeCell(urls[2], 2));
+        wrap.appendChild(grid);
+    } else {
+        const grid = document.createElement('div');
+        grid.className = 'grid grid-cols-2 gap-1 h-full';
+        urls.forEach((u, i) => {
+            const d = makeCell(u, i);
+            d.style.height = 'calc(208px / 2 - 2px)';
+            grid.appendChild(d);
+        });
+        wrap.appendChild(grid);
+    }
+
+    return wrap;
 }
 
 function formatTime(timestamp) {
@@ -179,7 +216,7 @@ function updateCardVoteUI(card, data, uid, selectedOptionId = null) {
 
 function createFeedCard(id, data) {
     const card = document.createElement('div');
-    card.className = 'bg-white dark:bg-slate-800 overflow-hidden border-b border-slate-100 dark:border-slate-700';
+    card.className = 'bg-white dark:bg-slate-800 overflow-hidden border-b border-slate-100 dark:border-slate-700 w-full';
     card.dataset.quizId = id;
 
     const isPix = data.type === 'quiz' || data.type === 'superquiz';
@@ -249,8 +286,8 @@ function createFeedCard(id, data) {
             <p class="font-bold text-slate-900 dark:text-white text-base leading-snug">${data.title || ''}</p>
             ${data.description ? `<p class="text-sm text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">${data.description}</p>` : ''}
         </a>
-        <!-- 이미지 그리드 -->
-        ${data.imageUrls?.length > 0 ? `<div class="px-3 pb-3">${buildImageGrid(data.imageUrls, id)}</div>` : ''}
+        <!-- 이미지 그리드 자리 -->
+        ${data.imageUrls?.length > 0 ? `<div class="px-3 pb-3 img-grid-slot"></div>` : ''}
         <!-- 투표 영역 -->
         ${voteHTML}
         <!-- 하단 액션 -->
@@ -273,6 +310,12 @@ function createFeedCard(id, data) {
         </div>
     `;
 
+    // 이미지 그리드 DOM 직접 삽입
+    const imgSlot = card.querySelector('.img-grid-slot');
+    if (imgSlot && data.imageUrls?.length > 0) {
+        imgSlot.appendChild(buildImageGrid(data.imageUrls, id));
+    }
+
     // 좋아요
     card.querySelector('.like-button').addEventListener('click', () => {
         handleCardLike(id, card);
@@ -288,9 +331,13 @@ function createFeedCard(id, data) {
     // 투표 버튼
     card.querySelectorAll('.vote-option-btn').forEach(btn => {
         btn.addEventListener('click', async () => {
+            if (btn.disabled) return;
+            const allBtns = card.querySelectorAll('.vote-option-btn');
+            allBtns.forEach(b => b.disabled = true);
             const user = auth.currentUser;
             if (!user) {
                 document.getElementById('login-modal-button')?.click();
+                allBtns.forEach(b => b.disabled = false);
                 return;
             }
             const optionId = btn.dataset.optionId;
@@ -318,6 +365,7 @@ function createFeedCard(id, data) {
                 const snap = await getDoc(doc(db, 'questions', id));
                 if (snap.exists()) updateCardVoteUI(card, snap.data(), user.uid, isSelected ? optionId : null);
             }
+            allBtns.forEach(b => b.disabled = false);
         });
     });
 
@@ -435,12 +483,23 @@ function initAuthUI() {
             window._currentUser = user;
             if (loginBtn) loginBtn.classList.add('hidden');
             if (userArea) { userArea.classList.remove('hidden'); userArea.classList.add('flex'); }
-            const cached = localStorage.getItem('userAvatar');
-            if (avatar && cached) avatar.src = cached;
+            // userProfiles에서 최신 프로필 사진 조회
+            getDoc(doc(db, 'userProfiles', user.uid)).then(snap => {
+                if (snap.exists() && snap.data().photoURL) {
+                    const photoURL = snap.data().photoURL;
+                    localStorage.setItem('userAvatar', photoURL);
+                    if (avatar) avatar.src = photoURL;
+                } else {
+                    localStorage.removeItem('userAvatar');
+                    if (avatar) avatar.src = '';
+                }
+            });
         } else {
             window._currentUser = null;
+            localStorage.removeItem('userAvatar');
             if (loginBtn) loginBtn.classList.remove('hidden');
             if (userArea) { userArea.classList.add('hidden'); userArea.classList.remove('flex'); }
+            if (avatar) avatar.src = '';
         }
     });
 }
