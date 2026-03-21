@@ -121,26 +121,50 @@ async function loadPost(postId) {
         const commentEl = document.getElementById('detail-comment-count');
         if (commentEl) commentEl.textContent = '댓글 ' + (post.commentsCount || 0);
 
-        // 이미지 (최초 1회만 렌더링)
+        // 이미지 슬라이드 (최초 1회만 렌더링)
         const imgContainer = document.getElementById('detail-images');
         if (imgContainer && imgContainer.children.length === 0) {
             if (Array.isArray(post.imageUrls) && post.imageUrls.length > 0) {
                 imageGallery = post.imageUrls;
-                post.imageUrls.forEach(url => {
+                const slideWrapper = document.createElement('div');
+                slideWrapper.className = 'flex gap-2 overflow-x-auto pb-1';
+                slideWrapper.style.scrollbarWidth = 'none';
+                slideWrapper.style.cursor = 'grab';
+                slideWrapper.style.webkitOverflowScrolling = 'touch';
+
+                // 마우스 드래그
+                let isDown = false, startX = 0, scrollLeft = 0;
+                slideWrapper.addEventListener('mousedown', (e) => {
+                    isDown = true; slideWrapper.style.cursor = 'grabbing';
+                    startX = e.pageX - slideWrapper.offsetLeft;
+                    scrollLeft = slideWrapper.scrollLeft;
+                });
+                slideWrapper.addEventListener('mouseleave', () => { isDown = false; slideWrapper.style.cursor = 'grab'; });
+                slideWrapper.addEventListener('mouseup', () => { isDown = false; slideWrapper.style.cursor = 'grab'; });
+                slideWrapper.addEventListener('mousemove', (e) => {
+                    if (!isDown) return;
+                    e.preventDefault();
+                    const x = e.pageX - slideWrapper.offsetLeft;
+                    slideWrapper.scrollLeft = scrollLeft - (x - startX) * 1.5;
+                });
+                post.imageUrls.forEach((url, idx) => {
                     const img = document.createElement('img');
                     img.src = url;
                     img.loading = 'lazy';
-                    img.className = 'w-full rounded-xl object-cover max-h-72 cursor-zoom-in';
+                    img.className = 'flex-shrink-0 rounded-xl object-cover cursor-zoom-in';
+                    img.style.height = '220px';
+                    img.style.width = post.imageUrls.length === 1 ? '100%' : '85%';
                     img.addEventListener('click', () => {
                         const modal = document.getElementById('image-modal');
                         if (!modal) return;
-                        currentImageIndex = imageGallery.indexOf(url);
+                        currentImageIndex = idx;
                         modal.querySelector('img').src = url;
                         modal.classList.remove('hidden');
                         updateImageCounter();
                     });
-                    imgContainer.appendChild(img);
+                    slideWrapper.appendChild(img);
                 });
+                imgContainer.appendChild(slideWrapper);
             }
         }
 

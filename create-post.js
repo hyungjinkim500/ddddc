@@ -65,17 +65,17 @@ document.addEventListener("DOMContentLoaded", () => {
     input.className =
       "w-full px-4 py-3 rounded-md bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-teal transition";
     
-    input.maxLength = isTopic ? 20 : 5;
+    input.maxLength = isTopic ? 20 : 10;
     
     const optionIndex = index;
 
     if (!isTopic) {
       if (optionIndex === 0) {
-        input.placeholder = "선택지 입력 (최대 5글자) 초록";
+        input.placeholder = "선택지 입력 (최대 10글자) 초록";
         input.classList.add("border-emerald-500");
       }
       if (optionIndex === 1) {
-        input.placeholder = "선택지 입력 (최대 5글자) 빨강";
+        input.placeholder = "선택지 입력 (최대 10글자) 빨강";
         input.classList.add("border-red-500");
       }
     }
@@ -207,20 +207,25 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
     }
 
-    if (!data.category) {
-      alert("카테고리를 선택해주세요.");
-      return;
-    }
+    // 카테고리는 숨김 처리 - 기본값 'free' 사용
+    if (!data.category) data.category = 'free';
 
     const quizType = data['quiz-type'];
 
-    // Poll participant limit validation
-    if (quizType) {
-      if (!data.participantLimit) {
-        alert("참가자 제한을 입력해주세요. (10~500)");
+    // 참가자 제한 validation
+    const useLimit = document.getElementById('use-participant-limit')?.checked;
+    const limitInput = document.getElementById('participant-limit');
+    const limitMsg = document.getElementById('participant-limit-msg');
+    if (useLimit) {
+      const limit = Number(data.participantLimit);
+      if (!data.participantLimit || isNaN(limit)) {
+        if (limitInput) { limitInput.classList.add('border-red-500'); limitInput.classList.remove('border-slate-200'); }
+        if (limitMsg) limitMsg.classList.remove('hidden');
+        limitInput?.focus();
         return;
       }
-      const limit = Number(data.participantLimit);
+      if (limitInput) { limitInput.classList.remove('border-red-500'); limitInput.classList.add('border-slate-200'); }
+      if (limitMsg) limitMsg.classList.add('hidden');
       if (limit < 10 || limit > 500) {
         alert("참가자 제한은 10명 이상 500명 이하입니다.");
         return;
@@ -367,6 +372,24 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
   
+  // URL 파라미터로 타입 자동 설정
+  const urlParams = new URLSearchParams(window.location.search);
+  const typeParam = urlParams.get('type');
+  if (typeParam === 'pix') {
+      const quizRadio = document.getElementById('type-quiz');
+      if (quizRadio) quizRadio.checked = true;
+  }
+
+  // 참가자 제한 체크박스 토글
+  document.getElementById('use-participant-limit')?.addEventListener('change', (e) => {
+      const inputBox = document.getElementById('participant-limit-input');
+      if (inputBox) inputBox.classList.toggle('hidden', !e.target.checked);
+      if (!e.target.checked) {
+          const input = document.getElementById('participant-limit');
+          if (input) input.value = '';
+      }
+  });
+
   // Initial setup on page load
   setupOptions();
 });

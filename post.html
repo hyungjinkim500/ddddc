@@ -127,10 +127,10 @@
             <i class="fas fa-compass"></i>
             <span>탐색</span>
         </a>
-        <a href="create-post.html" class="nav-btn pick-btn">
+        <button id="pick-btn-trigger" class="nav-btn pick-btn">
             <div class="pick-circle"><i class="fas fa-plus"></i></div>
             <span style="color:#169976; font-size:10px; margin-top:2px;">픽하기</span>
-        </a>
+        </button>
         <a href="#" class="nav-btn">
             <i class="fas fa-bell"></i>
             <span>알림</span>
@@ -176,6 +176,47 @@
     <div id="image-counter" class="absolute bottom-6 text-white text-sm"></div>
 </div>
 
+<!-- 글쓰기 바텀시트 -->
+<div id="write-sheet-backdrop" class="hidden fixed inset-0 bg-black/40 z-40"></div>
+<div id="write-sheet" class="hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] bg-white dark:bg-slate-800 rounded-t-2xl z-50 pb-8">
+    <div class="w-10 h-1 bg-slate-300 dark:bg-slate-600 rounded-full mx-auto mt-3 mb-4"></div>
+    <div class="px-4 space-y-2">
+        <button id="sheet-post-btn" class="flex items-center gap-4 w-full px-4 py-4 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition text-left">
+            <div class="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-600 flex items-center justify-center flex-shrink-0">
+                <i class="fas fa-pen text-slate-500 dark:text-slate-300"></i>
+            </div>
+            <div>
+                <p class="font-bold text-slate-800 dark:text-white text-sm">POST</p>
+                <p class="text-xs text-slate-400">일반 게시글 작성</p>
+            </div>
+        </button>
+        <button id="sheet-pix-btn" class="flex items-center gap-4 w-full px-4 py-4 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition text-left">
+            <div class="w-10 h-10 rounded-full bg-green-50 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
+                <i class="fas fa-vote-yea text-[#169976]"></i>
+            </div>
+            <div>
+                <p class="font-bold text-slate-800 dark:text-white text-sm">PIX</p>
+                <p class="text-xs text-slate-400">투표가 있는 픽스 게시글</p>
+            </div>
+        </button>
+    </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const trigger = document.getElementById('pick-btn-trigger');
+    const backdrop = document.getElementById('write-sheet-backdrop');
+    const sheet = document.getElementById('write-sheet');
+    function openSheet() { backdrop.classList.remove('hidden'); sheet.classList.remove('hidden'); }
+    function closeSheet() { backdrop.classList.add('hidden'); sheet.classList.add('hidden'); }
+    trigger?.addEventListener('click', () => {
+        const user = typeof auth !== 'undefined' ? auth.currentUser : null;
+        openSheet();
+    });
+    backdrop?.addEventListener('click', closeSheet);
+    document.getElementById('sheet-post-btn')?.addEventListener('click', () => { closeSheet(); window.location.href = 'create-post.html?type=post'; });
+    document.getElementById('sheet-pix-btn')?.addEventListener('click', () => { closeSheet(); window.location.href = 'create-post.html?type=pix'; });
+});
+</script>
 <script type="module" src="firebase-config.js"></script>
 <script type="module" src="auth.js"></script>
 <script type="module" src="comments.js"></script>

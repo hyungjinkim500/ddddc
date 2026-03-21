@@ -174,8 +174,17 @@ function createFeedCard(id, data) {
             <p class="font-bold text-slate-900 dark:text-white text-base leading-snug">${data.title || ''}</p>
             ${data.description ? `<p class="text-sm text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">${data.description}</p>` : ''}
         </a>
-        <!-- 이미지 (있을 경우) -->
-        ${data.imageUrls?.[0] ? `<img src="${data.imageUrls[0]}" class="w-full max-h-60 object-cover" loading="lazy">` : ''}
+        <!-- 이미지 슬라이드 -->
+        ${data.imageUrls?.length > 0 ? `
+        <div class="relative overflow-hidden img-slide-outer">
+            <div class="img-slide-inner flex gap-2 overflow-x-auto px-4 pb-2" style="scrollbar-width:none; -webkit-overflow-scrolling:touch; cursor:grab;">
+                ${data.imageUrls.map(url => `
+                    <img src="${url}" loading="lazy"
+                        class="flex-shrink-0 rounded-xl object-cover pointer-events-none"
+                        style="height:200px; width:${data.imageUrls.length === 1 ? '100%' : '80%'};">
+                `).join('')}
+            </div>
+        </div>` : ''}
         <!-- 투표 영역 -->
         ${voteHTML}
         <!-- 하단 액션 -->
@@ -241,6 +250,29 @@ function createFeedCard(id, data) {
             }
         });
     });
+
+    // 이미지 슬라이드 마우스 드래그
+    const slideInner = card.querySelector('.img-slide-inner');
+    if (slideInner) {
+        let isDown = false;
+        let startX = 0;
+        let scrollLeft = 0;
+        slideInner.addEventListener('mousedown', (e) => {
+            isDown = true;
+            slideInner.style.cursor = 'grabbing';
+            startX = e.pageX - slideInner.offsetLeft;
+            scrollLeft = slideInner.scrollLeft;
+        });
+        slideInner.addEventListener('mouseleave', () => { isDown = false; slideInner.style.cursor = 'grab'; });
+        slideInner.addEventListener('mouseup', () => { isDown = false; slideInner.style.cursor = 'grab'; });
+        slideInner.addEventListener('mousemove', (e) => {
+            if (!isDown) return;
+            e.preventDefault();
+            const x = e.pageX - slideInner.offsetLeft;
+            const walk = (x - startX) * 1.5;
+            slideInner.scrollLeft = scrollLeft - walk;
+        });
+    }
 
     // 카드 데이터 캐시 저장
     card._cachedData = data;
@@ -323,11 +355,13 @@ function initAuthUI() {
         const userArea = document.getElementById('header-user-area');
         const avatar = document.getElementById('header-avatar');
         if (user) {
+            window._currentUser = user;
             if (loginBtn) loginBtn.classList.add('hidden');
             if (userArea) { userArea.classList.remove('hidden'); userArea.classList.add('flex'); }
             const cached = localStorage.getItem('userAvatar');
             if (avatar && cached) avatar.src = cached;
         } else {
+            window._currentUser = null;
             if (loginBtn) loginBtn.classList.remove('hidden');
             if (userArea) { userArea.classList.add('hidden'); userArea.classList.remove('flex'); }
         }
