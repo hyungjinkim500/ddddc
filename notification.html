@@ -78,7 +78,7 @@
                 <div class="pick-circle"><i class="fas fa-plus"></i></div>
                 <span style="color:#169976;font-size:10px;margin-top:2px;">픽하기</span>
             </button>
-            <a href="notification.html" class="nav-btn active"><i class="fas fa-bell"></i><span>알림</span></a>
+            <a href="notification.html" id="nav-alarm" class="nav-btn active"><i class="fas fa-bell"></i><span>알림</span></a>
             <a href="mypage.html" class="nav-btn"><i class="fas fa-user"></i><span>마이</span></a>
         </nav>
     </div>
@@ -104,7 +104,7 @@
                 noNotifications.innerHTML = `
                     <i class="far fa-bell-slash fa-2x mb-3"></i>
                     <p>로그인이 필요합니다.</p>
-                    <a href="/auth.html" class="mt-4 inline-block bg-sky-500 text-white px-4 py-2 rounded-lg text-sm">로그인</a>
+                    <button onclick="window.openModal()" class="mt-4 inline-block bg-[#169976] text-white px-4 py-2 rounded-lg text-sm font-bold">로그인</button>
                 `;
             }
         });
@@ -125,6 +125,19 @@
                 if (snapshot.empty) {
                     noNotifications.classList.remove('hidden');
                     return;
+                }
+
+                // 읽지 않은 알림 전체 자동 읽음 처리
+                const unreadDocs = snapshot.docs.filter(d => !d.data().read);
+                if (unreadDocs.length > 0) {
+                    const batch = writeBatch(db);
+                    unreadDocs.forEach(d => {
+                        batch.update(doc(db, 'notifications', uid, 'items', d.id), { read: true });
+                    });
+                    batch.commit().catch(() => {});
+                    // 뱃지 제거
+                    const navAlarm = document.getElementById('nav-alarm');
+                    navAlarm?.querySelector('.notif-badge')?.remove();
                 }
 
                 snapshot.docs.forEach(docSnap => {
@@ -171,6 +184,11 @@
                 if (!item.read) {
                     markAsRead(auth.currentUser.uid, id);
                     el.classList.remove('unread');
+                    // 읽지 않은 알림 없으면 뱃지 제거
+                    if (!document.querySelector('.notif-item.unread')) {
+                        const navAlarm = document.getElementById('nav-alarm');
+                        navAlarm?.querySelector('.notif-badge')?.remove();
+                    }
                 }
                 window.location.href = el.href;
             });
@@ -203,6 +221,9 @@
             try {
                 await batch.commit();
                 unreadItems.forEach(el => el.classList.remove('unread'));
+                // 뱃지 제거
+                const navAlarm = document.getElementById('nav-alarm');
+                navAlarm?.querySelector('.notif-badge')?.remove();
             } catch (e) {
                 console.error("Failed to mark all as read:", e);
             }

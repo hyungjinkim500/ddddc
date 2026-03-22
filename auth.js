@@ -398,7 +398,32 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Listen for auth state changes
+    // 알림 뱃지 업데이트
+async function updateNotifBadge(uid) {
+    try {
+        const { collection, query, where, getCountFromServer } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+        const q = query(collection(db, 'notifications', uid, 'items'), where('read', '==', false));
+        const snap = await getCountFromServer(q);
+        const count = snap.data().count || 0;
+        const navAlarm = document.getElementById('nav-alarm');
+        if (!navAlarm) return;
+        let badge = navAlarm.querySelector('.notif-badge');
+        if (count > 0) {
+            if (!badge) {
+                badge = document.createElement('span');
+                badge.className = 'notif-badge absolute top-0 right-1 w-2.5 h-2.5 bg-red-500 rounded-full';
+                navAlarm.style.position = 'relative';
+                navAlarm.appendChild(badge);
+            }
+        } else {
+            badge?.remove();
+        }
+    } catch (e) {
+        console.error('알림 뱃지 오류:', e);
+    }
+}
+
+// Listen for auth state changes
     onAuthStateChanged(auth, async (user) => {
         const themeToggleButton = document.getElementById('theme-toggle');
         const userProfileInfo = document.getElementById('user-profile-info');
@@ -412,6 +437,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (user) {
+            updateNotifBadge(user.uid);
             if (loginModalButton) loginModalButton.style.display = 'none';
             if (userProfileInfo) {
                  userProfileInfo.style.display = 'flex';
