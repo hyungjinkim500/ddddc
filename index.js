@@ -193,6 +193,22 @@ function updateCardVoteUI(card, data, uid, selectedOptionId = null) {
     if (barA) barA.textContent = options[0].percent + '%';
     if (barB) barB.textContent = options[1].percent + '%';
 
+    // 투표인원수 실시간 업데이트
+    const voteObj2 = data.vote || {};
+    const totalVotes2 = Object.values(voteObj2).reduce((a, b) => a + b, 0);
+    const maxP2 = data.participantLimit || 0;
+    const curP2 = (data.participants || []).length;
+    const voteCountEl = card.querySelector('.vote-count-display');
+    if (voteCountEl) {
+        voteCountEl.textContent = maxP2 > 0 ? `${curP2}/${maxP2}` : totalVotes2 > 0 ? `${totalVotes2}명` : '0명';
+    }
+    if (maxP2 > 0) {
+        const barFill = card.querySelector('.participation-bar-fill');
+        const barText = card.querySelector('.participation-bar-text');
+        if (barFill) barFill.style.width = `${Math.round(curP2 / maxP2 * 100)}%`;
+        if (barText) barText.textContent = `${curP2} / ${maxP2} 참여`;
+    }
+
     // 버튼 강조 항상 초기화 먼저
     [btnA, btnB].forEach(btn => {
         if (!btn) return;
@@ -236,9 +252,9 @@ function createFeedCard(id, data) {
     if (isPix && options.length >= 2) {
         const participationBar = maxP > 0 ? `
             <div class="w-full bg-slate-200 rounded h-1.5 mt-1">
-                <div class="bg-[#169976] h-1.5 rounded transition-all" style="width:${Math.round(curP / maxP * 100)}%"></div>
+                <div class="participation-bar-fill bg-[#169976] h-1.5 rounded transition-all" style="width:${Math.round(curP / maxP * 100)}%"></div>
             </div>
-            <div class="text-xs text-slate-400 mt-0.5">${curP} / ${maxP} 참여</div>
+            <div class="participation-bar-text text-xs text-slate-400 mt-0.5">${curP} / ${maxP} 참여</div>
         ` : '';
 
         voteHTML = `
@@ -302,7 +318,7 @@ function createFeedCard(id, data) {
             </a>
             ${isPix ? `<span class="flex items-center gap-1 text-slate-400 text-sm">
                 <i class="fas fa-poll text-base"></i>
-                <span>${maxP > 0 ? `${curP}/${maxP}` : totalVotes > 0 ? `${totalVotes}명` : '0명'}</span>
+                <span class="vote-count-display">${maxP > 0 ? `${curP}/${maxP}` : totalVotes > 0 ? `${totalVotes}명` : '0명'}</span>
             </span>` : ''}
             <button class="share-btn flex items-center gap-1.5 text-slate-400 hover:text-slate-600 transition ml-auto" data-id="${id}" data-title="${data.title || ''}">
                 <i class="fas fa-share-alt text-base"></i>
@@ -363,7 +379,7 @@ function createFeedCard(id, data) {
             } else {
                 // 실패 시 원래 상태로 복원
                 const snap = await getDoc(doc(db, 'questions', id));
-                if (snap.exists()) updateCardVoteUI(card, snap.data(), user.uid, isSelected ? optionId : null);
+                if (snap.exists()) updateCardVoteUI(card, data, user.uid, isSelected ? optionId : null);
             }
             allBtns.forEach(b => b.disabled = false);
         });
@@ -510,9 +526,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initAuthUI();
     loadFeed(true);
 
-    document.getElementById('header-search-btn')?.addEventListener('click', () => {
-        window.location.href = 'search.html';
-    });
+    // 퀵서치는 index.html 인라인 스크립트에서 처리
     document.getElementById('header-avatar')?.addEventListener('click', () => {
         window.location.href = 'mypage.html';
     });

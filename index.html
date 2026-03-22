@@ -38,6 +38,41 @@
             background: #1e293b;
         }
 
+        /* 퀵서치 바 */
+        #quick-search-bar {
+            overflow: hidden;
+            max-height: 0;
+            transition: max-height 0.25s ease, padding 0.25s ease;
+            background: white;
+            border-bottom: 1px solid transparent;
+        }
+        html.dark #quick-search-bar {
+            background: #1e293b;
+        }
+        #quick-search-bar.open {
+            max-height: 60px;
+            border-color: #e2e8f0;
+            padding: 8px 16px;
+        }
+        html.dark #quick-search-bar.open {
+            border-color: #334155;
+        }
+        #quick-search-input {
+            flex: 1;
+            background: #f1f5f9;
+            border: none;
+            border-radius: 999px;
+            padding: 8px 16px;
+            font-size: 14px;
+            outline: none;
+            color: #1e293b;
+        }
+        html.dark #quick-search-input {
+            background: #334155;
+            color: #e2e8f0;
+        }
+        #quick-search-input::placeholder { color: #94a3b8; }
+
         /* 로고바 - 스크롤 시 자연스럽게 위로 사라짐 */
         #logo-bar {
             position: relative;
@@ -220,6 +255,26 @@
         </div>
     </div>
 
+    <!-- 퀵서치 바 -->
+    <div id="quick-search-bar">
+        <div class="flex items-center gap-2">
+            <input
+                type="text"
+                id="quick-search-input"
+                placeholder="검색어를 입력하세요"
+                autocomplete="off"
+            >
+            <button id="quick-search-submit"
+                class="px-4 py-1.5 rounded-full bg-[#169976] text-white text-sm font-bold flex-shrink-0">
+                검색
+            </button>
+            <button id="quick-search-cancel"
+                class="px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300 text-sm flex-shrink-0">
+                취소
+            </button>
+        </div>
+    </div>
+
     <!-- 상단 헤더 (탭만, 스크롤 시 함께 내려감) -->
     <header id="top-header">
         <!-- 피드 탭 -->
@@ -314,6 +369,31 @@ document.addEventListener('DOMContentLoaded', () => {
         backdrop.classList.add('hidden');
         sheet.classList.add('hidden');
     }
+
+    // 퀵서치
+    const headerSearchBtn = document.getElementById('header-search-btn');
+    const quickSearchBar = document.getElementById('quick-search-bar');
+    const quickSearchInput = document.getElementById('quick-search-input');
+    const quickSearchSubmit = document.getElementById('quick-search-submit');
+    const quickSearchCancel = document.getElementById('quick-search-cancel');
+
+    headerSearchBtn?.addEventListener('click', () => {
+        quickSearchBar.classList.add('open');
+        setTimeout(() => quickSearchInput?.focus(), 50);
+    });
+    quickSearchCancel?.addEventListener('click', () => {
+        quickSearchBar.classList.remove('open');
+        if (quickSearchInput) quickSearchInput.value = '';
+    });
+    function submitQuickSearch() {
+        const val = quickSearchInput?.value.trim();
+        if (val) window.location.href = `explore.html?q=${encodeURIComponent(val)}`;
+    }
+    quickSearchSubmit?.addEventListener('click', submitQuickSearch);
+    quickSearchInput?.addEventListener('keydown', e => {
+        if (e.key === 'Enter') submitQuickSearch();
+        if (e.key === 'Escape') quickSearchCancel?.click();
+    });
 
     trigger?.addEventListener('click', () => {
         const user = window._currentUser;

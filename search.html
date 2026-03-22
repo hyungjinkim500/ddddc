@@ -1,73 +1,17 @@
 <!DOCTYPE html>
-<html lang="ko" class="light">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>검색 결과 | 픽스</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="tailwind.config.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Pretendard:wght@400;600;700&display=swap');
-        
-        :root {
-            --pm-navy: #0e1117;
-            --pm-teal: #00d395; 
-            --pm-teal-dark: #00a876;
-            --bg-primary-light: #f8f7f4;
-            --bg-primary-dark: #020617;
-            --text-primary-light: #1e293b;
-            --text-primary-dark: #e2e8f0;
-            --card-bg-light: white;
-            --card-bg-dark: #0f172a;
-            --border-light: #e2e8f0;
-            --border-dark: #1e293b;
-        }
-
-        body {
-            font-family: 'Pretendard', sans-serif;
-            letter-spacing: -0.025em;
-            word-break: keep-all;
-            background-color: var(--bg-primary-light);
-            color: var(--text-primary-light);
-        }
-        html.dark body {
-            background-color: var(--bg-primary-dark);
-            color: var(--text-primary-dark);
-        }
-    </style>
+<meta charset="UTF-8">
+<script>
+(function() {
+    var q = new URLSearchParams(window.location.search).get('q');
+    if (q) {
+        window.location.replace('explore.html?q=' + encodeURIComponent(q));
+    } else {
+        window.location.replace('explore.html');
+    }
+})();
+</script>
 </head>
-<body class="transition-colors duration-300">
-
-<div id="header-container"></div>
-
-    <main class="container mx-auto px-4 sm:px-6 py-8 md:py-12">
-        <h2 class="text-2xl font-bold mb-6">
-            '<span id="search-keyword"></span>'에 대한 검색 결과
-        </h2>
-
-        <!-- 필터 영역 -->
-        <div class="flex items-center gap-3 mb-6 flex-wrap">
-            <select id="filter-sort" class="border rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 dark:border-slate-600">
-                <option value="latest">최신순</option>
-                <option value="popular">인기순</option>
-            </select>
-            <select id="filter-category" class="border rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 dark:border-slate-600">
-                <option value="">전체 카테고리</option>
-            </select>
-            <span id="result-count" class="text-sm text-slate-500 ml-auto"></span>
-        </div>
-
-        <!-- 리스트 영역 -->
-        <div id="search-results-container" class="space-y-2"></div>
-
-        <!-- 페이지네이션 -->
-        <div id="pagination" class="mt-6 flex justify-center items-center gap-2 text-sm"></div>
-    </main>
-    
-    <script type="module" src="firebase-config.js" defer></script>
-    <script type="module" src="auth.js" defer></script>
-    <script type="module" src="header.js" defer></script>
-    <script type="module" src="search.js"></script>
-</body>
+<body></body>
 </html>
