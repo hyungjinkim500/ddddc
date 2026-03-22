@@ -461,10 +461,18 @@ async function loadFeed(reset = false) {
         const q = buildQuery(currentTab, lastDoc);
         const snap = await getDocs(q);
 
+        const newIds = [];
         snap.forEach(docSnap => {
             const card = createFeedCard(docSnap.id, docSnap.data());
             feedList.appendChild(card);
+            newIds.push(docSnap.id);
         });
+
+        // 새로 추가된 카드 좋아요 상태 복원
+        if (auth.currentUser && newIds.length > 0) {
+            const { restoreLikeState } = await import('./modules/likes.js');
+            await Promise.all(newIds.map(id => restoreLikeState(id, auth.currentUser.uid)));
+        }
 
         if (snap.docs.length > 0) lastDoc = snap.docs[snap.docs.length - 1];
         if (snap.docs.length < PAGE_SIZE) {

@@ -210,14 +210,8 @@ function initNicknameChange() {
     };
 }
 
-// 로그아웃 (로그인 상태일 때만)
-document.getElementById('logout-link')?.addEventListener('click', async (e) => {
-    e.preventDefault();
-    if (!auth.currentUser) return;
-    const { signOut } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js');
-    await signOut(auth);
-    window.location.href = 'index.html';
-});
+// 로그아웃은 onAuthStateChanged에서 동적으로 처리하므로 여기서는 제거
+// (비로그인 시 return으로 막아버리는 문제 방지)
 
 // 회원 탈퇴
 document.getElementById('withdraw-link')?.addEventListener('click', async (e) => {
@@ -239,6 +233,23 @@ document.getElementById('withdraw-link')?.addEventListener('click', async (e) =>
 // 초기화
 onAuthStateChanged(auth, async (user) => {
     if (user) {
+        // 로그인 버튼이 남아있으면 로그아웃 버튼으로 복구 후 새로고침
+        const logoutBtn = document.getElementById('logout-link');
+        if (logoutBtn && logoutBtn.textContent === '로그인') {
+            window.location.reload();
+            return;
+        }
+        // 로그아웃 버튼 이벤트 연결
+        if (logoutBtn) {
+            logoutBtn.textContent = '로그아웃';
+            logoutBtn.className = 'text-sm text-slate-400 hover:text-slate-600 dark:hover:text-slate-200';
+            logoutBtn.onclick = async (e) => {
+                e.preventDefault();
+                const { signOut } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js');
+                await signOut(auth);
+                window.location.href = 'index.html';
+            };
+        }
         initTabs();
         // 프로필 정보 로드
         const profileNameEl = document.getElementById('profile-name');
@@ -262,8 +273,8 @@ onAuthStateChanged(auth, async (user) => {
             logoutBtn.className = 'text-sm font-bold px-3 py-1.5 rounded-lg bg-[#169976] text-white cursor-pointer';
             logoutBtn.onclick = (e) => {
                 e.preventDefault();
-                const loginModal = document.getElementById('login-modal');
-                if(loginModal) loginModal.classList.add('show');
+                const modal = document.getElementById('login-modal');
+                if (modal) modal.style.display = 'flex';
             };
         }
 

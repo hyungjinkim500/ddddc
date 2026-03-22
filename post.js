@@ -154,8 +154,12 @@ async function loadPost(postId) {
     const postRef = doc(db, 'questions', postId);
 
     if (sessionStorage.getItem('viewed_' + postId) !== 'true') {
-        await updateDoc(postRef, { views: increment(1) });
-        sessionStorage.setItem('viewed_' + postId, 'true');
+        try {
+            await updateDoc(postRef, { views: increment(1) });
+            sessionStorage.setItem('viewed_' + postId, 'true');
+        } catch (e) {
+            // 비로그인 시 권한 에러 무시
+        }
     }
 
     onSnapshot(postRef, async (snap) => {
@@ -270,7 +274,7 @@ async function loadPost(postId) {
                     btn.textContent = option.label;
                     btn.addEventListener('click', async () => {
                         const user = auth.currentUser;
-                        if (!user) { document.getElementById('login-modal-button')?.click(); return; }
+                        if (!user) { window.openModal?.(); return; }
                         if (btn.disabled) return;
                         btn.disabled = true;
 
@@ -355,7 +359,7 @@ async function loadPost(postId) {
                 if (likeButton.disabled) return;
                 likeButton.disabled = true;
                 const user = auth.currentUser;
-                if (!user) { document.getElementById('login-modal-button')?.click(); likeButton.disabled = false; return; }
+                if (!user) { window.openModal?.(); likeButton.disabled = false; return; }
                 const likeRef = doc(db, `questions/${postId}/likes/${user.uid}`);
                 const likeSnap = await getDoc(likeRef);
                 const postRef = doc(db, 'questions', postId);
@@ -421,7 +425,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             commentSubmit.disabled = true;
 
             const user = auth.currentUser;
-            if (!user) { document.getElementById('login-modal-button')?.click(); return; }
+            if (!user) { window.openModal?.(); return; }
 
             // PIX 게시글이고 무투표댓글 비허용 시 투표 여부 체크
             const postSnap2 = await getDoc(doc(db, 'questions', postId));
@@ -487,10 +491,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else {
             if (headerLoginBtn) {
                 headerLoginBtn.classList.remove('hidden');
-                headerLoginBtn.onclick = () => {
-                    const modal = document.getElementById('login-modal');
-                    if (modal) modal.classList.add('show');
-                };
+                headerLoginBtn.onclick = () => window.openModal?.();
             }
             if (headerUserArea) { headerUserArea.classList.add('hidden'); headerUserArea.classList.remove('flex'); }
         }

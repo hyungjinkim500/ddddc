@@ -29,10 +29,7 @@
         .my-tab-btn { flex: 1; padding: 10px 0; font-size: 12px; font-weight: 600; color: #94a3b8; border-bottom: 2px solid transparent; text-align: center; cursor: pointer; transition: all 0.15s; }
         .my-tab-btn.active { color: #169976; border-color: #169976; }
 
-        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(14,17,23,0.6); display: flex; align-items: center; justify-content: center; z-index: 100; opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0s linear 0.3s; }
-        .modal-overlay.show { opacity: 1; visibility: visible; transition: opacity 0.3s ease; }
-        .modal-content { background: white; padding: 2rem; border-radius: 1rem; width: 90%; max-width: 400px; position: relative; max-height: 90vh; overflow-y: auto; }
-        html.dark .modal-content { background: #1e293b; }
+        /* 로그인 모달은 auth.js에서 동적 주입 */
     </style>
 </head>
 <body>
@@ -132,32 +129,7 @@
     </nav>
 </div>
 
-<!-- 로그인 모달 -->
-<div id="login-modal" class="modal-overlay">
-    <div class="modal-content">
-        <button id="login-modal-close-button" class="absolute top-3 right-4 text-slate-400 hover:text-slate-600 text-2xl">&times;</button>
-        <div id="login-view">
-            <h2 class="text-xl font-bold mb-4 text-center">로그인</h2>
-            <form id="login-form" class="space-y-3">
-                <input type="email" name="email" placeholder="이메일" class="w-full px-3 py-2 border rounded-lg text-sm dark:bg-slate-700 dark:border-slate-600" required>
-                <input type="password" name="password" placeholder="비밀번호" class="w-full px-3 py-2 border rounded-lg text-sm dark:bg-slate-700 dark:border-slate-600" required>
-                <button type="submit" class="w-full bg-[#169976] text-white py-2 rounded-lg font-bold text-sm">로그인</button>
-            </form>
-            <button id="google-login-button" class="w-full mt-3 border border-slate-300 py-2 rounded-lg text-sm font-semibold hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-700">구글로 로그인</button>
-            <p class="text-center text-xs mt-4 text-slate-500">계정이 없으신가요? <a href="#" id="show-register-view-link" class="text-[#169976] font-bold">회원가입</a></p>
-        </div>
-        <div id="register-view" style="display:none;">
-            <h2 class="text-xl font-bold mb-4 text-center">회원가입</h2>
-            <form id="register-form" class="space-y-3">
-                <input type="text" name="nickname" placeholder="닉네임" class="w-full px-3 py-2 border rounded-lg text-sm dark:bg-slate-700 dark:border-slate-600" required>
-                <input type="email" name="email" placeholder="이메일" class="w-full px-3 py-2 border rounded-lg text-sm dark:bg-slate-700 dark:border-slate-600" required>
-                <input type="password" name="password" placeholder="비밀번호" class="w-full px-3 py-2 border rounded-lg text-sm dark:bg-slate-700 dark:border-slate-600" required>
-                <button type="submit" class="w-full bg-[#169976] text-white py-2 rounded-lg font-bold text-sm">가입하기</button>
-            </form>
-            <p class="text-center text-xs mt-4 text-slate-500">이미 계정이 있으신가요? <a href="#" id="show-login-view-link-from-terms" class="text-[#169976] font-bold">로그인</a></p>
-        </div>
-    </div>
-</div>
+<!-- 로그인 모달은 auth.js에서 동적 주입 -->
 
 <!-- 글쓰기 바텀시트 -->
 <div id="write-sheet-backdrop" class="hidden fixed inset-0 bg-black/40 z-40"></div>
