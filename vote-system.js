@@ -2,7 +2,36 @@ import { getAuth } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-aut
 import { doc, runTransaction, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { db } from './firebase-config.js';
 
+const _voteTimers = {};
+const _pendingVote = {};
+
 export async function handleVote(quizId, optionId) {
+    // 300ms debounce: 같은 게시글에 연타 시 마지막 클릭만 서버 전송
+    _pendingVote[quizId] = optionId;
+    if (_voteTimers[quizId]) {
+        clearTimeout(_voteTimers[quizId]);
+        return new Promise(resolve => {
+            _voteTimers[quizId] = setTimeout(async () => {
+                delete _voteTimers[quizId];
+                const latestOptionId = _pendingVote[quizId];
+                delete _pendingVote[quizId];
+                const result = await _doHandleVote(quizId, latestOptionId);
+                resolve(result);
+            }, 300);
+        });
+    }
+    return new Promise(resolve => {
+        _voteTimers[quizId] = setTimeout(async () => {
+            delete _voteTimers[quizId];
+            const latestOptionId = _pendingVote[quizId];
+            delete _pendingVote[quizId];
+            const result = await _doHandleVote(quizId, latestOptionId);
+            resolve(result);
+        }, 300);
+    });
+}
+
+async function _doHandleVote(quizId, optionId) {
     const auth = getAuth();
     const user = auth.currentUser;
 
@@ -89,7 +118,6 @@ export async function handleVote(quizId, optionId) {
 
     } catch (e) {
         console.error("Transaction failed: ", e);
-        alert(`투표 처리 중 오류가 발생했습니다: ${e}`);
         return false;
     }
 }

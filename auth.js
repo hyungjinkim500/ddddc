@@ -6,10 +6,35 @@ import {
     signOut,
     GoogleAuthProvider,
     signInWithPopup,
+    signInWithRedirect,
+    getRedirectResult,
     updateProfile
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { app, auth, db } from './firebase-config.js';
 import { doc, setDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// 리다이렉트 후 결과 처리 (DOMContentLoaded 밖에서 즉시 실행)
+getRedirectResult(auth).then(async (result) => {
+    if (!result?.user) return;
+    const user = result.user;
+    const userRef = doc(db, "userProfiles", user.uid);
+    const snap = await getDoc(userRef);
+    if (!snap.exists()) {
+        await setDoc(userRef, {
+            displayName: user.displayName || "사용자",
+            photoURL: user.photoURL || null,
+            points: 100,
+            winCount: 0,
+            totalParticipation: 0,
+            role: "user",
+            isBanned: false,
+            createdAt: serverTimestamp()
+        });
+    }
+    window.location.reload();
+}).catch((error) => {
+    console.error('Redirect result error:', error);
+});
 
 document.addEventListener('DOMContentLoaded', () => {
     const loginModal = document.getElementById('login-modal');
@@ -127,8 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const provider = new GoogleAuthProvider();
             try {
-                await signInWithPopup(auth, provider);
-                hideModal();
+                await signInWithRedirect(auth, provider);
             } catch (error) {
                 console.error('Google sign-in error:', error);
                 alert('Google 로그인에 실패했습니다. 콘솔을 확인하세요.');

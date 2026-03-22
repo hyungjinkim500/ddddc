@@ -10,6 +10,40 @@ const postId = params.get('id');
 
 let imageGallery = [];
 let currentImageIndex = 0;
+let _myVote = null; // 내 투표 캐시
+let _postCache = null; // 게시글 데이터 캐시 (즉시 UI용)
+
+function applyVoteLocalUI(optionId, isCancel) {
+    if (!_postCache) return;
+    const local = JSON.parse(JSON.stringify(_postCache));
+    const voteObj = local.vote || {};
+    if (isCancel) {
+        if (voteObj[optionId] > 0) voteObj[optionId]--;
+        local.participants = (local.participants || []).filter(p => p !== 'me');
+    } else {
+        if (_myVote && voteObj[_myVote] > 0) voteObj[_myVote]--;
+        voteObj[optionId] = (voteObj[optionId] || 0) + 1;
+        local.participants = [...(local.participants || []), 'me'];
+    }
+    local.vote = voteObj;
+    _postCache = local;
+    updateVoteBarUI(local);
+
+    // 인원수 즉시 반영
+    const maxP = local.participantLimit || 0;
+    const totalVotes = Object.values(voteObj).reduce((a, b) => a + b, 0);
+    const curP = (local.participants || []).length;
+    const voteStatEl = document.getElementById('detail-vote-stat');
+    if (voteStatEl) {
+        voteStatEl.querySelector('span').textContent = maxP > 0 ? `${curP}/${maxP}` : totalVotes > 0 ? `${totalVotes}명` : '0명';
+    }
+    if (maxP > 0) {
+        const bar = document.getElementById('participation-bar');
+        const text = document.getElementById('participation-text');
+        if (bar) bar.style.width = Math.round(curP / maxP * 100) + '%';
+        if (text) text.textContent = `${curP} / ${maxP} 참여`;
+    }
+}
 
 function updateImageCounter() {
     const counter = document.getElementById('image-counter');
@@ -33,10 +67,14 @@ async function restoreUserVotes(user) {
     if (!user || !postId) return;
     const userVoteRef = doc(db, `questions/${postId}/userVotes/${user.uid}`);
     const snap = await getDoc(userVoteRef).catch(() => null);
-    if (!snap?.exists()) return;
-    const selectedId = snap.data().selectedOption;
+    _myVote = snap?.exists() ? snap.data().selectedOption : null;
+    applyVoteButtonUI(_myVote);
+}
+
+function applyVoteButtonUI(selectedId) {
     document.querySelectorAll('.vote-option-btn').forEach(btn => {
         btn.classList.remove('opacity-50', 'ring-[3px]', 'ring-inset', 'ring-[#169976]', 'ring-orange-400');
+        if (!selectedId) return;
         if (btn.dataset.optionId === selectedId) {
             btn.classList.add('ring-[3px]', 'ring-inset',
                 btn.classList.contains('border-orange-400') ? 'ring-orange-400' : 'ring-[#169976]'
@@ -127,6 +165,7 @@ async function loadPost(postId) {
         }
 
         const post = snap.data();
+        _postCache = post;
         const isPix = post.type === 'quiz' || post.type === 'superquiz';
 
         // 카테고리 (캐싱)
@@ -232,19 +271,29 @@ async function loadPost(postId) {
                     btn.addEventListener('click', async () => {
                         const user = auth.currentUser;
                         if (!user) { document.getElementById('login-modal-button')?.click(); return; }
-                        const isSelected = btn.classList.contains('ring-[3px]');
+                        if (btn.disabled) return;
+                        btn.disabled = true;
+
+                        const isSelected = _myVote === option.id;
                         const newSelected = isSelected ? null : option.id;
-                        document.querySelectorAll('.vote-option-btn').forEach(b => {
-                            b.classList.remove('opacity-50', 'ring-[3px]', 'ring-inset', 'ring-[#169976]', 'ring-orange-400');
+
+                        // ① 즉시 버튼 강조 + 바/인원수 반영 (서버 기다리지 않음)
+                        applyVoteLocalUI(option.id, isSelected);
+                        _myVote = newSelected;
+                        applyVoteButtonUI(newSelected);
+
+                        // ② 서버 저장 백그라운드
+                        handleVote(postId, option.id).then(success => {
+                            if (!success) {
+                                // 실패 시 롤백
+                                _myVote = isSelected ? option.id : null;
+                                applyVoteButtonUI(_myVote);
+                            } else {
+                                updatePopularityScore(postId);
+                            }
                         });
-                        if (newSelected) {
-                            btn.classList.add('ring-[3px]', 'ring-inset', c.ring);
-                            document.querySelectorAll('.vote-option-btn').forEach(b => {
-                                if (b !== btn) b.classList.add('opacity-50');
-                            });
-                        }
-                        const success = await handleVote(postId, option.id);
-                        if (success) updatePopularityScore(postId);
+
+                        btn.disabled = false;
                     });
                     optionsContainer.appendChild(btn);
                 });

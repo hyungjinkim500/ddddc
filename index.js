@@ -358,29 +358,44 @@ function createFeedCard(id, data) {
             }
             const optionId = btn.dataset.optionId;
 
-            // 현재 선택 상태 파악 (낙관적 UI용)
+            // 현재 선택 상태 파악
             const isSelected = btn.classList.contains('ring-[3px]');
             const newSelected = isSelected ? null : optionId;
 
-            // ① 즉시 UI 업데이트 (서버 응답 안 기다림)
-            updateCardVoteUI(card, card._cachedData || {options: []}, user.uid, newSelected);
-
-            // ② 서버 저장 (백그라운드)
-            const success = await handleVote(id, optionId);
-            if (success) {
-                // ③ getDoc 1번만 - 실제 데이터로 보정
-                const snap = await getDoc(doc(db, 'questions', id));
-                if (snap.exists()) {
-                    card._cachedData = snap.data();
-                    updateCardVoteUI(card, snap.data(), user.uid, newSelected);
-                }
-                // popularityScore는 UI와 무관 → 백그라운드
-                updatePopularityScore(id);
+            // ① 로컬 데이터 즉시 조작 (네트워크 0ms, getDoc 없음)
+            const cached = card._cachedData || {};
+            const localData = JSON.parse(JSON.stringify(cached));
+            const voteObjLocal = localData.vote || {};
+            if (isSelected) {
+                // 투표 취소
+                if (voteObjLocal[optionId] > 0) voteObjLocal[optionId]--;
+                localData.participants = (localData.participants || []).filter(p => p !== user.uid);
+                card._myVote = null;
             } else {
-                // 실패 시 원래 상태로 복원
-                const snap = await getDoc(doc(db, 'questions', id));
-                if (snap.exists()) updateCardVoteUI(card, data, user.uid, isSelected ? optionId : null);
+                // 기존 투표 캐시로 즉시 처리 (getDoc 없음)
+                const prevId = card._myVote;
+                if (prevId && voteObjLocal[prevId] > 0) voteObjLocal[prevId]--;
+                voteObjLocal[optionId] = (voteObjLocal[optionId] || 0) + 1;
+                if (!(localData.participants || []).includes(user.uid)) {
+                    localData.participants = [...(localData.participants || []), user.uid];
+                }
+                card._myVote = optionId;
             }
+            localData.vote = voteObjLocal;
+            card._cachedData = localData;
+
+            // ② 즉시 UI 반영 (서버 기다리지 않음)
+            updateCardVoteUI(card, localData, user.uid, newSelected);
+
+            // ③ 서버 저장 백그라운드 (UI 블로킹 없음)
+            handleVote(id, optionId).then(success => {
+                if (!success) {
+                    // 실패 시 롤백
+                    card._cachedData = cached;
+                    updateCardVoteUI(card, cached, user.uid, isSelected ? optionId : null);
+                }
+                updatePopularityScore(id);
+            });
             allBtns.forEach(b => b.disabled = false);
         });
     });
@@ -409,11 +424,15 @@ function createFeedCard(id, data) {
     // 카드 데이터 캐시 저장
     card._cachedData = data;
 
-    // 로드 시 투표 상태 복원
+    // 로드 시 투표 상태 복원 + card._myVote에 캐시
     if (auth.currentUser) {
         getDoc(doc(db, `questions/${id}/userVotes/${auth.currentUser.uid}`)).then(voteSnap => {
             if (voteSnap.exists()) {
-                updateCardVoteUI(card, data, auth.currentUser.uid, voteSnap.data().selectedOption);
+                const selectedOption = voteSnap.data().selectedOption;
+                card._myVote = selectedOption;
+                updateCardVoteUI(card, card._cachedData || data, auth.currentUser.uid, selectedOption);
+            } else {
+                card._myVote = null;
             }
         });
     }
