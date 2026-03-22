@@ -124,6 +124,21 @@ function injectLoginModal() {
 
 // (getRedirectResult 제거 - popup 방식으로 통일)
 
+// window.openModal 즉시 등록 (DOMContentLoaded 기다리지 않음)
+window.openModal = () => {
+    const modal = document.getElementById('login-modal');
+    if (modal) {
+        modal.style.display = 'flex';
+    } else {
+        // 모달이 아직 없으면 주입 후 열기
+        injectLoginModal();
+        setTimeout(() => {
+            const m = document.getElementById('login-modal');
+            if (m) m.style.display = 'flex';
+        }, 0);
+    }
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     injectLoginModal();
 

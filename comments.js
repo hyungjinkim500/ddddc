@@ -2,6 +2,7 @@ import { auth, db } from './firebase-config.js';
 import { getAuth } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { collection, doc, addDoc, deleteDoc, getDocs, query, orderBy, updateDoc, increment, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { updatePopularityScore } from './quiz-main.js';
+import { notifyComment, notifyReply } from './notifications.js';
 
 function createReplyEl(replyData, replyId, commentId, postId, postTitle, auth) {
     let replyDeleteHTML = '';
@@ -163,6 +164,8 @@ export async function loadComments(postId, postTitle) {
             };
             const replyRef = await addDoc(collection(db, 'questions', postId, 'comments', docSnap.id, 'replies'), replyData);
             await updateDoc(doc(db, 'questions', postId), { commentsCount: increment(1) });
+            // 답글 알림 (백그라운드, 원댓글 작성자에게)
+            notifyReply(postId, data.uid, user.uid, user.displayName || '익명').catch(() => {});
 
             // DOM 직접 추가 (입력창 바로 위에 삽입)
             const newReplyEl = createReplyEl({ ...replyData, createdAt: null }, replyRef.id, docSnap.id, postId, postTitle, auth);
@@ -224,6 +227,8 @@ export async function submitComment(postId, postTitle) {
     };
 
     const commentRef = await addDoc(collection(db, 'questions', postId, 'comments'), commentData);
+    // 댓글 알림 (백그라운드)
+    notifyComment(postId, user.uid, user.displayName || '익명').catch(() => {});
     await addDoc(collection(db, 'allComments'), {
         ...commentData,
         questionId: postId,

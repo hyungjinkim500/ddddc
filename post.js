@@ -425,7 +425,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             commentSubmit.disabled = true;
 
             const user = auth.currentUser;
-            if (!user) { window.openModal?.(); return; }
+            if (!user) { window.openModal?.(); commentSubmit.disabled = false; return; }
 
             // PIX 게시글이고 무투표댓글 비허용 시 투표 여부 체크
             const postSnap2 = await getDoc(doc(db, 'questions', postId));

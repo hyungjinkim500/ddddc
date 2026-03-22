@@ -1,6 +1,7 @@
 import { getAuth } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { doc, runTransaction, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { db } from './firebase-config.js';
+import { notifyVote } from './notifications.js';
 
 const _voteTimers = {};
 const _pendingVote = {};
@@ -113,6 +114,9 @@ async function _doHandleVote(quizId, optionId) {
                 participants: updatedParticipants
             });
         });
+
+        // 투표 알림 (백그라운드)
+        notifyVote(quizId, user.uid, user.displayName || '익명').catch(() => {});
 
         return true;
 

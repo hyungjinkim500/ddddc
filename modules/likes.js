@@ -1,6 +1,7 @@
 import { db, auth } from '../firebase-config.js';
 import { doc, getDoc, setDoc, deleteDoc, updateDoc, increment, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { getAuth } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+import { notifyLike } from '../notifications.js';
 
 // 카드 좋아요 아이콘 상태 업데이트
 export async function restoreLikeState(quizId, userId) {
@@ -52,7 +53,7 @@ export async function handleCardLike(quizId, targetCard) {
         const auth = getAuth();
         const user = auth.currentUser;
         if (!user) {
-            alert('좋아요를 누르려면 로그인이 필요합니다.');
+            window.openModal?.();
             return;
         }
 
@@ -92,6 +93,8 @@ export async function handleCardLike(quizId, targetCard) {
         } else {
             await setDoc(likeRef, { createdAt: serverTimestamp() });
             await updateDoc(quizRef, { likesCount: increment(1) });
+            // 좋아요 알림 (백그라운드)
+            notifyLike(quizId, user.uid, user.displayName || '익명').catch(() => {});
         }
 
     } catch (e) {
@@ -106,7 +109,7 @@ export async function handleDetailLike(quizId) {
     const auth = getAuth();
     const user = auth.currentUser;
     if (!user) {
-        alert('좋아요를 누르려면 로그인이 필요합니다.');
+        window.openModal?.();
         return;
     }
 

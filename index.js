@@ -352,7 +352,7 @@ function createFeedCard(id, data) {
             allBtns.forEach(b => b.disabled = true);
             const user = auth.currentUser;
             if (!user) {
-                document.getElementById('login-modal-button')?.click();
+                window.openModal?.();
                 allBtns.forEach(b => b.disabled = false);
                 return;
             }
