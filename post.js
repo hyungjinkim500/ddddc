@@ -388,6 +388,13 @@ async function loadPost(postId) {
                 navigator.clipboard.writeText(window.location.href).then(() => alert('링크가 복사되었습니다!'));
             };
         }
+
+        // 더보기 버튼 표시 (onAuthStateChanged보다 onSnapshot이 늦을 경우 대비)
+        const currentUser = auth.currentUser;
+        if (currentUser && post.creatorId === currentUser.uid) {
+            const moreBtn = document.getElementById('post-more-btn');
+            if (moreBtn) moreBtn.classList.remove('hidden');
+        }
     });
 }
 
@@ -488,6 +495,47 @@ document.addEventListener('DOMContentLoaded', async () => {
                 headerAvatar.onclick = () => window.location.href = 'mypage.html';
             }
             await restoreUserVotes(user);
+
+            // 본인 게시글 여부 확인 → 더보기 버튼 표시
+            const moreBtn = document.getElementById('post-more-btn');
+            const moreMenu = document.getElementById('post-more-menu');
+            if (moreBtn && _postCache && _postCache.creatorId === user.uid) {
+                moreBtn.classList.remove('hidden');
+
+                // 드롭다운 열기/닫기
+                if (!moreBtn._initialized) {
+                    moreBtn._initialized = true;
+                    moreBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        moreMenu.classList.toggle('hidden');
+                    });
+                    document.addEventListener('click', () => moreMenu.classList.add('hidden'));
+                }
+
+                // 수정 버튼
+                const editBtn = document.getElementById('post-edit-btn');
+                if (editBtn && !editBtn._initialized) {
+                    editBtn._initialized = true;
+                    editBtn.addEventListener('click', () => {
+                        window.location.href = `create-post.html?edit=true&id=${postId}`;
+                    });
+                }
+
+                // 삭제 버튼
+                const deleteBtn = document.getElementById('post-delete-btn');
+                if (deleteBtn && !deleteBtn._initialized) {
+                    deleteBtn._initialized = true;
+                    deleteBtn.addEventListener('click', async () => {
+                        if (!confirm('게시글을 삭제할까요?')) return;
+                        try {
+                            await deleteDoc(doc(db, 'questions', postId));
+                            history.back();
+                        } catch (e) {
+                            alert('삭제 중 오류가 발생했습니다.');
+                        }
+                    });
+                }
+            }
         } else {
             if (headerLoginBtn) {
                 headerLoginBtn.classList.remove('hidden');

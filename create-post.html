@@ -32,7 +32,7 @@
             <button onclick="history.back()" class="text-slate-500 dark:text-slate-400">
                 <i class="fas fa-times text-lg"></i>
             </button>
-            <span class="font-bold text-slate-800 dark:text-white text-sm">새 게시물</span>
+            <span id="page-title" class="font-bold text-slate-800 dark:text-white text-sm">새 게시물</span>
             <button type="submit" form="create-quiz-form"
                 class="text-sm font-bold text-white bg-[#169976] px-4 py-1.5 rounded-lg">
                 등록
@@ -95,6 +95,7 @@
                     <span>사진 선택</span>
                     <input type="file" id="image-input" accept="image/*" multiple class="hidden">
                 </label>
+                <div id="existing-image-preview" class="grid grid-cols-3 gap-2"></div>
                 <div id="image-preview" class="grid grid-cols-3 gap-2"></div>
             </div>
 
@@ -194,6 +195,15 @@
 <script type="module" src="create-post.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const isEditMode = urlParams.get('edit') === 'true';
+        if (isEditMode) {
+            const titleElement = document.getElementById('page-title');
+            if (titleElement) {
+                titleElement.textContent = '게시물 수정';
+            }
+        }
+
         const savedTheme = localStorage.getItem('theme') || 'light';
         document.documentElement.classList.add(savedTheme);
 
