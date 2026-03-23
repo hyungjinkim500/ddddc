@@ -2,7 +2,7 @@
 import { auth, db, storage } from "./firebase-config.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { doc, updateDoc, getDoc, collection, query, where, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { doc, updateDoc, getDoc, collection, query, where, orderBy, limit, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { compressImage } from "./image-compress.js";
 
 const PAGE_SIZE = 10;
@@ -204,6 +204,19 @@ function initNicknameChange() {
             }
         }
         await updateDoc(userRef, { displayName: newNickname, nicknameChangedAt: new Date() });
+
+        // 기존 게시글 creatorName 일괄 업데이트 (백그라운드)
+        (async () => {
+            try {
+                const postsSnap = await getDocs(query(collection(db, 'questions'), where('creatorId', '==', user.uid)));
+                if (!postsSnap.empty) {
+                    const batch = writeBatch(db);
+                    postsSnap.forEach(d => batch.update(d.ref, { creatorName: newNickname }));
+                    await batch.commit();
+                }
+            } catch (e) { console.error('게시글 닉네임 업데이트 실패', e); }
+        })();
+
         msg.textContent = '닉네임이 변경되었습니다!';
         msg.className = 'text-sm text-center text-[#169976]';
         document.getElementById('profile-name')?.textContent && (document.getElementById('profile-name').textContent = newNickname);

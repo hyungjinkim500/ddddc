@@ -264,11 +264,15 @@ document.addEventListener("DOMContentLoaded", async () => {
       color: "slate"
     }));
     
-    // userProfiles에서 photoURL 조회
+    // userProfiles에서 닉네임 + photoURL 조회
     let _creatorPhotoURL = '';
+    let _creatorName = currentUser.displayName || '익명';
     try {
         const profileSnap = await fsGetDoc(fsDoc(db, 'userProfiles', currentUser.uid));
-        if (profileSnap.exists()) _creatorPhotoURL = profileSnap.data().photoURL || '';
+        if (profileSnap.exists()) {
+            _creatorPhotoURL = profileSnap.data().photoURL || '';
+            _creatorName = profileSnap.data().displayName || currentUser.displayName || '익명';
+        }
     } catch (e) {}
 
     try {
@@ -278,7 +282,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         description: data.description,
         options,
         creatorId: currentUser.uid,
-        creatorName: currentUser.displayName,
+        creatorName: _creatorName,
         creatorPhotoURL: _creatorPhotoURL || currentUser.photoURL || '',
         createdAt: serverTimestamp(),
         status: "active",
