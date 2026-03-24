@@ -343,6 +343,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
 
       window.location.href = isEditMode ? `post.html?id=${editPostId}` : "index.html";
+
     } catch (error) { 
       console.error("Error adding document: ", error);
       alert("게시물 생성 중 오류가 발생했습니다. 다시 시도해 주세요.");

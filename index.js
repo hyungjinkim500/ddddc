@@ -499,14 +499,16 @@ function initTabs() {
 }
 
 function initInfiniteScroll() {
-    const container = document.getElementById('feed-container');
-    if (!container) return;
+    const feedContainer = document.getElementById('feed-container');
+    if (!feedContainer) return;
 
     // feed-container 자체 스크롤
-    container.addEventListener('scroll', () => {
-        if (container.scrollTop + container.clientHeight >= container.scrollHeight - 200) {
+    feedContainer.addEventListener('scroll', () => {
+        if (feedContainer.scrollTop + feedContainer.clientHeight >= feedContainer.scrollHeight - 200) {
             loadFeed();
         }
+        sessionStorage.setItem('feedScroll', feedContainer.scrollTop);
+        sessionStorage.setItem('feedTab', currentTab);
     });
 
     // window 스크롤 (feed-container가 전체 높이일 때)
@@ -551,7 +553,24 @@ document.addEventListener('DOMContentLoaded', () => {
     initTabs();
     initInfiniteScroll();
     initAuthUI();
-    loadFeed(true);
+
+    // 스크롤 위치 복원
+    const savedTab = sessionStorage.getItem('feedTab');
+    const savedScroll = sessionStorage.getItem('feedScroll');
+    if (savedTab) {
+        currentTab = savedTab;
+        document.querySelectorAll('.feed-tab-btn').forEach(b => {
+            b.classList.toggle('active', b.dataset.tab === savedTab);
+        });
+    }
+    loadFeed(true).then(() => {
+        if (savedScroll) {
+            const container = document.getElementById('feed-container');
+            if (container) container.scrollTop = parseInt(savedScroll);
+            sessionStorage.removeItem('feedScroll');
+            sessionStorage.removeItem('feedTab');
+        }
+    });
 
     // 퀵서치는 index.html 인라인 스크립트에서 처리
     document.getElementById('header-avatar')?.addEventListener('click', () => {
