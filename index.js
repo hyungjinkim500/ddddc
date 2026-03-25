@@ -209,20 +209,17 @@ function updateCardVoteUI(card, data, uid, selectedOptionId = null) {
         if (barText) barText.textContent = `${curP2} / ${maxP2} 참여`;
     }
 
-    // 버튼 강조 항상 초기화 먼저
-    [btnA, btnB].forEach(btn => {
-        if (!btn) return;
+    // pix 타입은 모든 버튼 처리
+    const allVoteBtns = card.querySelectorAll('.vote-option-btn');
+    allVoteBtns.forEach(btn => {
         btn.classList.remove('opacity-50', 'ring-[3px]', 'ring-inset', 'ring-[#169976]', 'ring-orange-400');
     });
 
-    // 투표한 버튼 강조 (내부 테두리 방식)
     if (selectedOptionId) {
-        [btnA, btnB].forEach(btn => {
+        allVoteBtns.forEach(btn => {
             if (!btn) return;
             if (btn.dataset.optionId === selectedOptionId) {
-                btn.classList.add('ring-[3px]', 'ring-inset',
-                    btn.classList.contains('border-orange-400') ? 'ring-orange-400' : 'ring-[#169976]'
-                );
+                btn.classList.add('ring-[3px]', 'ring-inset', 'ring-[#169976]');
             } else {
                 btn.classList.add('opacity-50');
             }
@@ -302,6 +299,15 @@ function createFeedCard(id, data) {
             </div>`;
         }
     }
+
+    // 카드 클릭 시 스크롤 위치 저장
+    card.addEventListener('click', () => {
+        const container = document.getElementById('feed-container');
+        if (container) {
+            sessionStorage.setItem('feedScroll', container.scrollTop);
+            sessionStorage.setItem('feedTab', currentTab);
+        }
+    }, true);
 
     card.innerHTML = `
         <!-- 작성자 + 시간 -->
@@ -470,6 +476,21 @@ function createFeedCard(id, data) {
                 const selectedOption = voteSnap.data().selectedOption;
                 card._myVote = selectedOption;
                 updateCardVoteUI(card, card._cachedData || data, auth.currentUser.uid, selectedOption);
+
+                // pix 타입: 복원 시 퍼센트 표시
+                if (data.type === 'pix') {
+                    const voteObj = (card._cachedData || data).vote || {};
+                    const total = Object.values(voteObj).reduce((a, b) => a + b, 0);
+                    card.querySelectorAll('.vote-option-btn').forEach(btn => {
+                        const oid = btn.dataset.optionId;
+                        const cnt = voteObj[oid] || 0;
+                        const pct = total > 0 ? Math.round(cnt / total * 100) : 0;
+                        const fill = btn.querySelector('.pix-bg-fill');
+                        const pctEl = btn.querySelector('.pix-pct');
+                        if (fill) fill.style.width = pct + '%';
+                        if (pctEl) { pctEl.textContent = pct + '%'; if (total > 0) pctEl.classList.remove('hidden'); }
+                    });
+                }
             } else {
                 card._myVote = null;
             }
@@ -605,7 +626,11 @@ document.addEventListener('DOMContentLoaded', () => {
     loadFeed(true).then(() => {
         if (savedScroll) {
             const container = document.getElementById('feed-container');
-            if (container) container.scrollTop = parseInt(savedScroll);
+            if (container) {
+                setTimeout(() => {
+                    container.scrollTop = parseInt(savedScroll);
+                }, 100);
+            }
             sessionStorage.removeItem('feedScroll');
             sessionStorage.removeItem('feedTab');
         }
