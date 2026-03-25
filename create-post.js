@@ -111,6 +111,65 @@ document.addEventListener("DOMContentLoaded", async () => {
     return optionDiv;
   }
 
+  function createPixOptionElement(index) {
+    const optionDiv = document.createElement("div");
+    optionDiv.className = "flex items-center gap-2 p-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700";
+
+    // 이미지 슬롯
+    const imgLabel = document.createElement("label");
+    imgLabel.className = "w-14 h-14 rounded-lg bg-slate-200 dark:bg-slate-600 flex items-center justify-center flex-shrink-0 cursor-pointer overflow-hidden";
+    imgLabel.innerHTML = '<i class="fas fa-image text-slate-400 text-lg"></i>';
+    const imgInput = document.createElement("input");
+    imgInput.type = "file";
+    imgInput.accept = "image/*";
+    imgInput.className = "hidden";
+    imgInput.dataset.optionIndex = index;
+    imgLabel.appendChild(imgInput);
+
+    imgInput.addEventListener("change", async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (!file.type.startsWith("image/")) { alert("이미지 파일만 가능합니다."); return; }
+      try {
+        const blob = await compressImage(file);
+        optionDiv._imageBlob = blob;
+        const url = URL.createObjectURL(blob);
+        imgLabel.innerHTML = '';
+        const preview = document.createElement("img");
+        preview.src = url;
+        preview.className = "w-full h-full object-cover";
+        imgLabel.appendChild(preview);
+      } catch(err) { alert("이미지 압축 실패"); }
+      e.target.value = "";
+    });
+
+    // 텍스트 입력
+    const input = document.createElement("input");
+    input.type = "text";
+    input.name = "option";
+    input.required = true;
+    input.maxLength = 20;
+    input.placeholder = `옵션 ${index + 1} 입력 (최대 20글자)`;
+    input.className = "flex-1 px-3 py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-[#169976]";
+    optionDiv.appendChild(imgLabel);
+    optionDiv.appendChild(input);
+
+    // 삭제 버튼 (3개 이상일 때만 실제 동작)
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.innerHTML = '<i class="fas fa-times text-slate-400"></i>';
+    removeBtn.addEventListener("click", () => {
+      if (optionsContainer.children.length > 2) {
+        optionDiv.remove();
+      } else {
+        alert("최소 2개의 옵션이 필요합니다.");
+      }
+    });
+    optionDiv.appendChild(removeBtn);
+
+    return optionDiv;
+  }
+
   const setupOptions = () => {
     if (!optionsContainer) return;
     optionsContainer.innerHTML = "";
@@ -138,6 +197,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       optionsContainer.appendChild(createOptionElement(true));
       optionsContainer.appendChild(createOptionElement(true));
       optionsContainer.appendChild(createOptionElement(true));
+      addOptionBtn.classList.remove('hidden');
+    } else if (selectedType === "pix") {
+      pickThemeContainer.classList.add('hidden');
+      optionsContainer.appendChild(createPixOptionElement(0));
+      optionsContainer.appendChild(createPixOptionElement(1));
       addOptionBtn.classList.remove('hidden');
     }
   };
@@ -187,6 +251,12 @@ document.addEventListener("DOMContentLoaded", async () => {
         return;
       }
       optionsContainer.appendChild(createOptionElement(true));
+    } else if (selectedType === "pix") {
+      if (optionsContainer.children.length >= 10) {
+        alert("PIX는 최대 10개의 옵션만 가능합니다.");
+        return;
+      }
+      optionsContainer.appendChild(createPixOptionElement(optionsContainer.children.length));
     }
   });
   form.addEventListener("submit", async (e) => {
@@ -256,6 +326,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         alert("Topic은 선택지가 3~5개여야 합니다.");
         return;
       }
+      if (quizType === "pix" && (optionInputs.length < 2 || optionInputs.length > 10)) {
+        alert("PIX는 옵션이 2~10개여야 합니다.");
+        return;
+      }
     }
 
     const options = optionInputs.map((input, i) => ({
@@ -300,6 +374,22 @@ document.addEventListener("DOMContentLoaded", async () => {
         postData.type = quizType;
         postData.isSuper = quizType === "superquiz";
         postData.participantLimit = Number(data.participantLimit) || 0;
+      }
+
+      // pix 타입: 옵션별 이미지 업로드
+      if (quizType === 'pix' && !isEditMode) {
+        const pixOptionEls = Array.from(optionsContainer.children);
+        const uploadedOptions = await Promise.all(
+          postData.options.map(async (opt, i) => {
+            const blob = pixOptionEls[i]?._imageBlob;
+            if (!blob) return opt;
+            const imageRef = ref(storage, `optionImages/${Date.now()}_${i}.jpg`);
+            await uploadBytes(imageRef, blob);
+            const url = await getDownloadURL(imageRef);
+            return { ...opt, imageUrl: url };
+          })
+        );
+        postData.options = uploadedOptions;
       }
 
       let docRef;
@@ -440,8 +530,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
   
   if (typeParam === 'pix') {
+      const pixRadio = document.getElementById('type-pix');
+      if (pixRadio) { pixRadio.checked = true; lastChecked = pixRadio; setupOptions(); }
+  } else if (typeParam === 'balance') {
       const quizRadio = document.getElementById('type-quiz');
-      if (quizRadio) quizRadio.checked = true;
+      if (quizRadio) { quizRadio.checked = true; lastChecked = quizRadio; setupOptions(); }
   }
 
   // 수정 모드: 제목/본문 로드
@@ -465,8 +558,8 @@ document.addEventListener("DOMContentLoaded", async () => {
               }
 
               // 타입 설정
-              if (post.type === 'quiz' || post.type === 'superquiz') {
-                  const radioId = post.type === 'quiz' ? 'type-quiz' : 'type-superquiz';
+              if (post.type === 'quiz' || post.type === 'superquiz' || post.type === 'pix') {
+                  const radioId = `type-${post.type}`;
                   const radio = document.getElementById(radioId);
                   if (radio) { radio.checked = true; lastChecked = radio; }
                   setupOptions();
@@ -483,12 +576,20 @@ document.addEventListener("DOMContentLoaded", async () => {
                       }
                   }
 
-                  // Topic 선택지
-                  if (post.type === 'superquiz' && Array.isArray(post.options)) {
+                  // Topic/PIX 선택지
+                  if ((post.type === 'superquiz' || post.type === 'pix') && Array.isArray(post.options)) {
                       optionsContainer.innerHTML = '';
                       post.options.forEach((opt, i) => {
-                          const el = createOptionElement(true, i);
-                          el.querySelector('input').value = opt.label;
+                          const el = post.type === 'pix' ? createPixOptionElement(i) : createOptionElement(true, i);
+                          el.querySelector('input[name="option"]').value = opt.label;
+                          if(post.type === 'pix' && opt.imageUrl) {
+                            const imgLabel = el.querySelector('label');
+                            imgLabel.innerHTML = '';
+                            const preview = document.createElement("img");
+                            preview.src = opt.imageUrl;
+                            preview.className = "w-full h-full object-cover";
+                            imgLabel.appendChild(preview);
+                          }
                           optionsContainer.appendChild(el);
                       });
                   }
@@ -508,25 +609,28 @@ document.addEventListener("DOMContentLoaded", async () => {
                   if (noVoteCheck) noVoteCheck.checked = post.allowNoVoteComment || false;
 
                   // 투표 있는 게시글: 제목/픽설정 수정 불가 처리
-                  const titleInput = document.getElementById('quiz-title');
-                  if (titleInput) {
-                      titleInput.disabled = true;
-                      titleInput.classList.add('opacity-50', 'cursor-not-allowed');
-                  }
-                  const pollSettings = document.getElementById('poll-settings');
-                  if (pollSettings) {
-                      pollSettings.querySelectorAll('input, select, button').forEach(el => {
-                          el.disabled = true;
-                          el.classList.add('opacity-50', 'cursor-not-allowed');
-                      });
-                  }
-                  // 안내 문구 추가
-                  const titleSection = titleInput?.closest('div');
-                  if (titleSection && !titleSection.querySelector('.edit-notice')) {
-                      const notice = document.createElement('p');
-                      notice.className = 'edit-notice text-xs text-slate-400 mt-1';
-                      notice.textContent = '투표가 있는 게시글은 본문과 사진만 수정할 수 있습니다.';
-                      titleSection.appendChild(notice);
+                  const hasVotes = post.participants && post.participants.length > 0;
+                  if (hasVotes) {
+                    const titleInput = document.getElementById('quiz-title');
+                    if (titleInput) {
+                        titleInput.disabled = true;
+                        titleInput.classList.add('opacity-50', 'cursor-not-allowed');
+                    }
+                    const pollSettings = document.getElementById('poll-settings');
+                    if (pollSettings) {
+                        pollSettings.querySelectorAll('input, select, button').forEach(el => {
+                            el.disabled = true;
+                            el.classList.add('opacity-50', 'cursor-not-allowed');
+                        });
+                    }
+                    // 안내 문구 추가
+                    const titleSection = titleInput?.closest('div');
+                    if (titleSection && !titleSection.querySelector('.edit-notice')) {
+                        const notice = document.createElement('p');
+                        notice.className = 'edit-notice text-xs text-slate-400 mt-1';
+                        notice.textContent = '투표가 있는 게시글은 본문과 사진만 수정할 수 있습니다.';
+                        titleSection.appendChild(notice);
+                    }
                   }
               }
           }
@@ -546,5 +650,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   // Initial setup on page load
+  if (typeParam) {
+    const radio = document.getElementById(`type-${typeParam}`);
+    if (radio) { radio.checked = true; lastChecked = radio; }
+  }
   setupOptions();
 });

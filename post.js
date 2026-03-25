@@ -12,6 +12,7 @@ let imageGallery = [];
 let currentImageIndex = 0;
 let _myVote = null; // 내 투표 캐시
 let _postCache = null; // 게시글 데이터 캐시 (즉시 UI용)
+let _voteInProgress = false; // 투표 진행 중 플래그
 
 function applyVoteLocalUI(optionId, isCancel) {
     if (!_postCache) return;
@@ -69,6 +70,24 @@ async function restoreUserVotes(user) {
     const snap = await getDoc(userVoteRef).catch(() => null);
     _myVote = snap?.exists() ? snap.data().selectedOption : null;
     applyVoteButtonUI(_myVote);
+
+    // pix 타입: 복원 시 퍼센트도 표시
+    if (_myVote && _postCache && _postCache.type === 'pix') {
+        const voteObj = _postCache.vote || {};
+        const total = Object.values(voteObj).reduce((a, b) => a + b, 0);
+        document.querySelectorAll('.vote-option-btn').forEach((btn) => {
+            const optId = btn.dataset.optionId;
+            const cnt = voteObj[optId] || 0;
+            const pct = total > 0 ? Math.round(cnt / total * 100) : 0;
+            const fill = btn.querySelector('.pix-bg-fill');
+            const pctEl = btn.querySelector('.pix-pct');
+            if (fill) fill.style.width = pct + '%';
+            if (pctEl) {
+                pctEl.textContent = pct + '%';
+                if (total > 0) pctEl.classList.remove('hidden');
+            }
+        });
+    }
 }
 
 function applyVoteButtonUI(selectedId) {
@@ -135,10 +154,28 @@ function buildPostImageGrid(urls) {
 function updateVoteBarUI(post) {
     const options = getVotePercent(post);
     if (options.length < 2) return;
-    const barA = document.getElementById('vote-bar-a');
-    const barB = document.getElementById('vote-bar-b');
-    if (barA) { barA.style.width = options[0].percent + '%'; barA.textContent = options[0].percent + '%'; }
-    if (barB) { barB.textContent = options[1].percent + '%'; }
+
+    if (post.type === 'pix') {
+        const voteObj = post.vote || {};
+        const total = Object.values(voteObj).reduce((a, b) => a + b, 0);
+        document.querySelectorAll('.vote-option-btn').forEach((btn) => {
+            const optId = btn.dataset.optionId;
+            const cnt = voteObj[optId] || 0;
+            const pct = total > 0 ? Math.round(cnt / total * 100) : 0;
+            const fill = btn.querySelector('.pix-bg-fill');
+            const pctEl = btn.querySelector('.pix-pct');
+            if (fill) fill.style.width = pct + '%';
+            if (pctEl) {
+                pctEl.textContent = pct + '%';
+                if (total > 0) pctEl.classList.remove('hidden');
+            }
+        });
+    } else {
+        const barA = document.getElementById('vote-bar-a');
+        const barB = document.getElementById('vote-bar-b');
+        if (barA) { barA.style.width = options[0].percent + '%'; barA.textContent = options[0].percent + '%'; }
+        if (barB) { barB.textContent = options[1].percent + '%'; }
+    }
 }
 
 function setLikeUI(isLiked) {
@@ -162,7 +199,8 @@ async function loadPost(postId) {
         }
     }
 
-    onSnapshot(postRef, async (snap) => {
+    const snap = await getDoc(postRef);
+    {
         if (!snap.exists()) {
             document.getElementById('detail-container').innerHTML = "<p class='text-center text-red-500 py-8'>게시물을 찾을 수 없습니다.</p>";
             return;
@@ -170,7 +208,7 @@ async function loadPost(postId) {
 
         const post = snap.data();
         _postCache = post;
-        const isPix = post.type === 'quiz' || post.type === 'superquiz';
+        const isPix = post.type === 'quiz' || post.type === 'superquiz' || post.type === 'pix';
 
         // 카테고리 (캐싱)
         const categoryEl = document.getElementById('detail-category');
@@ -257,54 +295,117 @@ async function loadPost(postId) {
         const optionsContainer = document.getElementById('detail-options');
         if (isPix && Array.isArray(post.options) && post.options.length >= 2 && voteArea && optionsContainer) {
             voteArea.classList.remove('hidden');
-            updateVoteBarUI(post);
+            if (post.type === 'pix') {
+                document.getElementById('vote-bar-a')?.parentElement?.classList.add('hidden');
+            }
+            if (!_voteInProgress) updateVoteBarUI(post);
 
             const shouldBuildButtons = optionsContainer.children.length === 0;
             if (shouldBuildButtons) {
                 optionsContainer.innerHTML = '';
+
+                if (post.type === 'pix') {
+                    optionsContainer.className = 'space-y-2';
+                } else {
+                    optionsContainer.className = 'grid grid-cols-2 gap-2';
+                }
+
                 const colors = [
                     { border: 'border-[#169976]', text: 'text-[#169976]', hover: 'hover:bg-[#169976]', ring: 'ring-[#169976]' },
                     { border: 'border-orange-400', text: 'text-orange-500', hover: 'hover:bg-orange-400', ring: 'ring-orange-400' }
                 ];
                 post.options.forEach((option, i) => {
-                    const c = colors[i] || colors[0];
                     const btn = document.createElement('button');
-                    btn.className = `vote-option-btn border-2 ${c.border} ${c.text} font-bold py-3 rounded-xl text-sm ${c.hover} hover:text-white transition`;
                     btn.dataset.optionId = option.id;
-                    btn.textContent = option.label;
+
+                    if (post.type === 'pix') {
+                        btn.className = 'vote-option-btn relative overflow-hidden rounded-xl border border-slate-200 dark:border-slate-600 flex items-center gap-3 px-3 py-3 text-left w-full';
+                        btn.style.minHeight = '52px';
+                        const fillDiv = document.createElement('div');
+                        fillDiv.className = 'pix-bg-fill absolute inset-0 bg-[#169976]/20 transition-all duration-500';
+                        fillDiv.style.width = '0%';
+                        btn.appendChild(fillDiv);
+                        if (option.imageUrl) {
+                            const imgWrap = document.createElement('div');
+                            imgWrap.className = 'relative w-10 h-10 rounded-lg overflow-hidden flex-shrink-0';
+                            const img = document.createElement('img');
+                            img.src = option.imageUrl;
+                            img.className = 'w-full h-full object-cover';
+                            imgWrap.appendChild(img);
+                            btn.appendChild(imgWrap);
+                        }
+                        const labelSpan = document.createElement('span');
+                        labelSpan.className = 'relative font-semibold text-slate-800 dark:text-slate-100 text-sm flex-1';
+                        labelSpan.textContent = option.label;
+                        btn.appendChild(labelSpan);
+                        const pctSpan = document.createElement('span');
+                        pctSpan.className = 'pix-pct relative font-bold text-[#169976] text-sm hidden';
+                        btn.appendChild(pctSpan);
+                    } else {
+                        const c = colors[i] || colors[0];
+                        btn.className = `vote-option-btn border-2 ${c.border} ${c.text} font-bold py-3 rounded-xl text-sm ${c.hover} hover:text-white transition`;
+                        btn.textContent = option.label;
+                    }
+
                     btn.addEventListener('click', async () => {
-                        const user = auth.currentUser;
-                        if (!user) { window.openModal?.(); return; }
                         if (btn.disabled) return;
-                        btn.disabled = true;
+                        const allBtns = document.querySelectorAll('.vote-option-btn');
+                        allBtns.forEach(b => b.disabled = true);
+                        const currentUser = auth.currentUser;
+                        if (!currentUser) { window.openModal?.(); allBtns.forEach(b => b.disabled = false); return; }
 
-                        const isSelected = _myVote === option.id;
-                        const newSelected = isSelected ? null : option.id;
+                        const optionId = option.id;
+                        const isSelected = _myVote === optionId;
+                        const newSelected = isSelected ? null : optionId;
 
-                        // ① 즉시 버튼 강조 + 바/인원수 반영 (서버 기다리지 않음)
-                        applyVoteLocalUI(option.id, isSelected);
+                        // ① 로컬 캐시 즉시 조작
+                        const cached = JSON.parse(JSON.stringify(_postCache || {}));
+                        const voteObjLocal = _postCache?.vote ? { ..._postCache.vote } : {};
+                        if (isSelected) {
+                            if (voteObjLocal[optionId] > 0) voteObjLocal[optionId]--;
+                        } else {
+                            if (_myVote && voteObjLocal[_myVote] > 0) voteObjLocal[_myVote]--;
+                            voteObjLocal[optionId] = (voteObjLocal[optionId] || 0) + 1;
+                        }
+                        if (_postCache) _postCache = { ..._postCache, vote: voteObjLocal };
                         _myVote = newSelected;
-                        applyVoteButtonUI(newSelected);
 
-                        // ② 서버 저장 백그라운드
-                        handleVote(postId, option.id).then(success => {
+                        // ② 즉시 UI 반영
+                        applyVoteButtonUI(newSelected);
+                        const total = Object.values(voteObjLocal).reduce((a, b) => a + b, 0);
+                        allBtns.forEach(b => {
+                            const oid = b.dataset.optionId;
+                            const cnt = voteObjLocal[oid] || 0;
+                            const pct = total > 0 ? Math.round(cnt / total * 100) : 0;
+                            const fill = b.querySelector('.pix-bg-fill');
+                            const pctEl = b.querySelector('.pix-pct');
+                            if (fill) fill.style.width = pct + '%';
+                            if (pctEl) { pctEl.textContent = pct + '%'; if (total > 0) pctEl.classList.remove('hidden'); }
+                        });
+
+                        // ③ 서버 저장 백그라운드
+                        handleVote(postId, optionId).then(success => {
+                            if (success === null) return;
                             if (!success) {
-                                // 실패 시 롤백
-                                _myVote = isSelected ? option.id : null;
+                                _postCache = JSON.parse(JSON.stringify(cached));
+                                _myVote = isSelected ? optionId : null;
                                 applyVoteButtonUI(_myVote);
                             } else {
                                 updatePopularityScore(postId);
                             }
                         });
 
-                        btn.disabled = false;
+                        allBtns.forEach(b => b.disabled = false);
                     });
                     optionsContainer.appendChild(btn);
                 });
             }
 
             const user = auth.currentUser;
-            if (user) await restoreUserVotes(user);
+            if (user && !optionsContainer._votesRestored) {
+                optionsContainer._votesRestored = true;
+                await restoreUserVotes(user);
+            }
 
         } else {
             const resultsContainer = document.getElementById('detail-results');
@@ -393,9 +494,40 @@ async function loadPost(postId) {
         const currentUser = auth.currentUser;
         if (currentUser && post.creatorId === currentUser.uid) {
             const moreBtn = document.getElementById('post-more-btn');
-            if (moreBtn) moreBtn.classList.remove('hidden');
+            const moreMenu = document.getElementById('post-more-menu');
+            if (moreBtn) {
+                moreBtn.classList.remove('hidden');
+                if (!moreBtn._initialized) {
+                    moreBtn._initialized = true;
+                    moreBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        moreMenu.classList.toggle('hidden');
+                    });
+                    document.addEventListener('click', () => moreMenu.classList.add('hidden'));
+                }
+                const editBtn = document.getElementById('post-edit-btn');
+                if (editBtn && !editBtn._initialized) {
+                    editBtn._initialized = true;
+                    editBtn.addEventListener('click', () => {
+                        window.location.href = `create-post.html?edit=true&id=${postId}`;
+                    });
+                }
+                const deleteBtn = document.getElementById('post-delete-btn');
+                if (deleteBtn && !deleteBtn._initialized) {
+                    deleteBtn._initialized = true;
+                    deleteBtn.addEventListener('click', async () => {
+                        if (!confirm('게시글을 삭제할까요?')) return;
+                        try {
+                            await deleteDoc(doc(db, 'questions', postId));
+                            history.back();
+                        } catch (e) {
+                            alert('삭제 중 오류가 발생했습니다.');
+                        }
+                    });
+                }
+            }
         }
-    });
+    }
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -438,7 +570,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const postSnap2 = await getDoc(doc(db, 'questions', postId));
             if (postSnap2.exists()) {
                 const postData = postSnap2.data();
-                const isPix = postData.type === 'quiz' || postData.type === 'superquiz';
+                const isPix = postData.type === 'quiz' || postData.type === 'superquiz' || postData.type === 'pix';
                 const allowNoVote = postData.allowNoVoteComment === true;
                 if (isPix && !allowNoVote) {
                     const voteSnap = await getDoc(doc(db, `questions/${postId}/userVotes/${user.uid}`));
@@ -494,7 +626,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (headerAvatar) {
                 headerAvatar.onclick = () => window.location.href = 'mypage.html';
             }
-            await restoreUserVotes(user);
 
             // 본인 게시글 여부 확인 → 더보기 버튼 표시
             const moreBtn = document.getElementById('post-more-btn');

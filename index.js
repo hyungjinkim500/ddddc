@@ -32,18 +32,18 @@ function buildQuery(tab, lastVisible) {
             break;
         case 'pix-only':
             q = lastVisible
-                ? query(base, where('type', 'in', ['quiz', 'superquiz']), orderBy('createdAt', 'desc'), startAfter(lastVisible), limit(PAGE_SIZE))
-                : query(base, where('type', 'in', ['quiz', 'superquiz']), orderBy('createdAt', 'desc'), limit(PAGE_SIZE));
+                ? query(base, where('type', 'in', ['quiz', 'superquiz', 'pix']), orderBy('createdAt', 'desc'), startAfter(lastVisible), limit(PAGE_SIZE))
+                : query(base, where('type', 'in', ['quiz', 'superquiz', 'pix']), orderBy('createdAt', 'desc'), limit(PAGE_SIZE));
             break;
         case 'most-comments':
             q = lastVisible
-                ? query(base, where('type', 'in', ['quiz', 'superquiz']), orderBy('commentsCount', 'desc'), startAfter(lastVisible), limit(PAGE_SIZE))
-                : query(base, where('type', 'in', ['quiz', 'superquiz']), orderBy('commentsCount', 'desc'), limit(PAGE_SIZE));
+                ? query(base, where('type', 'in', ['quiz', 'superquiz', 'pix']), orderBy('commentsCount', 'desc'), startAfter(lastVisible), limit(PAGE_SIZE))
+                : query(base, where('type', 'in', ['quiz', 'superquiz', 'pix']), orderBy('commentsCount', 'desc'), limit(PAGE_SIZE));
             break;
         case 'extreme':
             q = lastVisible
-                ? query(base, where('type', 'in', ['quiz', 'superquiz']), orderBy('createdAt', 'desc'), startAfter(lastVisible), limit(PAGE_SIZE))
-                : query(base, where('type', 'in', ['quiz', 'superquiz']), orderBy('createdAt', 'desc'), limit(PAGE_SIZE));
+                ? query(base, where('type', 'in', ['quiz', 'superquiz', 'pix']), orderBy('createdAt', 'desc'), startAfter(lastVisible), limit(PAGE_SIZE))
+                : query(base, where('type', 'in', ['quiz', 'superquiz', 'pix']), orderBy('createdAt', 'desc'), limit(PAGE_SIZE));
             break;
         default: // latest
             q = lastVisible
@@ -235,7 +235,7 @@ function createFeedCard(id, data) {
     card.className = 'bg-white dark:bg-slate-800 overflow-hidden border-b border-slate-100 dark:border-slate-700 w-full';
     card.dataset.quizId = id;
 
-    const isPix = data.type === 'quiz' || data.type === 'superquiz';
+    const isPix = data.type === 'quiz' || data.type === 'superquiz' || data.type === 'pix';
     const options = getVotePercent(data);
     const optA = options[0] || { label: '', percent: 50 };
     const optB = options[1] || { label: '', percent: 50 };
@@ -257,32 +257,50 @@ function createFeedCard(id, data) {
             <div class="participation-bar-text text-xs text-slate-400 mt-0.5">${curP} / ${maxP} 참여</div>
         ` : '';
 
-        voteHTML = `
-        <div class="px-4 pb-1 pt-3 mt-1">
-            <!-- 결과 바 -->
-            <div class="relative h-5 rounded-lg overflow-hidden flex" style="background:#e2e8f0;">
-                <div class="vote-bar-a h-full flex items-center justify-start pl-2 font-bold text-slate-700 text-xs transition-all duration-500"
-                    style="width:${optA.percent}%; background:rgba(22, 153, 118, 0.3); min-width:20px;">
-                    ${optA.percent}%
+        if (data.type === 'pix') {
+            // PIX 전용: 투표 전엔 비율 숨김, 투표 후에만 표시
+            const pixOptionsHTML = (data.options || []).map((opt, i) => {
+                return `
+                <button class="vote-option-btn relative overflow-hidden rounded-xl border border-slate-200 dark:border-slate-600 flex items-center gap-3 px-3 py-2.5 text-left w-full"
+                    data-option-id="${opt.id}" style="min-height:52px;">
+                    <div class="pix-bg-fill absolute inset-0 bg-[#169976]/20 transition-all duration-500" style="width:0%"></div>
+                    ${opt.imageUrl ? `<div class="relative w-10 h-10 rounded-lg overflow-hidden flex-shrink-0"><img src="${opt.imageUrl}" class="w-full h-full object-cover"></div>` : ''}
+                    <span class="relative font-semibold text-slate-800 dark:text-slate-100 text-sm flex-1">${opt.label || ''}</span>
+                    <span class="pix-pct relative font-bold text-[#169976] text-sm hidden"></span>
+                </button>`;
+            }).join('');
+            voteHTML = `
+            <div class="px-4 pb-2 pt-2 space-y-2 pix-options-wrap">
+                ${pixOptionsHTML}
+                ${participationBar}
+            </div>`;
+        } else {
+            // 기존 quiz/superquiz: 2버튼 바 방식 유지
+            voteHTML = `
+            <div class="px-4 pb-1 pt-3 mt-1">
+                <div class="relative h-5 rounded-lg overflow-hidden flex" style="background:#e2e8f0;">
+                    <div class="vote-bar-a h-full flex items-center justify-start pl-2 font-bold text-slate-700 text-xs transition-all duration-500"
+                        style="width:${optA.percent}%; background:rgba(22, 153, 118, 0.3); min-width:20px;">
+                        ${optA.percent}%
+                    </div>
+                    <div class="vote-bar-b h-full flex items-center justify-end pr-2 font-bold text-slate-700 text-xs transition-all duration-500 flex-1"
+                        style="background:rgba(249, 115, 22, 0.3);">
+                        ${optB.percent}%
+                    </div>
                 </div>
-                <div class="vote-bar-b h-full flex items-center justify-end pr-2 font-bold text-slate-700 text-xs transition-all duration-500 flex-1"
-                    style="background:rgba(249, 115, 22, 0.3);">
-                    ${optB.percent}%
+                ${participationBar}
+                <div class="grid grid-cols-2 gap-2 mt-2 mb-2">
+                    <button class="vote-option-btn border-2 border-[#169976] text-[#169976] font-bold py-2.5 rounded-xl text-sm hover:bg-[#169976] hover:text-white transition"
+                        data-option-id="${data.options?.[0]?.id || 'A'}">
+                        ${optA.label || 'A'}
+                    </button>
+                    <button class="vote-option-btn border-2 border-orange-400 text-orange-500 font-bold py-2.5 rounded-xl text-sm hover:bg-orange-400 hover:text-white transition"
+                        data-option-id="${data.options?.[1]?.id || 'B'}">
+                        ${optB.label || 'B'}
+                    </button>
                 </div>
-            </div>
-            ${participationBar}
-            <!-- 투표 버튼 -->
-            <div class="grid grid-cols-2 gap-2 mt-2 mb-2">
-                <button class="vote-option-btn border-2 border-[#169976] text-[#169976] font-bold py-2.5 rounded-xl text-sm hover:bg-[#169976] hover:text-white transition"
-                    data-option-id="${data.options?.[0]?.id || 'A'}">
-                    ${optA.label || 'A'}
-                </button>
-                <button class="vote-option-btn border-2 border-orange-400 text-orange-500 font-bold py-2.5 rounded-xl text-sm hover:bg-orange-400 hover:text-white transition"
-                    data-option-id="${data.options?.[1]?.id || 'B'}">
-                    ${optB.label || 'B'}
-                </button>
-            </div>
-        </div>`;
+            </div>`;
+        }
     }
 
     card.innerHTML = `
@@ -387,14 +405,35 @@ function createFeedCard(id, data) {
             // ② 즉시 UI 반영 (서버 기다리지 않음)
             updateCardVoteUI(card, localData, user.uid, newSelected);
 
+            // pix 타입: 버튼 내부 비율 즉시 업데이트
+            if (localData.type === 'pix') {
+                const pixOptions = getVotePercent(localData);
+                const voteObj = localData.vote || {};
+                const total = Object.values(voteObj).reduce((a, b) => a + b, 0);
+                card.querySelectorAll('.vote-option-btn').forEach((btn, i) => {
+                    const optId = btn.dataset.optionId;
+                    const cnt = voteObj[optId] || 0;
+                    const pct = total > 0 ? Math.round(cnt / total * 100) : 0;
+                    const fill = btn.querySelector('.pix-bg-fill');
+                    const pctEl = btn.querySelector('.pix-pct');
+                    if (fill) fill.style.width = pct + '%';
+                    if (pctEl) {
+                        pctEl.textContent = pct + '%';
+                        if (total > 0) pctEl.classList.remove('hidden');
+                    }
+                });
+            }
+
             // ③ 서버 저장 백그라운드 (UI 블로킹 없음)
             handleVote(id, optionId).then(success => {
+                if (success === null) return; // debounce로 취소된 경우 무시
                 if (!success) {
                     // 실패 시 롤백
                     card._cachedData = cached;
                     updateCardVoteUI(card, cached, user.uid, isSelected ? optionId : null);
+                } else {
+                    updatePopularityScore(id);
                 }
-                updatePopularityScore(id);
             });
             allBtns.forEach(b => b.disabled = false);
         });

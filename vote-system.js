@@ -5,25 +5,26 @@ import { notifyVote } from './notifications.js';
 
 const _voteTimers = {};
 const _pendingVote = {};
+const _pendingResolvers = {};
 
 export async function handleVote(quizId, optionId) {
-    // 300ms debounce: 같은 게시글에 연타 시 마지막 클릭만 서버 전송
+    // 300ms debounce: 연타 시 마지막 클릭만 서버 전송, 이전 Promise는 null로 resolve
     _pendingVote[quizId] = optionId;
+
+    // 이전 타이머 취소 + 이전 Promise null 처리
     if (_voteTimers[quizId]) {
         clearTimeout(_voteTimers[quizId]);
-        return new Promise(resolve => {
-            _voteTimers[quizId] = setTimeout(async () => {
-                delete _voteTimers[quizId];
-                const latestOptionId = _pendingVote[quizId];
-                delete _pendingVote[quizId];
-                const result = await _doHandleVote(quizId, latestOptionId);
-                resolve(result);
-            }, 300);
-        });
+        if (_pendingResolvers[quizId]) {
+            _pendingResolvers[quizId](null);
+            delete _pendingResolvers[quizId];
+        }
     }
+
     return new Promise(resolve => {
+        _pendingResolvers[quizId] = resolve;
         _voteTimers[quizId] = setTimeout(async () => {
             delete _voteTimers[quizId];
+            delete _pendingResolvers[quizId];
             const latestOptionId = _pendingVote[quizId];
             delete _pendingVote[quizId];
             const result = await _doHandleVote(quizId, latestOptionId);
@@ -92,7 +93,7 @@ async function _doHandleVote(quizId, optionId) {
                     updatedVotes[previousOptionId] = Math.max(0, (updatedVotes[previousOptionId] || 0) - 1);
                 }
                 updatedVotes[clickedOptionId] = (updatedVotes[clickedOptionId] || 0) + 1;
-                transaction.set(userVoteRef, { selectedOption: clickedOptionId }, { merge: true });
+                transaction.set(userVoteRef, { selectedOption: clickedOptionId });
 
                 if (entryFee > 0 && !participants.includes(user.uid)) {
                     if (userPoints < entryFee) {

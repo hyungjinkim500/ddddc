@@ -349,7 +349,17 @@
             </div>
             <div>
                 <p class="font-bold text-slate-800 dark:text-white text-sm">PIX</p>
-                <p class="text-xs text-slate-400">투표가 있는 픽스 게시글</p>
+                <p class="text-xs text-slate-400">2~10개 옵션 투표 게시글</p>
+            </div>
+        </button>
+        <button id="sheet-balance-btn"
+            class="flex items-center gap-4 w-full px-4 py-4 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition text-left">
+            <div class="w-10 h-10 rounded-full bg-orange-50 dark:bg-orange-900/30 flex items-center justify-center flex-shrink-0">
+                <i class="fas fa-balance-scale text-orange-400"></i>
+            </div>
+            <div>
+                <p class="font-bold text-slate-800 dark:text-white text-sm">밸런스게임</p>
+                <p class="text-xs text-slate-400">1대1 대결 투표 게시글</p>
             </div>
         </button>
     </div>
@@ -411,6 +421,10 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('sheet-pix-btn')?.addEventListener('click', () => {
         closeSheet();
         window.location.href = 'create-post.html?type=pix';
+    });
+    document.getElementById('sheet-balance-btn')?.addEventListener('click', () => {
+        closeSheet();
+        window.location.href = 'create-post.html?type=balance';
     });
 });
 </script>
