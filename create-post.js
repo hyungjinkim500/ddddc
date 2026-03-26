@@ -190,8 +190,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     const selectedType = selectedRadio.value;
 
     if (selectedType === "quiz") {
-      pickThemeContainer.classList.remove('hidden');
+      pickThemeContainer.classList.add('hidden');
       addOptionBtn.classList.add('hidden');
+      optionsContainer.appendChild(createPixOptionElement(0));
+      optionsContainer.appendChild(createPixOptionElement(1));
     } else if (selectedType === "superquiz") {
       pickThemeContainer.classList.add('hidden');
       optionsContainer.appendChild(createOptionElement(true));
@@ -314,12 +316,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     const optionInputs = Array.from(form.querySelectorAll('[name="option"]')).filter(input => !input.disabled && input.value.trim() !== "");
 
     if (!isEditMode) {
-      if (quizType === 'quiz' && !data.theme) {
-        alert('VS Pick 테마를 선택해주세요.');
-        return;
-      }
       if (quizType === "quiz" && optionInputs.length !== 2) {
-        alert("VS Pick은 선택지가 정확히 2개여야 합니다.");
+        alert("밸런스게임은 선택지가 정확히 2개여야 합니다.");
         return;
       }
       if (quizType === "superquiz" && (optionInputs.length < 3 || optionInputs.length > 5)) {
@@ -376,8 +374,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         postData.participantLimit = Number(data.participantLimit) || 0;
       }
 
-      // pix 타입: 옵션별 이미지 업로드
-      if (quizType === 'pix' && !isEditMode) {
+      // pix/balance(quiz) 타입: 옵션별 이미지 업로드
+      if ((quizType === 'pix' || quizType === 'quiz') && !isEditMode) {
         const pixOptionEls = Array.from(optionsContainer.children);
         const uploadedOptions = await Promise.all(
           postData.options.map(async (opt, i) => {
@@ -535,6 +533,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   } else if (typeParam === 'balance') {
       const quizRadio = document.getElementById('type-quiz');
       if (quizRadio) { quizRadio.checked = true; lastChecked = quizRadio; setupOptions(); }
+      // 게시물 사진 업로드 섹션 숨기기
+      const uploadSection = document.getElementById('post-image-upload-section');
+      if (uploadSection) uploadSection.classList.add('hidden');
   }
 
   // 수정 모드: 제목/본문 로드
