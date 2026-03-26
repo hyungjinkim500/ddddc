@@ -273,8 +273,19 @@ function createFeedCard(id, data) {
             </div>`;
         } else {
             // 기존 quiz/superquiz: 2버튼 바 방식 유지
+            const balanceImgHTML = (data.type === 'quiz' && data.options?.some(o => o.imageUrl)) ? `
+            <div class="grid grid-cols-2 gap-2 px-3 pt-3">
+                ${data.options.slice(0, 2).map(opt => `
+                <div class="relative overflow-hidden rounded-xl bg-slate-200" style="aspect-ratio:1/1;">
+                    ${opt.imageUrl ? `<img src="${opt.imageUrl}" class="w-full h-full object-cover">` : ''}
+                    <div class="absolute bottom-0 left-0 right-0 bg-black/40 text-white text-xs font-bold text-center py-1">${opt.label}</div>
+                </div>`).join('')}
+            </div>` : '';
+
             voteHTML = `
+            ${balanceImgHTML}
             <div class="px-4 pb-1 pt-3 mt-1">
+                <!-- 결과 바 -->
                 <div class="relative h-5 rounded-lg overflow-hidden flex" style="background:#e2e8f0;">
                     <div class="vote-bar-a h-full flex items-center justify-start pl-2 font-bold text-slate-700 text-xs transition-all duration-500"
                         style="width:${optA.percent}%; background:rgba(22, 153, 118, 0.3); min-width:20px;">

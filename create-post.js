@@ -650,10 +650,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
   });
 
-  // Initial setup on page load
-  if (typeParam) {
-    const radio = document.getElementById(`type-${typeParam}`);
-    if (radio) { radio.checked = true; lastChecked = radio; }
+  // Initial setup on page load (typeParam 분기에서 이미 setupOptions 호출됨)
+  if (!typeParam) {
+    setupOptions();
   }
-  setupOptions();
 });

@@ -298,7 +298,7 @@ async function loadPost(postId) {
             if (post.type === 'pix') {
                 document.getElementById('vote-bar-a')?.parentElement?.classList.add('hidden');
             }
-            if (!_voteInProgress) updateVoteBarUI(post);
+            updateVoteBarUI(post);
 
             const shouldBuildButtons = optionsContainer.children.length === 0;
             if (shouldBuildButtons) {
@@ -314,6 +314,31 @@ async function loadPost(postId) {
                     { border: 'border-[#169976]', text: 'text-[#169976]', hover: 'hover:bg-[#169976]', ring: 'ring-[#169976]' },
                     { border: 'border-orange-400', text: 'text-orange-500', hover: 'hover:bg-orange-400', ring: 'ring-orange-400' }
                 ];
+
+                // quiz 타입 옵션 이미지 있으면 투표바 위에 표시
+                const hasOptionImages = post.type === 'quiz' && post.options.some(o => o.imageUrl);
+                if (hasOptionImages) {
+                    const imgGrid = document.createElement('div');
+                    imgGrid.className = 'grid grid-cols-2 gap-2 mb-3';
+                    post.options.slice(0, 2).forEach((option, i) => {
+                        const imgWrap = document.createElement('div');
+                        imgWrap.className = 'relative overflow-hidden rounded-xl bg-slate-200 dark:bg-slate-600';
+                        imgWrap.style.aspectRatio = '1 / 1';
+                        if (option.imageUrl) {
+                            const img = document.createElement('img');
+                            img.src = option.imageUrl;
+                            img.className = 'w-full h-full object-cover';
+                            imgWrap.appendChild(img);
+                        }
+                        const labelOverlay = document.createElement('div');
+                        labelOverlay.className = 'absolute bottom-0 left-0 right-0 bg-black/40 text-white text-xs font-bold text-center py-1.5';
+                        labelOverlay.textContent = option.label;
+                        imgWrap.appendChild(labelOverlay);
+                        imgGrid.appendChild(imgWrap);
+                    });
+                    voteArea.insertBefore(imgGrid, voteArea.firstChild);
+                }
+
                 post.options.forEach((option, i) => {
                     const btn = document.createElement('button');
                     btn.dataset.optionId = option.id;
@@ -373,6 +398,18 @@ async function loadPost(postId) {
                         // ② 즉시 UI 반영
                         applyVoteButtonUI(newSelected);
                         const total = Object.values(voteObjLocal).reduce((a, b) => a + b, 0);
+
+                        // quiz 타입: 결과 바 즉시 업데이트
+                        if (_postCache && (_postCache.type === 'quiz' || _postCache.type === 'superquiz')) {
+                            const opts = (_postCache.options || []);
+                            const pctA = total > 0 ? Math.round((voteObjLocal[opts[0]?.id] || 0) / total * 100) : 50;
+                            const pctB = 100 - pctA;
+                            const barA = document.getElementById('vote-bar-a');
+                            const barB = document.getElementById('vote-bar-b');
+                            if (barA) { barA.style.width = pctA + '%'; barA.textContent = pctA + '%'; }
+                            if (barB) { barB.textContent = pctB + '%'; }
+                        }
+
                         allBtns.forEach(b => {
                             const oid = b.dataset.optionId;
                             const cnt = voteObjLocal[oid] || 0;
