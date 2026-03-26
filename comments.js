@@ -4,14 +4,26 @@ import { collection, doc, addDoc, deleteDoc, getDocs, query, orderBy, updateDoc,
 import { updatePopularityScore } from './quiz-main.js';
 import { notifyComment, notifyReply } from './notifications.js';
 
-function createReplyEl(replyData, replyId, commentId, postId, postTitle, auth) {
+function getOptionLabel(votedOption, postType, postOptions) {
+    if (postType !== 'pix') return '';
+    if (!votedOption) return '(미투표)';
+    const opt = (postOptions || []).find(o => o.id === votedOption);
+    const label = opt?.label || '';
+    if (!label) return '';
+    return '(' + (label.length > 5 ? label.slice(0, 5) + '..' : label) + ')';
+}
+
+function createReplyEl(replyData, replyId, commentId, postId, postTitle, auth, postType, postOptions) {
     let replyDeleteHTML = '';
     if (auth.currentUser && replyData.uid === auth.currentUser.uid) {
         replyDeleteHTML = `<button class="reply-delete text-xs text-red-500" data-reply-id="${replyId}" data-comment-id="${commentId}">삭제</button>`;
     }
     let replyBgClass = '';
-    if (replyData.votedOption === 'option_1') replyBgClass = 'bg-green-50 dark:bg-green-900/20';
-    else if (replyData.votedOption === 'option_2') replyBgClass = 'bg-orange-50 dark:bg-orange-900/20';
+    if (postType !== 'pix') {
+        if (replyData.votedOption === 'option_1') replyBgClass = 'bg-green-50 dark:bg-green-900/20';
+        else if (replyData.votedOption === 'option_2') replyBgClass = 'bg-orange-50 dark:bg-orange-900/20';
+    }
+    const replyOptionLabel = getOptionLabel(replyData.votedOption, postType, postOptions);
 
     const replyEl = document.createElement('div');
     replyEl.className = `ml-6 mt-2 text-sm border-l-2 border-slate-200 pl-3 rounded-r-lg ${replyBgClass}`;
@@ -20,7 +32,7 @@ function createReplyEl(replyData, replyId, commentId, postId, postTitle, auth) {
         <div class="flex justify-between items-start">
             <div>
                 <div class="text-slate-800 dark:text-slate-200 break-all">${replyData.text}</div>
-                <div class="text-xs text-slate-400 mt-1">${replyData.nickname || '익명'} · 방금 전</div>
+                <div class="text-xs text-slate-400 mt-1">${replyData.nickname || '익명'}${replyOptionLabel ? ' <span class="text-[#169976]">' + replyOptionLabel + '</span>' : ''} · 방금 전</div>
             </div>
             ${replyDeleteHTML}
         </div>
@@ -58,7 +70,7 @@ function updateReplyBadge(btn, delta) {
     badge.textContent = `(${next})`;
 }
 
-export async function loadComments(postId, postTitle) {
+export async function loadComments(postId, postTitle, postType = '', postOptions = []) {
     const commentList = document.getElementById('comment-list');
     if (!commentList) return;
     commentList.innerHTML = '';
@@ -94,8 +106,11 @@ export async function loadComments(postId, postTitle) {
         }
 
         let bgClass = 'bg-white dark:bg-slate-800';
-        if (data.votedOption === 'option_1') bgClass = 'bg-green-50 dark:bg-green-900/20 border-green-200';
-        else if (data.votedOption === 'option_2') bgClass = 'bg-orange-50 dark:bg-orange-900/20 border-orange-200';
+        if (postType !== 'pix') {
+            if (data.votedOption === 'option_1') bgClass = 'bg-green-50 dark:bg-green-900/20 border-green-200';
+            else if (data.votedOption === 'option_2') bgClass = 'bg-orange-50 dark:bg-orange-900/20 border-orange-200';
+        }
+        const optionLabel = getOptionLabel(data.votedOption, postType, postOptions);
 
         const commentEl = document.createElement('div');
         commentEl.className = `border rounded-lg p-3 text-sm ${bgClass}`;
@@ -104,7 +119,7 @@ export async function loadComments(postId, postTitle) {
             <div class="flex justify-between items-start">
                 <div>
                     <div class="text-slate-800 dark:text-slate-200 break-all">${data.text}</div>
-                    <div class="text-xs text-slate-400 mt-1">${data.nickname || '익명'} · ${timeText}</div>
+                    <div class="text-xs text-slate-400 mt-1">${data.nickname || '익명'}${optionLabel ? ' <span class="text-[#169976]">' + optionLabel + '</span>' : ''} · ${timeText}</div>
                     <button class="comment-reply text-xs text-sky-500 mt-1" data-comment-id="${docSnap.id}">답글${replyCount > 0 ? ` <span class="reply-count-badge">(${replyCount})</span>` : ''}</button>
                 </div>
                 ${deleteButtonHTML}
@@ -120,7 +135,7 @@ export async function loadComments(postId, postTitle) {
 
         // 기존 답글 렌더링
         replyDocs.forEach(replyDoc => {
-            repliesContainer.appendChild(createReplyEl(replyDoc.data(), replyDoc.id, docSnap.id, postId, postTitle, auth));
+            repliesContainer.appendChild(createReplyEl(replyDoc.data(), replyDoc.id, docSnap.id, postId, postTitle, auth, postType, postOptions));
         });
 
         // 답글 입력창 (항상 repliesContainer 안에 미리 생성)
@@ -168,7 +183,7 @@ export async function loadComments(postId, postTitle) {
             notifyReply(postId, data.uid, user.uid, user.displayName || '익명').catch(() => {});
 
             // DOM 직접 추가 (입력창 바로 위에 삽입)
-            const newReplyEl = createReplyEl({ ...replyData, createdAt: null }, replyRef.id, docSnap.id, postId, postTitle, auth);
+            const newReplyEl = createReplyEl({ ...replyData, createdAt: null }, replyRef.id, docSnap.id, postId, postTitle, auth, postType, postOptions);
             repliesContainer.insertBefore(newReplyEl, replyBox);
 
             replyInput.value = '';
@@ -203,7 +218,7 @@ export async function loadComments(postId, postTitle) {
     }
 }
 
-export async function submitComment(postId, postTitle) {
+export async function submitComment(postId, postTitle, postType = '', postOptions = []) {
     const user = getAuth().currentUser;
     if (!user) { alert('로그인이 필요합니다.'); return; }
     const commentInput = document.getElementById('comment-input');
@@ -242,8 +257,11 @@ export async function submitComment(postId, postTitle) {
     const commentList = document.getElementById('comment-list');
     const auth = getAuth();
     let bgClass = 'bg-white dark:bg-slate-800';
-    if (votedOption === 'option_1') bgClass = 'bg-green-50 dark:bg-green-900/20 border-green-200';
-    else if (votedOption === 'option_2') bgClass = 'bg-orange-50 dark:bg-orange-900/20 border-orange-200';
+    if (postType !== 'pix') {
+        if (votedOption === 'option_1') bgClass = 'bg-green-50 dark:bg-green-900/20 border-green-200';
+        else if (votedOption === 'option_2') bgClass = 'bg-orange-50 dark:bg-orange-900/20 border-orange-200';
+    }
+    const newOptLabel = getOptionLabel(votedOption, postType, postOptions);
 
     const commentEl = document.createElement('div');
     commentEl.className = `border rounded-lg p-3 text-sm ${bgClass}`;
@@ -252,7 +270,7 @@ export async function submitComment(postId, postTitle) {
         <div class="flex justify-between items-start">
             <div>
                 <div class="text-slate-800 dark:text-slate-200 break-all">${text}</div>
-                <div class="text-xs text-slate-400 mt-1">${user.displayName || '익명'} · 방금 전</div>
+                <div class="text-xs text-slate-400 mt-1">${user.displayName || '익명'}${newOptLabel ? ' <span class="text-[#169976]">' + newOptLabel + '</span>' : ''} · 방금 전</div>
                 <button class="comment-reply text-xs text-sky-500 mt-1" data-comment-id="${commentRef.id}">답글</button>
             </div>
             <button class="comment-delete text-xs text-red-500" data-comment-id="${commentRef.id}">삭제</button>
@@ -299,7 +317,7 @@ export async function submitComment(postId, postTitle) {
         const rd = { text: t, uid: u.uid, nickname: u.displayName || '익명', createdAt: serverTimestamp(), ...(vo && { votedOption: vo }) };
         const rRef = await addDoc(collection(db, 'questions', postId, 'comments', commentRef.id, 'replies'), rd);
         await updateDoc(doc(db, 'questions', postId), { commentsCount: increment(1) });
-        const newReplyEl = createReplyEl({ ...rd, createdAt: null }, rRef.id, commentRef.id, postId, postTitle, auth);
+        const newReplyEl = createReplyEl({ ...rd, createdAt: null }, rRef.id, commentRef.id, postId, postTitle, auth, postType, postOptions);
         repliesContainer.insertBefore(newReplyEl, replyBox);
         replyInput.value = '';
         charCount.textContent = '0 / 200';

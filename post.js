@@ -577,7 +577,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const postTitle = postSnap.exists() ? (postSnap.data().title || '') : '';
 
     await loadPost(postId);
-    await loadComments(postId, postTitle);
+    const postOptions = _postCache?.options || [];
+    const postType = _postCache?.type || '';
+    await loadComments(postId, postTitle, postType, postOptions);
 
     const commentInput = document.getElementById('comment-input');
     const commentLength = document.getElementById('comment-length');
@@ -617,7 +619,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                 }
             }
-            await submitComment(postId, postTitle);
+            await submitComment(postId, postTitle, postType, postOptions);
             commentSubmit.disabled = false;
         });
     }
