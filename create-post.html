@@ -21,6 +21,25 @@
         .modal-overlay.show { opacity: 1; visibility: visible; transition: opacity 0.3s ease; }
         .modal-content { background: white; padding: 1.5rem; border-radius: 1rem; width: 90%; max-width: 400px; position: relative; max-height: 80vh; overflow-y: auto; }
         html.dark .modal-content { background: #1e293b; color: white; }
+        /* 액션시트 */
+        #option-action-sheet { position: fixed; inset: 0; z-index: 200; display: none; }
+        #option-action-sheet.show { display: block; }
+        #option-action-sheet .backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.4); }
+        #option-action-sheet .sheet { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: white; border-radius: 1.2rem 1.2rem 0 0; padding: 1rem; }
+        html.dark #option-action-sheet .sheet { background: #1e293b; }
+        #option-action-sheet .sheet-btn { display: flex; align-items: center; gap: 0.75rem; width: 100%; padding: 0.85rem 0.5rem; font-size: 0.95rem; color: #1e293b; border-bottom: 1px solid #f1f5f9; }
+        html.dark #option-action-sheet .sheet-btn { color: #f1f5f9; border-color: #334155; }
+        #option-action-sheet .sheet-btn:last-child { border-bottom: none; }
+        #option-action-sheet .sheet-btn.danger { color: #ef4444; }
+
+        /* 크롭 전체화면 */
+        #crop-screen { position: fixed; inset: 0; z-index: 300; background: #000; display: none; flex-direction: column; }
+        #crop-screen.show { display: flex; }
+        #crop-screen .crop-header { display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; background: #111; }
+        #crop-screen .crop-header span { color: white; font-weight: 700; font-size: 0.95rem; }
+        #crop-screen .crop-area { flex: 1; overflow: hidden; position: relative; }
+        #crop-screen .crop-area img { max-width: 100%; max-height: 100%; display: block; }
+        #crop-screen .save-btn { background: #169976; color: white; font-weight: 700; padding: 0.4rem 1.1rem; border-radius: 0.6rem; font-size: 0.9rem; }
     </style>
 </head>
 <body>
@@ -191,6 +210,39 @@
         </div>
     </div>
 </div>
+
+<!-- 옵션 이미지 액션시트 -->
+<div id="option-action-sheet">
+  <div class="backdrop" id="action-sheet-backdrop"></div>
+  <div class="sheet">
+    <button class="sheet-btn" id="action-change-image">
+      <i class="fas fa-image text-[#169976]"></i> 다른 이미지 선택
+    </button>
+    <button class="sheet-btn" id="action-adjust-image">
+      <i class="fas fa-crop-alt text-[#169976]"></i> 이미지 위치 조정
+    </button>
+    <button class="sheet-btn danger" id="action-delete-image">
+      <i class="fas fa-trash"></i> 이미지 삭제
+    </button>
+  </div>
+</div>
+
+<!-- 크롭 전체화면 UI -->
+<div id="crop-screen">
+  <div class="crop-header">
+    <button id="crop-cancel-btn" style="color:#aaa; font-size:1.3rem;">
+      <i class="fas fa-arrow-left"></i>
+    </button>
+    <span>이미지 위치 조정</span>
+    <button class="save-btn" id="crop-save-btn">저장</button>
+  </div>
+  <div class="crop-area">
+    <img id="crop-image" src="" alt="crop">
+  </div>
+</div>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
 
 <script type="module" src="firebase-config.js"></script>
 <script type="module" src="create-post.js"></script>

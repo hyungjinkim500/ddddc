@@ -111,20 +111,135 @@ document.addEventListener("DOMContentLoaded", async () => {
     return optionDiv;
   }
 
+  // 액션시트/크롭 공용 상태
+  let _actionTargetDiv = null;
+  let _cropTargetDiv = null;
+  let _cropper = null;
+  let _cropSourceBlob = null;
+
+  function openActionSheet(optionDiv) {
+    _actionTargetDiv = optionDiv;
+    const hasImage = !!optionDiv._imageBlob;
+    // 이미지 없으면 바로 파일 선택창 열기
+    if (!hasImage) {
+      const fileInput = optionDiv._fileInput;
+      if (fileInput) fileInput.click();
+      _actionTargetDiv = null;
+      return;
+    }
+    const adjustBtn = document.getElementById('action-adjust-image');
+    if (adjustBtn) {
+      adjustBtn.style.opacity = '1';
+      adjustBtn.disabled = false;
+    }
+    document.getElementById('option-action-sheet').classList.add('show');
+  }
+
+  function closeActionSheet() {
+    document.getElementById('option-action-sheet').classList.remove('show');
+    _actionTargetDiv = null;
+  }
+
+  // 액션시트 배경 클릭 닫기
+  document.getElementById('action-sheet-backdrop')?.addEventListener('click', closeActionSheet);
+
+  // 다른 이미지 선택
+  document.getElementById('action-change-image')?.addEventListener('click', () => {
+    const target = _actionTargetDiv;
+    closeActionSheet();
+    if (!target) return;
+    const fileInput = target._fileInput;
+    if (fileInput) fileInput.click();
+  });
+
+  // 이미지 삭제
+  document.getElementById('action-delete-image')?.addEventListener('click', () => {
+    const target = _actionTargetDiv;
+    if (!target) return;
+    target._imageBlob = null;
+    const imgLabel = target._imgLabel;
+    if (imgLabel) {
+      imgLabel.innerHTML = '<i class="fas fa-image text-slate-400 text-lg"></i>';
+    }
+    closeActionSheet();
+  });
+
+  // 이미지 위치 조정 → 크롭 화면 열기
+  document.getElementById('action-adjust-image')?.addEventListener('click', () => {
+    const target = _actionTargetDiv;
+    if (!target || !target._imageBlob) return;
+    _cropTargetDiv = target;
+    closeActionSheet();
+    _cropSourceBlob = target._imageBlob;
+    const url = URL.createObjectURL(_cropSourceBlob);
+    const cropImg = document.getElementById('crop-image');
+    cropImg.src = url;
+    cropImg.onload = () => {
+      if (_cropper) { _cropper.destroy(); _cropper = null; }
+      _cropper = new Cropper(cropImg, {
+        aspectRatio: 1,
+        viewMode: 1,
+        dragMode: 'move',
+        autoCropArea: 1,
+        cropBoxResizable: false,
+        cropBoxMovable: false,
+        toggleDragModeOnDblclick: false,
+        background: false,
+      });
+    };
+    document.getElementById('crop-screen').classList.add('show');
+  });
+
+  // 크롭 취소
+  document.getElementById('crop-cancel-btn')?.addEventListener('click', () => {
+    if (_cropper) { _cropper.destroy(); _cropper = null; }
+    document.getElementById('crop-screen').classList.remove('show');
+    _cropSourceBlob = null;
+  });
+
+  // 크롭 저장
+  document.getElementById('crop-save-btn')?.addEventListener('click', async () => {
+    if (!_cropper || !_cropTargetDiv) return;
+    const target = _cropTargetDiv;
+    const canvas = _cropper.getCroppedCanvas({ width: 800, height: 800 });
+    canvas.toBlob(async (blob) => {
+      if (!blob) return;
+      try {
+        const compressed = await compressImage(new File([blob], 'crop.jpg', { type: 'image/jpeg' }));
+        target._imageBlob = compressed;
+        const url = URL.createObjectURL(compressed);
+        const imgLabel = target._imgLabel;
+        imgLabel.innerHTML = '';
+        const preview = document.createElement('img');
+        preview.src = url;
+        preview.className = 'w-full h-full object-cover';
+        imgLabel.appendChild(preview);
+      } catch(e) { alert('이미지 저장 실패'); }
+      if (_cropper) { _cropper.destroy(); _cropper = null; }
+      document.getElementById('crop-screen').classList.remove('show');
+      _cropSourceBlob = null;
+    }, 'image/jpeg', 0.92);
+  });
+
   function createPixOptionElement(index) {
     const optionDiv = document.createElement("div");
     optionDiv.className = "flex items-center gap-2 p-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700";
 
-    // 이미지 슬롯
-    const imgLabel = document.createElement("label");
+    // 이미지 슬롯 (클릭 시 액션시트)
+    const imgLabel = document.createElement("div");
     imgLabel.className = "w-14 h-14 rounded-lg bg-slate-200 dark:bg-slate-600 flex items-center justify-center flex-shrink-0 cursor-pointer overflow-hidden";
     imgLabel.innerHTML = '<i class="fas fa-image text-slate-400 text-lg"></i>';
+    imgLabel.addEventListener('click', () => openActionSheet(optionDiv));
+    optionDiv._imgLabel = imgLabel;
+
+    // 숨김 파일 input (이미지 선택용)
     const imgInput = document.createElement("input");
     imgInput.type = "file";
     imgInput.accept = "image/*";
     imgInput.className = "hidden";
     imgInput.dataset.optionIndex = index;
-    imgLabel.appendChild(imgInput);
+    optionDiv._fileInput = imgInput;
+    optionDiv.appendChild(imgInput);
 
     imgInput.addEventListener("change", async (e) => {
       const file = e.target.files[0];
@@ -154,7 +269,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     optionDiv.appendChild(imgLabel);
     optionDiv.appendChild(input);
 
-    // 삭제 버튼 (3개 이상일 때만 실제 동작)
+    // 삭제 버튼
     const removeBtn = document.createElement("button");
     removeBtn.type = "button";
     removeBtn.innerHTML = '<i class="fas fa-times text-slate-400"></i>';
