@@ -2,7 +2,7 @@
 import { auth, db, storage } from "./firebase-config.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { doc, updateDoc, getDoc, collection, query, where, orderBy, limit, startAfter, getDocs, writeBatch, getCountFromServer } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { doc, updateDoc, getDoc, collection, query, where, orderBy, limit, startAfter, getDocs, writeBatch, getCountFromServer, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { compressImage } from "./image-compress.js";
 
 const PAGE_SIZE = 10;
@@ -419,19 +419,29 @@ function initNicknameChange() {
 // 회원 탈퇴
 document.getElementById('withdraw-link')?.addEventListener('click', async (e) => {
     e.preventDefault();
-    const confirmed = confirm('정말 탈퇴하시겠습니까?\n탈퇴 시 모든 데이터가 삭제되며 복구할 수 없습니다.');
-    if (!confirmed) return;
     const user = auth.currentUser;
     if (!user) return;
+    const confirmed = confirm('정말 탈퇴하시겠습니까?\n작성한 게시글, 댓글, 투표, 좋아요 기록이 모두 삭제됩니다.');
+    if (!confirmed) return;
+
+    const withdrawBtn = document.getElementById('withdraw-link');
+    if (withdrawBtn) { withdrawBtn.textContent = '탈퇴 처리 중...'; withdrawBtn.disabled = true; }
+
     try {
-        await updateDoc(doc(db, 'userProfiles', user.uid), { deleted: true, deletedAt: new Date() });
-        await user.delete();
+        const { getFunctions, httpsCallable } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js');
+        const functions = getFunctions();
+        const deleteUserData = httpsCallable(functions, 'deleteUserData');
+        await deleteUserData();
         alert('탈퇴가 완료되었습니다.');
         window.location.href = 'index.html';
+
     } catch (error) {
+        console.error('탈퇴 오류:', error);
+        if (withdrawBtn) { withdrawBtn.textContent = '회원 탈퇴'; withdrawBtn.disabled = false; }
         alert('탈퇴 처리 중 오류가 발생했습니다. 재로그인 후 다시 시도해주세요.');
     }
 });
+
 
 // 초기화
 onAuthStateChanged(auth, async (user) => {
