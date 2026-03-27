@@ -1,12 +1,45 @@
 import { auth, db } from './firebase-config.js';
 import { onAuthStateChanged, getAuth } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { doc, onSnapshot, getDoc, updateDoc, increment, setDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { doc, getDoc, updateDoc, increment, setDoc, deleteDoc, collection, getDocs, query, where, writeBatch } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { handleVote } from './vote-system.js';
 import { updatePopularityScore } from './quiz-main.js';
 import { loadComments, submitComment } from './comments.js';
 
 const params = new URLSearchParams(window.location.search);
 const postId = params.get('id');
+
+async function deletePostWithSubcollections(postId) {
+    const batch = writeBatch(db);
+
+    // comments + replies 삭제
+    const commentsSnap = await getDocs(collection(db, 'questions', postId, 'comments'));
+    for (const commentDoc of commentsSnap.docs) {
+        const repliesSnap = await getDocs(collection(db, 'questions', postId, 'comments', commentDoc.id, 'replies'));
+        repliesSnap.docs.forEach(r => batch.delete(r.ref));
+        batch.delete(commentDoc.ref);
+    }
+
+    // likes 삭제
+    const likesSnap = await getDocs(collection(db, 'questions', postId, 'likes'));
+    likesSnap.docs.forEach(d => batch.delete(d.ref));
+
+    // userVotes 삭제
+    const votesSnap = await getDocs(collection(db, 'questions', postId, 'userVotes'));
+    votesSnap.docs.forEach(d => batch.delete(d.ref));
+
+    // 게시글 본문 삭제
+    batch.delete(doc(db, 'questions', postId));
+
+    await batch.commit();
+
+    // allComments에서 해당 게시글 댓글 삭제 (batch 500건 제한 별도 처리)
+    const allCommentsSnap = await getDocs(query(collection(db, 'allComments'), where('questionId', '==', postId)));
+    if (!allCommentsSnap.empty) {
+        const batch2 = writeBatch(db);
+        allCommentsSnap.docs.forEach(d => batch2.delete(d.ref));
+        await batch2.commit();
+    }
+}
 
 let imageGallery = [];
 let currentImageIndex = 0;
@@ -555,8 +588,8 @@ async function loadPost(postId) {
                     deleteBtn.addEventListener('click', async () => {
                         if (!confirm('게시글을 삭제할까요?')) return;
                         try {
-                            await deleteDoc(doc(db, 'questions', postId));
-                            history.back();
+                            await deletePostWithSubcollections(postId);
+                            window.location.replace('index.html');
                         } catch (e) {
                             alert('삭제 중 오류가 발생했습니다.');
                         }
@@ -698,8 +731,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     deleteBtn.addEventListener('click', async () => {
                         if (!confirm('게시글을 삭제할까요?')) return;
                         try {
-                            await deleteDoc(doc(db, 'questions', postId));
-                            history.back();
+                            await deletePostWithSubcollections(postId);
+                            window.location.replace('index.html');
                         } catch (e) {
                             alert('삭제 중 오류가 발생했습니다.');
                         }

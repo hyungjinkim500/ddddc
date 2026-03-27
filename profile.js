@@ -2,7 +2,7 @@
 import { auth, db, storage } from "./firebase-config.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { doc, updateDoc, getDoc, collection, query, where, orderBy, limit, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { doc, updateDoc, getDoc, collection, query, where, orderBy, limit, startAfter, getDocs, writeBatch, getCountFromServer } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { compressImage } from "./image-compress.js";
 
 const PAGE_SIZE = 10;
@@ -66,25 +66,108 @@ function showTab(tabName) {
 }
 
 // 내 퀴즈/게시글
-async function loadMyPosts() {
+let _myPostsPage = 0;
+let _myPostsCursors = [null];
+let _myPostsTotalPages = 0;
+
+async function loadMyPosts(page = 0) {
     const user = auth.currentUser;
     if (!user) return;
     const container = document.getElementById('tab-my-posts');
     if (!container) return;
     container.innerHTML = '<p class="text-slate-400">불러오는 중...</p>';
-    const q = query(collection(db, 'questions'), where('creatorId', '==', user.uid), orderBy('createdAt', 'desc'), limit(PAGE_SIZE));
+
+    // 첫 로드 시 전체 수 조회
+    if (page === 0) {
+        _myPostsCursors = [null];
+        const countSnap = await getCountFromServer(query(collection(db, 'questions'), where('creatorId', '==', user.uid)));
+        _myPostsTotalPages = Math.ceil(countSnap.data().count / PAGE_SIZE);
+    }
+
+    // 중간 커서가 없으면 순서대로 채우기
+    for (let i = 0; i < page; i++) {
+        if (!_myPostsCursors[i + 1]) {
+            const prevCursor = _myPostsCursors[i];
+            const fillQ = prevCursor
+                ? query(collection(db, 'questions'), where('creatorId', '==', user.uid), orderBy('createdAt', 'desc'), startAfter(prevCursor), limit(PAGE_SIZE))
+                : query(collection(db, 'questions'), where('creatorId', '==', user.uid), orderBy('createdAt', 'desc'), limit(PAGE_SIZE));
+            const fillSnap = await getDocs(fillQ);
+            if (fillSnap.docs.length > 0) {
+                _myPostsCursors[i + 1] = fillSnap.docs[fillSnap.docs.length - 1];
+            }
+        }
+    }
+
+    let q;
+    const cursor = _myPostsCursors[page];
+    if (cursor) {
+        q = query(collection(db, 'questions'), where('creatorId', '==', user.uid), orderBy('createdAt', 'desc'), startAfter(cursor), limit(PAGE_SIZE));
+    } else {
+        q = query(collection(db, 'questions'), where('creatorId', '==', user.uid), orderBy('createdAt', 'desc'), limit(PAGE_SIZE));
+    }
+
     const snap = await getDocs(q);
-    if (snap.empty) { container.innerHTML = '<p class="text-slate-400">작성한 글이 없습니다.</p>'; return; }
     container.innerHTML = '';
+
+    if (snap.empty && page === 0) {
+        container.innerHTML = '<p class="text-slate-400">작성한 글이 없습니다.</p>';
+        return;
+    }
+
     snap.forEach(docSnap => {
         const d = docSnap.data();
-        const badge = d.type === 'superquiz' ? 'TOPIC' : d.type === 'quiz' ? 'PICK' : 'POST';
+        const badge = d.type === 'pix' ? 'PIX' : d.type === 'quiz' ? 'PICK' : d.type === 'superquiz' ? 'TOPIC' : 'POST';
         const item = document.createElement('a');
         item.href = `post.html?id=${docSnap.id}`;
         item.className = 'block border rounded-lg px-4 py-3 bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 transition';
         item.innerHTML = `<div class="flex items-center gap-2"><span class="text-xs font-bold text-[#169976]">[${badge}]</span><span class="flex-1 truncate">${d.title || '제목 없음'}</span><span class="text-xs text-slate-400">👁 ${d.views || 0}</span><span class="text-xs text-slate-400">♥ ${d.likesCount || 0}</span></div>`;
         container.appendChild(item);
     });
+
+    // 커서 저장
+    if (snap.docs.length > 0) {
+        _myPostsCursors[page + 1] = snap.docs[snap.docs.length - 1];
+    }
+    _myPostsPage = page;
+
+    // 페이지 버튼
+    if (_myPostsTotalPages <= 1) return;
+    const GROUP_SIZE = 10;
+    const currentGroup = Math.floor(page / GROUP_SIZE);
+    const groupStart = currentGroup * GROUP_SIZE;
+    const groupEnd = Math.min(groupStart + GROUP_SIZE, _myPostsTotalPages);
+
+    const nav = document.createElement('div');
+    nav.className = 'flex justify-center items-center gap-1 mt-4 flex-wrap';
+
+    if (currentGroup > 0) {
+        const prevGroupBtn = document.createElement('button');
+        prevGroupBtn.textContent = '〈';
+        prevGroupBtn.className = 'w-8 h-8 text-sm rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700';
+        prevGroupBtn.addEventListener('click', () => loadMyPosts(groupStart - GROUP_SIZE));
+        nav.appendChild(prevGroupBtn);
+    }
+
+    for (let i = groupStart; i < groupEnd; i++) {
+        const numBtn = document.createElement('button');
+        numBtn.textContent = i + 1;
+        const isActive = i === page;
+        numBtn.className = isActive
+            ? 'w-8 h-8 text-sm rounded-lg bg-[#169976] text-white font-bold'
+            : 'w-8 h-8 text-sm rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700';
+        if (!isActive) numBtn.addEventListener('click', () => loadMyPosts(i));
+        nav.appendChild(numBtn);
+    }
+
+    if (groupEnd < _myPostsTotalPages) {
+        const nextGroupBtn = document.createElement('button');
+        nextGroupBtn.textContent = '〉';
+        nextGroupBtn.className = 'w-8 h-8 text-sm rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700';
+        nextGroupBtn.addEventListener('click', () => loadMyPosts(groupEnd));
+        nav.appendChild(nextGroupBtn);
+    }
+
+    container.appendChild(nav);
 }
 
 // 내 투표 - questions/{id}/userVotes/{uid} 구조로 조회
@@ -115,22 +198,45 @@ async function loadMyVotes() {
 }
 
 // 내 댓글
-async function loadMyComments() {
+let _myCommentsPage = 0;
+let _myCommentsCursors = [null];
+let _myCommentsTotalPages = 0;
+
+async function loadMyComments(page = 0) {
     const user = auth.currentUser;
     if (!user) return;
     const container = document.getElementById('tab-my-comments');
     if (!container) return;
     container.innerHTML = '<p class="text-slate-400">불러오는 중...</p>';
 
-    const snap = await getDocs(query(
-        collection(db, 'allComments'),
-        where('uid', '==', user.uid),
-        orderBy('createdAt', 'desc'),
-        limit(PAGE_SIZE)
-    ));
+    if (page === 0) {
+        _myCommentsCursors = [null];
+        const countSnap = await getCountFromServer(query(collection(db, 'allComments'), where('uid', '==', user.uid)));
+        _myCommentsTotalPages = Math.ceil(countSnap.data().count / PAGE_SIZE);
+    }
 
-    if (snap.empty) { container.innerHTML = '<p class="text-slate-400">작성한 댓글이 없습니다.</p>'; return; }
+    // 중간 커서 채우기
+    for (let i = 0; i < page; i++) {
+        if (!_myCommentsCursors[i + 1]) {
+            const prevCursor = _myCommentsCursors[i];
+            const fillQ = prevCursor
+                ? query(collection(db, 'allComments'), where('uid', '==', user.uid), orderBy('createdAt', 'desc'), startAfter(prevCursor), limit(PAGE_SIZE))
+                : query(collection(db, 'allComments'), where('uid', '==', user.uid), orderBy('createdAt', 'desc'), limit(PAGE_SIZE));
+            const fillSnap = await getDocs(fillQ);
+            if (fillSnap.docs.length > 0) _myCommentsCursors[i + 1] = fillSnap.docs[fillSnap.docs.length - 1];
+        }
+    }
+
+    const cursor = _myCommentsCursors[page];
+    const q = cursor
+        ? query(collection(db, 'allComments'), where('uid', '==', user.uid), orderBy('createdAt', 'desc'), startAfter(cursor), limit(PAGE_SIZE))
+        : query(collection(db, 'allComments'), where('uid', '==', user.uid), orderBy('createdAt', 'desc'), limit(PAGE_SIZE));
+
+    const snap = await getDocs(q);
     container.innerHTML = '';
+
+    if (snap.empty && page === 0) { container.innerHTML = '<p class="text-slate-400">작성한 댓글이 없습니다.</p>'; return; }
+
     snap.forEach(docSnap => {
         const c = docSnap.data();
         const item = document.createElement('a');
@@ -139,7 +245,49 @@ async function loadMyComments() {
         item.innerHTML = `<div class="flex items-center gap-2"><span class="flex-1 truncate">${c.text || ''}</span><span class="text-xs text-slate-400 flex-shrink-0">→ ${(c.questionTitle || '').substring(0, 15)}...</span></div>`;
         container.appendChild(item);
     });
+
+    if (snap.docs.length > 0) _myCommentsCursors[page + 1] = snap.docs[snap.docs.length - 1];
+    _myCommentsPage = page;
+
+    if (_myCommentsTotalPages <= 1) return;
+    const GROUP_SIZE = 10;
+    const currentGroup = Math.floor(page / GROUP_SIZE);
+    const groupStart = currentGroup * GROUP_SIZE;
+    const groupEnd = Math.min(groupStart + GROUP_SIZE, _myCommentsTotalPages);
+
+    const nav = document.createElement('div');
+    nav.className = 'flex justify-center items-center gap-1 mt-4 flex-wrap';
+
+    if (currentGroup > 0) {
+        const prevGroupBtn = document.createElement('button');
+        prevGroupBtn.textContent = '〈';
+        prevGroupBtn.className = 'w-8 h-8 text-sm rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700';
+        prevGroupBtn.addEventListener('click', () => loadMyComments(groupStart - GROUP_SIZE));
+        nav.appendChild(prevGroupBtn);
+    }
+
+    for (let i = groupStart; i < groupEnd; i++) {
+        const numBtn = document.createElement('button');
+        numBtn.textContent = i + 1;
+        const isActive = i === page;
+        numBtn.className = isActive
+            ? 'w-8 h-8 text-sm rounded-lg bg-[#169976] text-white font-bold'
+            : 'w-8 h-8 text-sm rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700';
+        if (!isActive) numBtn.addEventListener('click', () => loadMyComments(i));
+        nav.appendChild(numBtn);
+    }
+
+    if (groupEnd < _myCommentsTotalPages) {
+        const nextGroupBtn = document.createElement('button');
+        nextGroupBtn.textContent = '〉';
+        nextGroupBtn.className = 'w-8 h-8 text-sm rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700';
+        nextGroupBtn.addEventListener('click', () => loadMyComments(groupEnd));
+        nav.appendChild(nextGroupBtn);
+    }
+
+    container.appendChild(nav);
 }
+
 
 // 좋아요한 글 - questions/{id}/likes/{uid} 구조로 조회
 async function loadMyLikes() {
@@ -220,6 +368,48 @@ function initNicknameChange() {
         msg.textContent = '닉네임이 변경되었습니다!';
         msg.className = 'text-sm text-center text-[#169976]';
         document.getElementById('profile-name')?.textContent && (document.getElementById('profile-name').textContent = newNickname);
+    };
+
+    // 비밀번호 변경 섹션 (자체 계정만 표시)
+    const user = auth.currentUser;
+    const isPasswordUser = user?.providerData?.some(p => p.providerId === 'password');
+    const pwSection = document.getElementById('password-change-section');
+    if (pwSection) pwSection.classList.toggle('hidden', !isPasswordUser);
+
+    const pwBtn = document.getElementById('change-password-btn');
+    const pwCurrent = document.getElementById('current-password-input');
+    const pwNew = document.getElementById('new-password-input');
+    const pwConfirm = document.getElementById('confirm-password-input');
+    const pwMsg = document.getElementById('password-change-msg');
+    if (!pwBtn) return;
+
+    pwBtn.onclick = async () => {
+        const u = auth.currentUser;
+        if (!u) return;
+        const current = pwCurrent?.value.trim();
+        const newPw = pwNew?.value.trim();
+        const confirm = pwConfirm?.value.trim();
+        if (!current || !newPw || !confirm) { pwMsg.textContent = '모든 항목을 입력해주세요.'; pwMsg.className = 'text-sm text-center text-red-500'; return; }
+        if (newPw.length < 8) { pwMsg.textContent = '새 비밀번호는 8자 이상이어야 합니다.'; pwMsg.className = 'text-sm text-center text-red-500'; return; }
+        if (newPw !== confirm) { pwMsg.textContent = '새 비밀번호가 일치하지 않습니다.'; pwMsg.className = 'text-sm text-center text-red-500'; return; }
+        try {
+            const { EmailAuthProvider, reauthenticateWithCredential, updatePassword } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js');
+            const credential = EmailAuthProvider.credential(u.email, current);
+            await reauthenticateWithCredential(u, credential);
+            await updatePassword(u, newPw);
+            pwMsg.textContent = '비밀번호가 변경되었습니다!';
+            pwMsg.className = 'text-sm text-center text-[#169976]';
+            if (pwCurrent) pwCurrent.value = '';
+            if (pwNew) pwNew.value = '';
+            if (pwConfirm) pwConfirm.value = '';
+        } catch (e) {
+            if (e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential') {
+                pwMsg.textContent = '현재 비밀번호가 올바르지 않습니다.';
+            } else {
+                pwMsg.textContent = '오류가 발생했습니다. 다시 시도해주세요.';
+            }
+            pwMsg.className = 'text-sm text-center text-red-500';
+        }
     };
 }
 

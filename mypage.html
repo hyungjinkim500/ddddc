@@ -56,7 +56,7 @@
             </div>
             <div class="flex-1">
                 <p id="profile-name" class="font-bold text-lg text-slate-900 dark:text-white">닉네임</p>
-                <p class="text-sm text-slate-500 dark:text-slate-400">보유 포인트: <span id="profile-points" class="font-bold text-[#169976]">0</span> P</p>
+                <p class="text-sm text-slate-500 dark:text-slate-400 hidden">보유 포인트: <span id="profile-points" class="font-bold text-[#169976]">0</span> P</p>
             </div>
         </div>
 
@@ -66,8 +66,8 @@
             <button class="my-tab-btn whitespace-nowrap px-3" data-tab="my-votes">내 투표</button>
             <button class="my-tab-btn whitespace-nowrap px-3" data-tab="my-comments">내 댓글</button>
             <button class="my-tab-btn whitespace-nowrap px-3" data-tab="my-likes">좋아요</button>
-            <button class="my-tab-btn whitespace-nowrap px-3" data-tab="my-points">포인트</button>
-            <button class="my-tab-btn whitespace-nowrap px-3" data-tab="change-nickname">닉네임</button>
+            <button class="my-tab-btn whitespace-nowrap px-3 hidden" data-tab="my-points">포인트</button>
+            <button class="my-tab-btn whitespace-nowrap px-3" data-tab="change-nickname">프로필 설정</button>
         </div>
 
         <!-- 탭 콘텐츠 -->
@@ -93,6 +93,19 @@
                         class="w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#169976] dark:bg-slate-700 dark:border-slate-600">
                     <button id="change-nickname-btn" class="w-full py-2 bg-[#169976] text-white rounded-lg text-sm font-bold hover:opacity-90 transition">변경하기</button>
                     <p id="nickname-change-msg" class="text-sm text-center"></p>
+                </div>
+
+                <!-- 비밀번호 변경 -->
+                <div id="password-change-section" class="hidden bg-white dark:bg-slate-800 rounded-xl p-4 space-y-3 mt-4">
+                    <p class="text-sm font-bold text-slate-800 dark:text-white">비밀번호 변경</p>
+                    <input id="current-password-input" type="password" placeholder="현재 비밀번호"
+                        class="w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#169976] dark:bg-slate-700 dark:border-slate-600">
+                    <input id="new-password-input" type="password" placeholder="새 비밀번호 (8자 이상)"
+                        class="w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#169976] dark:bg-slate-700 dark:border-slate-600">
+                    <input id="confirm-password-input" type="password" placeholder="새 비밀번호 확인"
+                        class="w-full px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#169976] dark:bg-slate-700 dark:border-slate-600">
+                    <button id="change-password-btn" class="w-full py-2 bg-[#169976] text-white rounded-lg text-sm font-bold hover:opacity-90 transition">변경하기</button>
+                    <p id="password-change-msg" class="text-sm text-center"></p>
                 </div>
 
                 <!-- 회원 탈퇴 -->
