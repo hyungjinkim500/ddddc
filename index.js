@@ -219,7 +219,8 @@ function updateCardVoteUI(card, data, uid, selectedOptionId = null) {
         allVoteBtns.forEach(btn => {
             if (!btn) return;
             if (btn.dataset.optionId === selectedOptionId) {
-                btn.classList.add('ring-[3px]', 'ring-inset', 'ring-[#169976]');
+                const isOrange = btn.classList.contains('border-orange-400');
+                btn.classList.add('ring-[3px]', 'ring-inset', isOrange ? 'ring-orange-400' : 'ring-[#169976]');
             } else {
                 btn.classList.add('opacity-50');
             }
@@ -260,7 +261,7 @@ function createFeedCard(id, data) {
                 return `
                 <button class="vote-option-btn relative overflow-hidden rounded-xl border border-slate-200 dark:border-slate-600 flex items-center gap-3 px-3 py-2.5 text-left w-full"
                     data-option-id="${opt.id}" style="min-height:52px;">
-                    <div class="pix-bg-fill absolute inset-0 bg-[#169976]/20 transition-all duration-500" style="width:0%"></div>
+                    <div class="pix-bg-fill absolute inset-0 bg-[#08d9d6]/20 transition-all duration-500" style="width:0%"></div>
                     ${opt.imageUrl ? `<div class="relative w-10 h-10 rounded-lg overflow-hidden flex-shrink-0"><img src="${opt.imageUrl}" class="w-full h-full object-cover"></div>` : ''}
                     <span class="relative font-semibold text-slate-800 dark:text-slate-100 text-sm flex-1">${opt.label || ''}</span>
                     <span class="pix-pct relative font-bold text-[#169976] text-sm hidden"></span>
@@ -424,19 +425,25 @@ function createFeedCard(id, data) {
 
             // pix 타입: 버튼 내부 비율 즉시 업데이트
             if (localData.type === 'pix') {
-                const pixOptions = getVotePercent(localData);
                 const voteObj = localData.vote || {};
                 const total = Object.values(voteObj).reduce((a, b) => a + b, 0);
-                card.querySelectorAll('.vote-option-btn').forEach((btn, i) => {
+                card.querySelectorAll('.vote-option-btn').forEach((btn) => {
                     const optId = btn.dataset.optionId;
                     const cnt = voteObj[optId] || 0;
                     const pct = total > 0 ? Math.round(cnt / total * 100) : 0;
                     const fill = btn.querySelector('.pix-bg-fill');
                     const pctEl = btn.querySelector('.pix-pct');
-                    if (fill) fill.style.width = pct + '%';
+                    if (fill) {
+                        fill.style.width = pct + '%';
+                        const isThisSelected = optId === newSelected;
+                        fill.style.background = isThisSelected ? 'rgba(22,153,118,0.2)' : 'rgba(148,163,184,0.2)';
+                    }
                     if (pctEl) {
                         pctEl.textContent = pct + '%';
                         if (total > 0) pctEl.classList.remove('hidden');
+                        const isSelected = optId === newSelected;
+                        pctEl.className = pctEl.className.replace(/text-\S+/g, '').trim();
+                        pctEl.classList.add(isSelected ? 'text-[#2e3e4c]' : 'text-slate-400');
                     }
                 });
             }
@@ -492,14 +499,25 @@ function createFeedCard(id, data) {
                 if (data.type === 'pix') {
                     const voteObj = (card._cachedData || data).vote || {};
                     const total = Object.values(voteObj).reduce((a, b) => a + b, 0);
+                    const selectedOption = voteSnap.data().selectedOption;
                     card.querySelectorAll('.vote-option-btn').forEach(btn => {
                         const oid = btn.dataset.optionId;
                         const cnt = voteObj[oid] || 0;
                         const pct = total > 0 ? Math.round(cnt / total * 100) : 0;
                         const fill = btn.querySelector('.pix-bg-fill');
                         const pctEl = btn.querySelector('.pix-pct');
-                        if (fill) fill.style.width = pct + '%';
-                        if (pctEl) { pctEl.textContent = pct + '%'; if (total > 0) pctEl.classList.remove('hidden'); }
+                        if (fill) {
+                            fill.style.width = pct + '%';
+                            const isThisSelected = oid === selectedOption;
+                            fill.style.background = isThisSelected ? 'rgba(22,153,118,0.2)' : 'rgba(148,163,184,0.2)';
+                        }
+                        if (pctEl) {
+                            pctEl.textContent = pct + '%';
+                            if (total > 0) pctEl.classList.remove('hidden');
+                            const isSelected = oid === selectedOption;
+                            pctEl.className = pctEl.className.replace(/text-\S+/g, '').trim();
+                            pctEl.classList.add(isSelected ? 'text-[#2e3e4c]' : 'text-slate-400');
+                        }
                     });
                 }
             } else {
