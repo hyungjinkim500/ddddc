@@ -1,6 +1,6 @@
 import { auth, db } from './firebase-config.js';
 import { onAuthStateChanged, getAuth } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { doc, getDoc, updateDoc, increment, setDoc, deleteDoc, collection, getDocs, query, where, writeBatch } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { doc, getDoc, updateDoc, increment, setDoc, deleteDoc, collection, getDocs, query, where, writeBatch, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { handleVote } from './vote-system.js';
 import { updatePopularityScore } from './quiz-main.js';
 import { loadComments, submitComment } from './comments.js';
@@ -242,6 +242,7 @@ async function loadPost(postId) {
         }
     }
 
+    // 최초 1회 getDoc으로 전체 렌더링
     const snap = await getDoc(postRef);
     {
         if (!snap.exists()) {
@@ -616,6 +617,32 @@ async function loadPost(postId) {
             }
         }
     }
+
+    // onSnapshot으로 실시간 투표 수 반영 (vote, participants 변경 감지)
+    onSnapshot(postRef, (snapLive) => {
+        if (!snapLive.exists()) return;
+        const live = snapLive.data();
+        _postCache = { ..._postCache, vote: live.vote, participants: live.participants };
+
+        // 투표 바/퍼센트 UI 업데이트
+        updateVoteBarUI(_postCache);
+
+        // 투표인원 수 업데이트
+        const voteStatEl = document.getElementById('detail-vote-stat');
+        const maxP = live.participantLimit || 0;
+        const voteObj = live.vote || {};
+        const totalVotes = Object.values(voteObj).reduce((a, b) => a + b, 0);
+        const curP = (live.participants || []).length;
+        if (voteStatEl) {
+            voteStatEl.querySelector('span').textContent = maxP > 0 ? `${curP}/${maxP}` : totalVotes > 0 ? `${totalVotes}명` : '0명';
+        }
+        if (maxP > 0) {
+            const bar = document.getElementById('participation-bar');
+            const text = document.getElementById('participation-text');
+            if (bar) bar.style.width = Math.round(curP / maxP * 100) + '%';
+            if (text) text.textContent = `${curP} / ${maxP} 참여`;
+        }
+    });
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -666,6 +693,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const voteSnap = await getDoc(doc(db, `questions/${postId}/userVotes/${user.uid}`));
                     if (!voteSnap.exists()) {
                         alert('이 게시글은 투표 후 댓글을 작성할 수 있습니다.');
+                        commentSubmit.disabled = false;
                         return;
                     }
                 }

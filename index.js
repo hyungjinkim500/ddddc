@@ -256,10 +256,14 @@ function createFeedCard(id, data) {
         ` : '';
 
         if (data.type === 'pix') {
-            // PIX 전용: 투표 전엔 비율 숨김, 투표 후에만 표시
-            const pixOptionsHTML = (data.options || []).map((opt, i) => {
+            const allOptions = data.options || [];
+            const SHOW_LIMIT = 3;
+            const hasMore = allOptions.length > SHOW_LIMIT;
+
+            const pixOptionsHTML = allOptions.map((opt, i) => {
+                const isHidden = i >= SHOW_LIMIT;
                 return `
-                <button class="vote-option-btn relative overflow-hidden rounded-xl border border-slate-200 dark:border-slate-600 flex items-center gap-3 px-3 py-2.5 text-left w-full"
+                <button class="vote-option-btn relative overflow-hidden rounded-xl border border-slate-200 dark:border-slate-600 flex items-center gap-3 px-3 py-2.5 text-left w-full${isHidden ? ' pix-extra-opt hidden' : ''}"
                     data-option-id="${opt.id}" style="min-height:52px;">
                     <div class="pix-bg-fill absolute inset-0 bg-[#08d9d6]/20 transition-all duration-500" style="width:0%"></div>
                     ${opt.imageUrl ? `<div class="relative w-10 h-10 rounded-lg overflow-hidden flex-shrink-0"><img src="${opt.imageUrl}" class="w-full h-full object-cover"></div>` : ''}
@@ -267,9 +271,17 @@ function createFeedCard(id, data) {
                     <span class="pix-pct relative font-bold text-[#169976] text-sm hidden"></span>
                 </button>`;
             }).join('');
+
+            const toggleBtn = hasMore ? `
+                <button class="pix-toggle-btn w-full text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 py-1 flex items-center justify-center gap-1 transition">
+                    <span class="pix-toggle-label">옵션 더보기</span>
+                    <i class="fas fa-chevron-down text-[10px] pix-toggle-icon"></i>
+                </button>` : '';
+
             voteHTML = `
             <div class="px-4 pb-2 pt-2 space-y-2 pix-options-wrap">
                 ${pixOptionsHTML}
+                ${toggleBtn}
                 ${participationBar}
             </div>`;
         } else {
@@ -379,6 +391,32 @@ function createFeedCard(id, data) {
         const url = `${location.origin}${location.pathname.replace('index.html', '')}post.html?id=${btn.dataset.id}`;
         navigator.clipboard?.writeText(url).then(() => alert('링크가 복사됐어요!'));
     });
+
+    // PIX 더보기/접기 토글
+    const toggleBtn = card.querySelector('.pix-toggle-btn');
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // 카드 전체 클릭 방지
+            const extraOpts = card.querySelectorAll('.pix-extra-opt');
+            const label = toggleBtn.querySelector('.pix-toggle-label');
+            const icon = toggleBtn.querySelector('.pix-toggle-icon');
+            const isExpanded = extraOpts.length > 0 && !extraOpts[0].classList.contains('hidden');
+
+            extraOpts.forEach(opt => {
+                opt.classList.toggle('hidden');
+            });
+
+            if (isExpanded) {
+                label.textContent = '옵션 더보기';
+                icon.classList.remove('fa-chevron-up');
+                icon.classList.add('fa-chevron-down');
+            } else {
+                label.textContent = '옵션 접기';
+                icon.classList.remove('fa-chevron-down');
+                icon.classList.add('fa-chevron-up');
+            }
+        });
+    }
 
     // 투표 버튼
     card.querySelectorAll('.vote-option-btn').forEach(btn => {

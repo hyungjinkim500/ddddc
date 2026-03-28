@@ -57,8 +57,10 @@ async function loadCategories() {
             opt.textContent = d.data().name;
             filterCategory.appendChild(opt);
         });
+        filterCategory.classList.add('hidden');
     } catch (e) {
         console.error('카테고리 로드 실패:', e);
+        filterCategory.classList.add('hidden');
     }
 }
 
@@ -142,13 +144,27 @@ async function performSearch(searchTerm) {
     `;
 
     try {
-        const q = query(
+        const qPrefix = query(
             collection(db, 'questions'),
             where('title', '>=', searchTerm),
             where('title', '<=', searchTerm + '\uf8ff')
         );
-        const snapshot = await getDocs(q);
-        allResults = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        const qAll = query(collection(db, 'questions'));
+        const [snapPrefix, snapAll] = await Promise.all([getDocs(qPrefix), getDocs(qAll)]);
+
+        const seen = new Set();
+        const merged = [];
+        for (const d of [...snapPrefix.docs, ...snapAll.docs]) {
+            if (seen.has(d.id)) continue;
+            const data = d.data();
+            const titleMatch = (data.title || '').includes(searchTerm);
+            const descMatch = (data.description || '').includes(searchTerm);
+            if (titleMatch || descMatch) {
+                seen.add(d.id);
+                merged.push({ id: d.id, ...data });
+            }
+        }
+        allResults = merged;
         currentPage = 1;
         renderPage();
     } catch (e) {
