@@ -114,10 +114,15 @@ async function restoreUserVotes(user) {
             const pct = total > 0 ? Math.round(cnt / total * 100) : 0;
             const fill = btn.querySelector('.pix-bg-fill');
             const pctEl = btn.querySelector('.pix-pct');
-            if (fill) fill.style.width = pct + '%';
+            if (fill) {
+                fill.style.width = pct + '%';
+                fill.style.background = (optId === _myVote) ? 'rgba(22,153,118,0.2)' : 'rgba(148,163,184,0.2)';
+            }
             if (pctEl) {
                 pctEl.textContent = pct + '%';
                 if (total > 0) pctEl.classList.remove('hidden');
+                pctEl.className = pctEl.className.replace(/text-\S+/g, '').trim();
+                pctEl.classList.add((optId === _myVote) ? 'text-[#169976]' : 'text-slate-400');
             }
         });
     }
@@ -197,10 +202,15 @@ function updateVoteBarUI(post) {
             const pct = total > 0 ? Math.round(cnt / total * 100) : 0;
             const fill = btn.querySelector('.pix-bg-fill');
             const pctEl = btn.querySelector('.pix-pct');
-            if (fill) fill.style.width = pct + '%';
+            if (fill) {
+                fill.style.width = pct + '%';
+                fill.style.background = (optId === _myVote) ? 'rgba(22,153,118,0.2)' : 'rgba(148,163,184,0.2)';
+            }
             if (pctEl) {
                 pctEl.textContent = pct + '%';
                 if (total > 0) pctEl.classList.remove('hidden');
+                pctEl.className = pctEl.className.replace(/text-\S+/g, '').trim();
+                pctEl.classList.add((optId === _myVote) ? 'text-[#169976]' : 'text-slate-400');
             }
         });
     } else {
@@ -449,8 +459,16 @@ async function loadPost(postId) {
                             const pct = total > 0 ? Math.round(cnt / total * 100) : 0;
                             const fill = b.querySelector('.pix-bg-fill');
                             const pctEl = b.querySelector('.pix-pct');
-                            if (fill) fill.style.width = pct + '%';
-                            if (pctEl) { pctEl.textContent = pct + '%'; if (total > 0) pctEl.classList.remove('hidden'); }
+                            if (fill) {
+                                fill.style.width = pct + '%';
+                                fill.style.background = (oid === newSelected) ? 'rgba(22,153,118,0.2)' : 'rgba(148,163,184,0.2)';
+                            }
+                            if (pctEl) {
+                                pctEl.textContent = pct + '%';
+                                if (total > 0) pctEl.classList.remove('hidden');
+                                pctEl.className = pctEl.className.replace(/text-\S+/g, '').trim();
+                                pctEl.classList.add((oid === newSelected) ? 'text-[#169976]' : 'text-slate-400');
+                            }
                         });
 
                         // ③ 서버 저장 백그라운드

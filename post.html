@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>픽스 | 게시물</title>
+    <title>집단지성 플랫폼 픽스 | 게시물</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="tailwind.config.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -21,7 +21,7 @@
         .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px 0; font-size: 10px; color: #94a3b8; cursor: pointer; text-decoration: none; gap: 3px; }
         .nav-btn.active { color: #169976; }
         .nav-btn i { font-size: 20px; }
-        .nav-btn.pick-btn .pick-circle { width: 48px; height: 48px; background: #169976; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-top: -20px; box-shadow: 0 4px 12px rgba(22,153,118,0.4); }
+        .nav-btn.pick-btn .pick-circle { width: 48px; height: 48px; background: #3ef0cc; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-top: -20px; box-shadow: 0 4px 12px rgba(22,153,118,0.4); }
         .nav-btn.pick-btn .pick-circle i { font-size: 22px; color: white; }
         /* 로그인 모달은 auth.js에서 동적 주입 */
     </style>
@@ -36,7 +36,7 @@
             </button>
             <span class="font-bold text-slate-800 dark:text-white text-sm">게시물</span>
             <div class="flex items-center gap-2">
-                <button id="header-login-btn" class="text-sm font-bold px-3 py-1.5 rounded-lg bg-[#169976] text-white cursor-pointer hidden">
+                <button id="header-login-btn" class="text-sm font-bold px-3 py-1.5 rounded-lg bg-[#3ef0cc] text-#263559 cursor-pointer hidden">
                     로그인
                 </button>
                 <div id="header-user-area" class="hidden items-center">
@@ -123,7 +123,7 @@
             <div class="flex gap-2 mb-2">
                 <input id="comment-input" type="text" placeholder="댓글을 입력하세요"
                     class="flex-1 border rounded-lg px-3 py-2 text-sm dark:bg-slate-700 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-[#169976]"/>
-                <button id="comment-submit" class="bg-[#169976] text-white px-4 py-2 rounded-lg text-sm font-bold">작성</button>
+                <button id="comment-submit" class="bg-[#3ef0cc] text-#263559 px-4 py-2 rounded-lg text-sm font-bold">작성</button>
             </div>
             <div id="comment-length" class="text-xs text-slate-400 mb-3 text-right">0 / 200</div>
             <div id="comment-list" class="space-y-3"></div>
