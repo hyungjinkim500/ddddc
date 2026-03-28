@@ -343,7 +343,7 @@ function createFeedCard(id, data) {
                 <span class="text-sm font-semibold text-slate-800 dark:text-slate-100">${data.creatorName || '익명'}</span>
                 <span class="text-xs text-slate-400 ml-2">${timeText}</span>
             </div>
-            ${isPix ? '<span class="text-xs font-bold text-[#169976] bg-green-50 dark:bg-green-900/30 px-2 py-0.5 rounded-full">PIX</span>' : ''}
+            
         </div>
         <!-- 제목 -->
         <a href="post.html?id=${id}" class="block px-4 pb-3">

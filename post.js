@@ -11,11 +11,20 @@ const postId = params.get('id');
 async function deletePostWithSubcollections(postId) {
     const batch = writeBatch(db);
 
-    // comments + replies 삭제
+    // comments + replies + commentLikes 삭제
     const commentsSnap = await getDocs(collection(db, 'questions', postId, 'comments'));
     for (const commentDoc of commentsSnap.docs) {
+        // 댓글 좋아요 삭제
+        const commentLikesSnap = await getDocs(collection(db, 'questions', postId, 'comments', commentDoc.id, 'commentLikes'));
+        commentLikesSnap.docs.forEach(l => batch.delete(l.ref));
+
+        // 답글 + 답글 좋아요 삭제
         const repliesSnap = await getDocs(collection(db, 'questions', postId, 'comments', commentDoc.id, 'replies'));
-        repliesSnap.docs.forEach(r => batch.delete(r.ref));
+        for (const replyDoc of repliesSnap.docs) {
+            const replyLikesSnap = await getDocs(collection(db, 'questions', postId, 'comments', commentDoc.id, 'replies', replyDoc.id, 'commentLikes'));
+            replyLikesSnap.docs.forEach(l => batch.delete(l.ref));
+            batch.delete(replyDoc.ref);
+        }
         batch.delete(commentDoc.ref);
     }
 
