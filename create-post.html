@@ -148,20 +148,28 @@
 
                 <!-- 종료 기간 -->
                 <div>
-                    <p class="text-xs text-slate-500 mb-1">종료 기간</p>
-                    <select id="duration-days" name="durationDays"
-                        class="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-[#169976]">
-                        <option value="1">1일</option>
-                        <option value="2">2일</option>
-                        <option value="3">3일</option>
-                        <option value="4">4일</option>
-                        <option value="5">5일</option>
-                        <option value="6">6일</option>
-                        <option value="7">7일</option>
-                        <option value="8">8일</option>
-                        <option value="9">9일</option>
-                        <option value="10">10일</option>
-                    </select>
+                    <label class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 cursor-pointer">
+                        <input type="checkbox" id="use-duration" class="w-4 h-4 text-[#169976] rounded">
+                        <div>
+                            <p class="text-sm font-semibold text-slate-700 dark:text-slate-200">종료 기간 설정</p>
+                            <p class="text-xs text-slate-400">체크 시 투표 종료 기간을 설정할 수 있어요</p>
+                        </div>
+                    </label>
+                    <div id="duration-input" class="hidden mt-2">
+                        <select id="duration-days" name="durationDays"
+                            class="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-[#169976]">
+                            <option value="1">1일</option>
+                            <option value="2">2일</option>
+                            <option value="3">3일</option>
+                            <option value="4">4일</option>
+                            <option value="5">5일</option>
+                            <option value="6">6일</option>
+                            <option value="7">7일</option>
+                            <option value="8">8일</option>
+                            <option value="9">9일</option>
+                            <option value="10">10일</option>
+                        </select>
+                    </div>
                 </div>
 
                 <!-- 참가자 제한 (선택) -->

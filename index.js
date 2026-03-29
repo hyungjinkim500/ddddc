@@ -220,7 +220,7 @@ function updateCardVoteUI(card, data, uid, selectedOptionId = null) {
             if (!btn) return;
             if (btn.dataset.optionId === selectedOptionId) {
                 const isOrange = btn.classList.contains('border-orange-400');
-                btn.classList.add('ring-[3px]', 'ring-inset', isOrange ? 'ring-orange-400' : 'ring-[#1fdfcb]');
+                btn.classList.add('ring-[3px]', 'ring-inset', isOrange ? 'ring-[#f6cdbe]' : 'ring-[#1fdfcb]');
             } else {
                 btn.classList.add('opacity-50');
             }
@@ -388,8 +388,8 @@ function createFeedCard(id, data) {
     // 공유
     card.querySelector('.share-btn').addEventListener('click', (e) => {
         const btn = e.currentTarget;
-        const url = `${location.origin}${location.pathname.replace('index.html', '')}post.html?id=${btn.dataset.id}`;
-        navigator.clipboard?.writeText(url).then(() => alert('링크가 복사됐어요!'));
+        const ogUrl = `https://us-central1-dddc-hyungjin-0726.cloudfunctions.net/getPostOg?id=${btn.dataset.id}`;
+        navigator.clipboard?.writeText(ogUrl).then(() => alert('링크가 복사됐어요!'));
     });
 
     // PIX 더보기/접기 토글
@@ -520,6 +520,27 @@ function createFeedCard(id, data) {
             const x = e.pageX - slideInner.offsetLeft;
             slideInner.scrollLeft = scrollLeft - (x - startX) * 1.5;
         });
+    }
+    
+    // 투표 기한 만료 시 버튼 비활성화
+    if (data.expiresAt) {
+        const expiresAt = data.expiresAt.toDate ? data.expiresAt.toDate() : new Date(data.expiresAt);
+        if (new Date() > expiresAt) {
+            card.querySelectorAll('.vote-option-btn').forEach(btn => {
+                btn.disabled = true;
+                btn.classList.add('opacity-50', 'cursor-not-allowed');
+            });
+            const toggleBtn = card.querySelector('.pix-toggle-btn');
+            if (toggleBtn) toggleBtn.disabled = true;
+            // 만료 안내 텍스트 추가
+            const voteArea = card.querySelector('.pix-options-wrap') || card.querySelector('.grid.grid-cols-2.gap-2.mt-2');
+            if (voteArea) {
+                const expiredMsg = document.createElement('p');
+                expiredMsg.className = 'text-xs text-slate-400 text-center mt-1';
+                expiredMsg.textContent = '투표가 종료되었습니다.';
+                voteArea.appendChild(expiredMsg);
+            }
+        }
     }
 
     // 카드 데이터 캐시 저장
@@ -690,18 +711,30 @@ document.addEventListener('DOMContentLoaded', () => {
             b.classList.toggle('active', b.dataset.tab === savedTab);
         });
     }
-    loadFeed(true).then(() => {
-        if (savedScroll) {
+
+    if (savedScroll) {
+        // 뒤로가기로 돌아온 경우 → 피드 로드 후 스크롤 복원
+        loadFeed(true).then(() => {
             const container = document.getElementById('feed-container');
             if (container) {
-                setTimeout(() => {
-                    container.scrollTop = parseInt(savedScroll);
-                }, 100);
+                // 카드 렌더링 완료 대기 후 복원
+                const tryRestore = (attempts = 0) => {
+                    const feedList = document.getElementById('feed-list');
+                    if (feedList && feedList.children.length > 0) {
+                        container.scrollTop = parseInt(savedScroll);
+                        sessionStorage.removeItem('feedScroll');
+                        sessionStorage.removeItem('feedTab');
+                    } else if (attempts < 20) {
+                        setTimeout(() => tryRestore(attempts + 1), 100);
+                    }
+                };
+                tryRestore();
             }
-            sessionStorage.removeItem('feedScroll');
-            sessionStorage.removeItem('feedTab');
-        }
-    });
+        });
+    } else {
+        // 일반 진입
+        loadFeed(true);
+    }
 
     // 퀵서치는 index.html 인라인 스크립트에서 처리
     document.getElementById('header-avatar')?.addEventListener('click', () => {

@@ -512,6 +512,21 @@ async function loadPost(postId) {
                 await restoreUserVotes(user);
             }
 
+            // 투표 기한 만료 시 버튼 비활성화
+            if (post.expiresAt) {
+                const expiresAt = post.expiresAt.toDate ? post.expiresAt.toDate() : new Date(post.expiresAt);
+                if (new Date() > expiresAt) {
+                    document.querySelectorAll('.vote-option-btn').forEach(btn => {
+                        btn.disabled = true;
+                        btn.classList.add('opacity-50', 'cursor-not-allowed');
+                    });
+                    const expiredMsg = document.createElement('p');
+                    expiredMsg.className = 'text-xs text-slate-400 text-center mt-2';
+                    expiredMsg.textContent = '투표가 종료되었습니다.';
+                    optionsContainer.appendChild(expiredMsg);
+                }
+            }
+
         } else {
             const resultsContainer = document.getElementById('detail-results');
             if (resultsContainer && Array.isArray(post.options)) {
@@ -591,7 +606,8 @@ async function loadPost(postId) {
         if (shareBtn && !shareBtn._initialized) {
             shareBtn._initialized = true;
             shareBtn.onclick = () => {
-                navigator.clipboard.writeText(window.location.href).then(() => alert('링크가 복사되었습니다!'));
+                const ogUrl = `https://us-central1-dddc-hyungjin-0726.cloudfunctions.net/getPostOg?id=${postId}`;
+                navigator.clipboard.writeText(ogUrl).then(() => alert('링크가 복사되었습니다!'));
             };
         }
 

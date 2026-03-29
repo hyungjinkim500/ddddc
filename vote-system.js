@@ -50,6 +50,15 @@ async function _doHandleVote(quizId, optionId) {
             }
 
             const data = quizDoc.data();
+
+            // 투표 기한 만료 체크
+            if (data.expiresAt) {
+                const expiresAt = data.expiresAt.toDate ? data.expiresAt.toDate() : new Date(data.expiresAt);
+                if (new Date() > expiresAt) {
+                    throw "Vote expired";
+                }
+            }
+
             const entryFee = data.entryFee || 0;
             const participantLimit = data.participantLimit || 0;
             const participants = data.participants || [];

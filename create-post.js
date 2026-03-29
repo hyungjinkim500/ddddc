@@ -481,6 +481,14 @@ document.addEventListener("DOMContentLoaded", async () => {
         theme: data.theme,
         ...(isEditMode ? {} : { imageUrls: [] }),
         allowNoVoteComment: document.getElementById('allow-no-vote-comment')?.checked || false,
+        expiresAt: (() => {
+            const useDuration = document.getElementById('use-duration')?.checked;
+            if (!useDuration) return null;
+            const days = Number(document.getElementById('duration-days')?.value || 1);
+            const expire = new Date();
+            expire.setDate(expire.getDate() + days);
+            return expire;
+        })(),
       };
 
       if (quizType) {
@@ -763,6 +771,12 @@ document.addEventListener("DOMContentLoaded", async () => {
           const input = document.getElementById('participant-limit');
           if (input) input.value = '';
       }
+  });
+
+  // 종료 기간 체크박스 토글
+  document.getElementById('use-duration')?.addEventListener('change', (e) => {
+      const inputBox = document.getElementById('duration-input');
+      if (inputBox) inputBox.classList.toggle('hidden', !e.target.checked);
   });
 
   // Initial setup on page load (typeParam 분기에서 이미 setupOptions 호출됨)

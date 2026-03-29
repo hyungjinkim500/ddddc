@@ -1,5 +1,5 @@
 const { setGlobalOptions } = require("firebase-functions");
-const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { onCall, HttpsError, onRequest } = require("firebase-functions/v2/https");
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore } = require("firebase-admin/firestore");
 const { getAuth } = require("firebase-admin/auth");
@@ -93,4 +93,56 @@ exports.deleteUserData = onCall(async (request) => {
     await getAuth().deleteUser(uid);
 
     return { success: true };
+});
+
+exports.getPostOg = onRequest({ maxInstances: 5 }, async (req, res) => {
+    const postId = req.query.id;
+    if (!postId) {
+        res.redirect('https://ddddc-hyungjinkim5000.workers.dev/post.html');
+        return;
+    }
+
+    try {
+        const db = getFirestore();
+        const postSnap = await db.collection("questions").doc(postId).get();
+
+        if (!postSnap.exists) {
+            res.redirect(`https://ddddc-hyungjinkim5000.workers.dev/post.html?id=${postId}`);
+            return;
+        }
+
+        const post = postSnap.data();
+        const title = post.title || '픽스';
+        const description = post.description || '집단지성 플랫폼 픽스에서 투표에 참여해보세요!';
+        const imageUrl = (post.imageUrls && post.imageUrls[0]) || 'https://ddddc-hyungjinkim5000.workers.dev/pix_logo_nobackground.png';
+        const pageUrl = `https://ddddc-hyungjinkim5000.workers.dev/post.html?id=${postId}`;
+
+        const html = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>${title} | 픽스</title>
+    <meta property="og:title" content="${title}">
+    <meta property="og:description" content="${description}">
+    <meta property="og:image" content="${imageUrl}">
+    <meta property="og:url" content="${pageUrl}">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="픽스 PIX">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="${title}">
+    <meta name="twitter:description" content="${description}">
+    <meta name="twitter:image" content="${imageUrl}">
+    <meta http-equiv="refresh" content="0;url=${pageUrl}">
+</head>
+<body>
+    <script>window.location.replace('${pageUrl}');</script>
+</body>
+</html>`;
+
+        res.set('Cache-Control', 'public, max-age=300');
+        res.status(200).send(html);
+    } catch (e) {
+        console.error('getPostOg error:', e);
+        res.redirect(`https://ddddc-hyungjinkim5000.workers.dev/post.html?id=${postId}`);
+    }
 });
