@@ -32,7 +32,7 @@ async function createReplyEl(replyData, replyId, commentId, postId, postTitle, a
         <div class="flex justify-between items-start">
             <div>
                 <div class="text-slate-800 dark:text-slate-200 break-all">${replyData.text}</div>
-                <div class="text-xs text-slate-400 mt-1">${replyData.nickname || '익명'}${replyOptionLabel ? ' <span class="text-[#169976]">' + replyOptionLabel + '</span>' : ''} · 방금 전</div>
+                <div class="text-xs text-slate-400 mt-1"><a href="profile-view.html?uid=${replyData.uid || ''}" class="hover:underline">${replyData.nickname || '익명'}</a>${replyOptionLabel ? ' <span class="text-[#169976]">' + replyOptionLabel + '</span>' : ''} · 방금 전</div>
                 <div class="flex items-center gap-3 mt-1">
                     <button class="reply-like-btn text-xs text-slate-400 flex items-center gap-0.5">👍 <span class="like-count">${replyData.likes || 0}</span></button>
                     <button class="reply-dislike-btn text-xs text-slate-400 flex items-center gap-0.5">👎 <span class="dislike-count">${replyData.dislikes || 0}</span></button>
@@ -213,7 +213,7 @@ export async function loadComments(postId, postTitle, postType = '', postOptions
                 <div class="flex justify-between items-start">
                     <div>
                          <div class="text-slate-800 dark:text-slate-200 break-all">${data.text}</div>
-                         <div class="text-xs text-slate-400 mt-1">${data.nickname || '익명'}${optionLabel ? ' <span class="text-[#169976]">' + optionLabel + '</span>' : ''} · ${timeText}</div>
+                         <div class="text-xs text-slate-400 mt-1"><a href="profile-view.html?uid=${data.uid || ''}" class="hover:underline">${data.nickname || '익명'}</a>${optionLabel ? ' <span class="text-[#169976]">' + optionLabel + '</span>' : ''} · ${timeText}</div>
                         <div class="flex items-center gap-3 mt-1">
                             <button class="comment-reply text-xs text-sky-500" data-comment-id="${docSnap.id}">답글${replyCount > 0 ? ` <span class="reply-count-badge">(${replyCount})</span>` : ''}</button>
                             <button class="comment-like-btn text-xs text-slate-400 flex items-center gap-0.5" data-comment-id="${docSnap.id}">👍 <span class="like-count">${data.likes || 0}</span></button>

@@ -220,7 +220,7 @@ function updateCardVoteUI(card, data, uid, selectedOptionId = null) {
             if (!btn) return;
             if (btn.dataset.optionId === selectedOptionId) {
                 const isOrange = btn.classList.contains('border-orange-400');
-                btn.classList.add('ring-[3px]', 'ring-inset', isOrange ? 'ring-orange-400' : 'ring-[#169976]');
+                btn.classList.add('ring-[3px]', 'ring-inset', isOrange ? 'ring-orange-400' : 'ring-[#1fdfcb]');
             } else {
                 btn.classList.add('opacity-50');
             }
@@ -301,7 +301,7 @@ function createFeedCard(id, data) {
                 <!-- 결과 바 -->
                 <div class="relative h-5 rounded-lg overflow-hidden flex" style="background:#e2e8f0;">
                     <div class="vote-bar-a h-full flex items-center justify-start pl-2 font-bold text-slate-700 text-xs transition-all duration-500"
-                        style="width:${optA.percent}%; background:rgba(22, 153, 118, 0.3); min-width:20px;">
+                        style="width:${optA.percent}%; background:#d0ebe4; min-width:20px;">
                         ${optA.percent}%
                     </div>
                     <div class="vote-bar-b h-full flex items-center justify-end pr-2 font-bold text-slate-700 text-xs transition-all duration-500 flex-1"
@@ -340,7 +340,7 @@ function createFeedCard(id, data) {
                 <img src="${data.creatorPhotoURL || ''}" onerror="this.style.display='none'" class="w-full h-full object-cover">
             </div>
             <div class="flex-1 min-w-0">
-                <span class="text-sm font-semibold text-slate-800 dark:text-slate-100">${data.creatorName || '익명'}</span>
+                <a href="profile-view.html?uid=${data.creatorId || ''}" class="text-sm font-semibold text-slate-800 dark:text-slate-100 hover:underline" onclick="event.stopPropagation()">${data.creatorName || '익명'}</a>
                 <span class="text-xs text-slate-400 ml-2">${timeText}</span>
             </div>
             

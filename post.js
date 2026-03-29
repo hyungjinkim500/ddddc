@@ -290,7 +290,14 @@ async function loadPost(postId) {
 
         // 작성자
         const authorEl = document.getElementById('detail-author');
-        if (authorEl) authorEl.textContent = post.creatorName || '익명';
+        if (authorEl) {
+            authorEl.innerHTML = '';
+            const authorLink = document.createElement('a');
+            authorLink.href = `profile-view.html?uid=${post.creatorId || ''}`;
+            authorLink.className = 'hover:underline';
+            authorLink.textContent = post.creatorName || '익명';
+            authorEl.appendChild(authorLink);
+        }
 
         // 작성자 프사
         const avatarEl = document.getElementById('detail-author-avatar');
