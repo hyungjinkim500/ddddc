@@ -423,6 +423,29 @@ async function updateNotifBadge(uid) {
     }
 }
 
+// 페이지 로드 즉시 캐시로 헤더 UI 복원 (onAuthStateChanged 대기 없이)
+    (function restoreHeaderFromCache() {
+        const cachedUid = localStorage.getItem('cachedUid');
+        const cachedPhoto = localStorage.getItem('cachedPhoto');
+        if (!cachedUid) return;
+
+        // 로그인 버튼 숨기기
+        const loginBtn = document.getElementById('login-modal-button');
+        if (loginBtn) loginBtn.style.display = 'none';
+
+        // 프사 복원 (index.html: header-avatar / 기타: user-avatar)
+        const avatar1 = document.getElementById('header-avatar');
+        const avatar2 = document.getElementById('user-avatar');
+        if (cachedPhoto) {
+            if (avatar1) { avatar1.src = cachedPhoto; avatar1.style.display = 'block'; }
+            if (avatar2) { avatar2.src = cachedPhoto; }
+        }
+
+        // header-user-area 표시 (index.html 구조)
+        const userArea = document.getElementById('header-user-area');
+        if (userArea) userArea.classList.remove('hidden');
+    })();
+
 // Listen for auth state changes
     onAuthStateChanged(auth, async (user) => {
         const themeToggleButton = document.getElementById('theme-toggle');
@@ -465,14 +488,28 @@ async function updateNotifBadge(uid) {
               const userData = finalSnap.data();
               const displayName = userData.displayName;
 
+              // 캐시 갱신
+              localStorage.setItem('cachedUid', user.uid);
+              localStorage.setItem('cachedName', userData.displayName || '');
+              if (userData.photoURL) {
+                localStorage.setItem('cachedPhoto', userData.photoURL);
+              } else {
+                localStorage.removeItem('cachedPhoto');
+              }
+
+              const headerAvatar = document.getElementById('header-avatar');
+              const userArea = document.getElementById('header-user-area');
+              if (headerAvatar && userData.photoURL) {
+                headerAvatar.src = userData.photoURL;
+                headerAvatar.style.display = 'block';
+              }
+              if (userArea) userArea.classList.remove('hidden');
+
               if (avatar && userData.photoURL) {
-                const currentCache = localStorage.getItem("userAvatar");
-                if (currentCache !== userData.photoURL) {
-                  avatar.src = userData.photoURL;
-                  localStorage.setItem("userAvatar", userData.photoURL);
-                }
+                avatar.src = userData.photoURL;
+                localStorage.setItem("userAvatar", userData.photoURL);
               } else if (avatar) {
-                  avatar.src = '/images/default-avatar.png'; // 기본 아바타
+                avatar.src = '/images/default-avatar.png';
               }
               
               const nicknameDisplayElement = document.createElement('span');
@@ -492,6 +529,9 @@ async function updateNotifBadge(uid) {
             }
             if (avatar) avatar.src = '/images/default-avatar.png'; // 로그아웃 시 기본 아바타
             localStorage.removeItem("userAvatar");
+            localStorage.removeItem('cachedUid');
+            localStorage.removeItem('cachedName');
+            localStorage.removeItem('cachedPhoto');
             const nicknameDisplay = document.getElementById("user-nickname-display");
             if (nicknameDisplay) nicknameDisplay.remove();
         }

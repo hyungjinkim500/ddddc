@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>픽스 | 선택이 모여 세상이 된다</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700;800&display=swap');
+        * { font-family: 'Pretendard', sans-serif; }
+        body { background: #f1f5f9; margin: 0; padding: 0; }
+        .app-wrap { max-width: 480px; margin: 0 auto; background: #fff; min-height: 100vh; }
+
+        .hero-bg {
+            background: linear-gradient(160deg, #0f2027 0%, #1a3a2e 50%, #169976 100%);
+        }
+        .mint { color: #3ef0cc; }
+        .card-feature {
+            background: #f8f7f4;
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 16px;
+        }
+        .emoji-circle {
+            width: 52px;
+            height: 52px;
+            background: linear-gradient(135deg, #3ef0cc, #169976);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            margin-bottom: 14px;
+        }
+        .cta-btn {
+            display: block;
+            width: 100%;
+            background: linear-gradient(90deg, #3ef0cc, #169976);
+            color: #0f2027;
+            font-weight: 800;
+            font-size: 17px;
+            padding: 16px;
+            border-radius: 16px;
+            text-align: center;
+            text-decoration: none;
+            letter-spacing: -0.3px;
+        }
+        .tag {
+            display: inline-block;
+            background: rgba(62,240,204,0.15);
+            color: #169976;
+            border-radius: 999px;
+            padding: 4px 14px;
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+        .vote-demo {
+            background: white;
+            border-radius: 14px;
+            padding: 16px;
+            margin-top: 20px;
+        }
+        .vote-bar-wrap {
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 999px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        .vote-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3ef0cc, #169976);
+            border-radius: 999px;
+        }
+        .balance-card {
+            border-radius: 14px;
+            padding: 16px 20px;
+            color: white;
+            font-weight: 700;
+            font-size: 15px;
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+<div class="app-wrap">
+    <!-- 히어로 섹션 -->
+    <div class="hero-bg px-6 pt-12 pb-10 relative overflow-hidden">
+        <!-- 배경 원형 데코 -->
+        <div style="position:absolute;top:-60px;right:-60px;width:200px;height:200px;background:rgba(62,240,204,0.08);border-radius:50%;"></div>
+        <div style="position:absolute;bottom:-40px;left:-40px;width:150px;height:150px;background:rgba(22,153,118,0.12);border-radius:50%;"></div>
+
+        <img src="./pix_logo_nobackground.png" alt="픽스" style="height:48px;margin-bottom:32px;">
+
+        <p class="text-white text-3xl font-extrabold leading-tight mb-3">
+            궁금한 걸 물어보고<br>
+            <span class="mint">세상의 반응</span>을 확인하세요
+        </p>
+        <p class="text-slate-300 text-sm leading-relaxed mb-8">
+            재밌는 주제, 사진, 토론까지.<br>
+            나의 생각을 세상과 공유하고<br>
+            사람들의 실시간 반응을 즐겨보세요.
+        </p>
+
+        <!-- 데모 투표 카드 -->
+        <div class="vote-demo">
+            <p class="font-bold text-slate-800 text-sm mb-3">🔥 지금 핫한 투표</p>
+            <p class="font-bold text-slate-900 text-base mb-1">"치킨 vs 피자, 야식은?"</p>
+            <div class="flex justify-between text-xs text-slate-500 mb-1">
+                <span>🍗 치킨</span><span>62%</span>
+            </div>
+            <div class="vote-bar-wrap"><div class="vote-bar-fill" style="width:62%"></div></div>
+            <div class="flex justify-between text-xs text-slate-500 mb-1 mt-2">
+                <span>🍕 피자</span><span>38%</span>
+            </div>
+            <div class="vote-bar-wrap"><div class="vote-bar-fill" style="width:38%;background:#e2e8f0;"></div></div>
+            <p class="text-xs text-slate-400 mt-3 text-right">1,284명 참여 중</p>
+        </div>
+    </div>
+
+    <!-- 슬로건 -->
+    <div class="px-6 py-10 text-center">
+        <p class="text-2xl font-extrabold text-slate-900 leading-snug">
+            선택이 모여<br><span style="color:#169976;">세상이 된다</span>
+        </p>
+        <p class="text-sm text-slate-500 mt-3">픽스에서 당신의 한 표가 트렌드를 만듭니다</p>
+    </div>
+
+    <!-- 기능 1: PIX 투표 -->
+    <div class="px-5">
+        <div class="card-feature">
+            <div class="emoji-circle">📊</div>
+            <div class="tag">PIX 투표</div>
+            <p class="text-lg font-extrabold text-slate-900 mb-2">궁금한 걸 바로 물어보세요</p>
+            <p class="text-sm text-slate-500 leading-relaxed">
+                2~10개 옵션으로 투표를 만들고, 사진과 함께 올려보세요. 실시간으로 쌓이는 사람들의 선택을 확인하는 재미가 있어요.
+            </p>
+            <div style="background:white;border-radius:12px;padding:14px;margin-top:16px;border:1px solid #e2e8f0;">
+                <p class="text-xs font-bold text-slate-700 mb-2">국내 최애 라면은?</p>
+                <div style="background:#f0fdf9;border:1.5px solid #3ef0cc;border-radius:10px;padding:10px 14px;font-size:13px;font-weight:700;color:#0f7b5c;margin-bottom:6px;">
+                    🍜 신라면 &nbsp;<span style="float:right;color:#169976;">47%</span>
+                </div>
+                <div style="background:#f8f7f4;border:1px solid #e2e8f0;border-radius:10px;padding:10px 14px;font-size:13px;font-weight:600;color:#64748b;margin-bottom:6px;">
+                    🍜 짜파게티 &nbsp;<span style="float:right;">28%</span>
+                </div>
+                <div style="background:#f8f7f4;border:1px solid #e2e8f0;border-radius:10px;padding:10px 14px;font-size:13px;font-weight:600;color:#64748b;">
+                    🍜 불닭볶음면 &nbsp;<span style="float:right;">25%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 기능 2: 밸런스게임 -->
+        <div class="card-feature">
+            <div class="emoji-circle">⚖️</div>
+            <div class="tag">밸런스게임</div>
+            <p class="text-lg font-extrabold text-slate-900 mb-2">1대1 대결, 당신의 선택은?</p>
+            <p class="text-sm text-slate-500 leading-relaxed">
+                둘 중 하나를 골라야 하는 상황. 친구들과 서로 다른 선택을 보며 왁자지껄 토론해보세요.
+            </p>
+            <div style="margin-top:16px;">
+                <div class="balance-card" style="background:linear-gradient(90deg,#169976,#0d7a5f);">
+                    ☀️ 평생 여름만 사는 삶
+                </div>
+                <div style="text-align:center;font-size:12px;font-weight:700;color:#94a3b8;margin-bottom:8px;">VS</div>
+                <div class="balance-card" style="background:linear-gradient(90deg,#f97316,#ea580c);">
+                    ❄️ 평생 겨울만 사는 삶
+                </div>
+                <div style="background:white;border-radius:10px;padding:10px 14px;border:1px solid #e2e8f0;">
+                    <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700;margin-bottom:6px;">
+                        <span style="color:#169976;">여름파 67%</span>
+                        <span style="color:#f97316;">겨울파 33%</span>
+                    </div>
+                    <div style="height:8px;background:#e2e8f0;border-radius:999px;overflow:hidden;">
+                        <div style="width:67%;height:100%;background:linear-gradient(90deg,#3ef0cc,#169976);border-radius:999px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 기능 3: 커뮤니티/댓글 -->
+        <div class="card-feature">
+            <div class="emoji-circle">💬</div>
+            <div class="tag">커뮤니티</div>
+            <p class="text-lg font-extrabold text-slate-900 mb-2">투표 후 토론까지</p>
+            <p class="text-sm text-slate-500 leading-relaxed">
+                투표 결과만큼 재밌는 건 댓글. 내 선택을 밝히고, 다른 사람들의 이유를 보며 새로운 시각을 발견하세요.
+            </p>
+            <div style="background:white;border-radius:12px;padding:14px;margin-top:16px;border:1px solid #e2e8f0;">
+                <div style="display:flex;gap:10px;margin-bottom:10px;">
+                    <div style="width:32px;height:32px;background:#3ef0cc;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;">🐱</div>
+                    <div style="background:#f8f7f4;border-radius:12px;padding:8px 12px;font-size:13px;color:#334155;flex:1;">
+                        <span style="color:#169976;font-weight:700;font-size:11px;">(여름파)</span><br>
+                        여름이지! 바다가 있잖아요 🏖️
+                    </div>
+                </div>
+                <div style="display:flex;gap:10px;">
+                    <div style="width:32px;height:32px;background:#f97316;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;">🐻</div>
+                    <div style="background:#f8f7f4;border-radius:12px;padding:8px 12px;font-size:13px;color:#334155;flex:1;">
+                        <span style="color:#f97316;font-weight:700;font-size:11px;">(겨울파)</span><br>
+                        겨울 감성 모르는 사람... ☃️
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CTA 섹션 -->
+    <div class="px-5 py-8">
+        <p class="text-center font-extrabold text-xl text-slate-900 mb-2">지금 바로 시작하세요</p>
+        <p class="text-center text-sm text-slate-400 mb-6">무료로 가입하고 나만의 투표를 만들어보세요</p>
+        <a href="index.html" class="cta-btn">픽스 시작하기 →</a>
+        <p class="text-center text-xs text-slate-400 mt-4">이미 계정이 있으신가요? <a href="index.html" style="color:#169976;font-weight:700;">로그인</a></p>
+    </div>
+
+    <!-- 하단 -->
+    <div class="px-5 py-6 border-t border-slate-100 text-center">
+        <img src="./pix_logo_nobackground.png" alt="픽스" style="height:32px;margin:0 auto 12px;">
+        <div class="flex justify-center gap-4 text-xs text-slate-400">
+            <a href="terms.html" style="color:#94a3b8;">이용약관</a>
+            <a href="partnership.html" style="color:#94a3b8;">제휴문의</a>
+        </div>
+        <p class="text-xs text-slate-300 mt-3">© 2026 PIX. All rights reserved.</p>
+    </div>
+</div>
+</body>
+</html>

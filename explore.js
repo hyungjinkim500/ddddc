@@ -276,41 +276,9 @@ function initTheme() {
     document.documentElement.classList.add(savedTheme);
 }
 
-// ── 로그인 모달 ────────────────────────────────────────
-function initLoginModal() {
-    const modal = document.getElementById('login-modal');
-    const closeBtn = document.getElementById('login-modal-close-button');
-    const showRegister = document.getElementById('show-register-view-link');
-    const showLogin = document.getElementById('show-login-view-link-from-terms');
-
-    function openModal() {
-        if (modal) { modal.classList.add('show'); document.body.style.overflow = 'hidden'; }
-    }
-    function closeModal() {
-        if (modal) { modal.classList.remove('show'); document.body.style.overflow = ''; }
-    }
-
-    closeBtn?.addEventListener('click', closeModal);
-    modal?.addEventListener('click', e => { if (e.target === modal) closeModal(); });
-    showRegister?.addEventListener('click', e => {
-        e.preventDefault();
-        document.getElementById('login-view').style.display = 'none';
-        document.getElementById('register-view').style.display = 'block';
-    });
-    showLogin?.addEventListener('click', e => {
-        e.preventDefault();
-        document.getElementById('register-view').style.display = 'none';
-        document.getElementById('login-view').style.display = 'block';
-    });
-
-    window.openModal = openModal;
-    window.closeModal = closeModal;
-}
-
 // ── 초기화 ─────────────────────────────────────────────
 function init() {
     initTheme();
-    initLoginModal();
 
     const searchInput = document.getElementById('explore-search-input');
     const searchBtn = document.getElementById('explore-search-btn');
