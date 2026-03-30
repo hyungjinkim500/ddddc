@@ -562,35 +562,47 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   imageInput.addEventListener("change", async (e) => {
-    const files = Array.from(e.target.files);
-  
-    for (const file of files) {
-      if (existingImageUrls.length + selectedImages.length >= 4) {
-        alert("이미지는 최대 4장까지 업로드 가능합니다.");
-        break;
-      }
-  
-      if (file.size > 10 * 1024 * 1024) {
-        alert("이미지 크기는 10MB 이하만 가능합니다.");
-        continue;
-      }
+    const file = e.target.files[0];
+    if (!file) return;
 
-      if (!file.type.startsWith("image/")) {
-        alert("이미지 파일만 업로드 가능합니다.");
-        continue;
-      }
-  
-      try {
-        const compressedBlob = await compressImage(file);
-        selectedImages.push(compressedBlob);
-      } catch (error) {
-        alert("이미지 압축에 실패했습니다.");
-      }
+    if (file.size > 10 * 1024 * 1024) {
+      alert("이미지 크기는 10MB 이하만 가능합니다.");
+      e.target.value = "";
+      return;
     }
-  
-    renderImagePreview();
-  
-    // Clear the input to allow re-selecting the same file
+    if (!file.type.startsWith("image/")) {
+      alert("이미지 파일만 업로드 가능합니다.");
+      e.target.value = "";
+      return;
+    }
+
+    try {
+      const compressedBlob = await compressImage(file);
+      // 즉시 크롭 화면 열기
+      selectedImages[0] = compressedBlob;
+      const url = URL.createObjectURL(compressedBlob);
+      const adjustImg = document.getElementById('post-adjust-image');
+      adjustImg.src = url;
+      adjustImg.onload = () => {
+        if (_postAdjustCropper) { _postAdjustCropper.destroy(); _postAdjustCropper = null; }
+        _postAdjustCropper = new Cropper(adjustImg, {
+          aspectRatio: 16/9,
+          viewMode: 1,
+          dragMode: 'move',
+          autoCropArea: 1,
+          cropBoxResizable: false,
+          cropBoxMovable: false,
+          toggleDragModeOnDblclick: false,
+          background: false,
+        });
+      };
+      const screen = document.getElementById('post-adjust-screen');
+      screen.style.display = 'flex';
+      screen.dataset.targetIndex = '0';
+    } catch (error) {
+      alert("이미지 압축에 실패했습니다.");
+    }
+
     e.target.value = "";
   });
   
@@ -618,36 +630,113 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  function renderImagePreview() {
-    imagePreview.innerHTML = "";
-  
-    selectedImages.forEach((blob, index) => {
-      const wrapper = document.createElement("div");
-      wrapper.className = "relative";
-  
-      const img = document.createElement("img");
-      const url = URL.createObjectURL(blob);
-      img.src = url;
-      img.className = "w-full h-24 object-cover rounded-lg";
-      img.onload = () => {
-        URL.revokeObjectURL(url);
-      };
-  
-      const removeBtn = document.createElement("button");
-      removeBtn.innerHTML = "✕";
-      removeBtn.className =
-        "absolute top-1 right-1 bg-black/60 text-white text-xs px-1 rounded";
-  
-      removeBtn.addEventListener("click", () => {
-        selectedImages.splice(index, 1);
+  // 게시물 이미지 액션시트 상태
+  let _postActionTargetIndex = -1;
+  let _postAdjustCropper = null;
+  // objectPosition 저장 배열 (각 이미지별)
+  let imagePositions = [];
+
+  function openPostImageActionSheet(index) {
+    _postActionTargetIndex = index;
+    document.getElementById('post-image-action-sheet').style.display = 'block';
+  }
+
+  function closePostImageActionSheet() {
+    document.getElementById('post-image-action-sheet').style.display = 'none';
+    _postActionTargetIndex = -1;
+  }
+
+  document.getElementById('post-image-action-backdrop')?.addEventListener('click', closePostImageActionSheet);
+
+  document.getElementById('post-action-change-image')?.addEventListener('click', () => {
+    const idx = _postActionTargetIndex;
+    closePostImageActionSheet();
+    // 새 파일 선택 input 트리거
+    const tempInput = document.createElement('input');
+    tempInput.type = 'file';
+    tempInput.accept = 'image/*';
+    tempInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        const compressed = await compressImage(file);
+        selectedImages[idx] = compressed;
+        imagePositions[idx] = '50% 50%';
         renderImagePreview();
-      });
-  
-      wrapper.appendChild(img);
-      wrapper.appendChild(removeBtn);
-  
-      imagePreview.appendChild(wrapper);
+      } catch(err) { alert('이미지 압축 실패'); }
     });
+    tempInput.click();
+  });
+
+  document.getElementById('post-action-delete-image')?.addEventListener('click', () => {
+    const idx = _postActionTargetIndex;
+    closePostImageActionSheet();
+    selectedImages.splice(idx, 1);
+    imagePositions.splice(idx, 1);
+    renderImagePreview();
+  });
+
+  document.getElementById('post-action-adjust-image')?.addEventListener('click', () => {
+    const idx = _postActionTargetIndex;
+    closePostImageActionSheet();
+    const blob = selectedImages[idx];
+    if (!blob) return;
+    const url = URL.createObjectURL(blob);
+    const adjustImg = document.getElementById('post-adjust-image');
+    adjustImg.src = url;
+    adjustImg.onload = () => {
+      if (_postAdjustCropper) { _postAdjustCropper.destroy(); _postAdjustCropper = null; }
+      _postAdjustCropper = new Cropper(adjustImg, {
+        aspectRatio: NaN,
+        viewMode: 1,
+        dragMode: 'move',
+        autoCropArea: 1,
+        cropBoxResizable: true,
+        cropBoxMovable: true,
+        toggleDragModeOnDblclick: false,
+        background: false,
+      });
+    };
+    const screen = document.getElementById('post-adjust-screen');
+    screen.style.display = 'flex';
+    screen.dataset.targetIndex = idx;
+  });
+
+  document.getElementById('post-adjust-cancel-btn')?.addEventListener('click', () => {
+    if (_postAdjustCropper) { _postAdjustCropper.destroy(); _postAdjustCropper = null; }
+    document.getElementById('post-adjust-screen').style.display = 'none';
+  });
+
+  document.getElementById('post-adjust-save-btn')?.addEventListener('click', async () => {
+    if (!_postAdjustCropper) return;
+    const idx = Number(document.getElementById('post-adjust-screen').dataset.targetIndex);
+    const canvas = _postAdjustCropper.getCroppedCanvas();
+    canvas.toBlob(async (blob) => {
+      if (!blob) return;
+      try {
+        const compressed = await compressImage(new File([blob], 'adjusted.jpg', { type: 'image/jpeg' }));
+        selectedImages[idx] = compressed;
+        imagePositions[idx] = '50% 50%';
+        renderImagePreview();
+      } catch(e) { alert('저장 실패'); }
+      if (_postAdjustCropper) { _postAdjustCropper.destroy(); _postAdjustCropper = null; }
+      document.getElementById('post-adjust-screen').style.display = 'none';
+    }, 'image/jpeg', 0.92);
+  });
+
+  function renderImagePreview() {
+    imagePreview.innerHTML = '';
+    if (selectedImages.length === 0) return;
+    const url = URL.createObjectURL(selectedImages[0]);
+    const cell = document.createElement('div');
+    cell.style.cssText = 'width:100%;overflow:hidden;cursor:pointer;border-radius:6px;aspect-ratio:16/9;';
+    const img = document.createElement('img');
+    img.src = url;
+    img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+    img.onload = () => URL.revokeObjectURL(url);
+    img.addEventListener('click', (e) => { e.stopPropagation(); openPostImageActionSheet(0); });
+    cell.appendChild(img);
+    imagePreview.appendChild(cell);
   }
   
   if (typeParam === 'pix') {

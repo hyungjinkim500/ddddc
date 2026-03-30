@@ -105,54 +105,59 @@ function buildImageGrid(urls, postId) {
     ensureImageModal();
     const n = urls.length;
 
+    const CELL_H = 104; // 각 셀 높이 (px)
+    const GAP = 2;
+
     const wrap = document.createElement('div');
     wrap.className = 'overflow-hidden rounded-xl';
-    wrap.style.height = '208px';
 
     const makeImg = (url, idx) => {
         const img = document.createElement('img');
         img.src = url;
         img.loading = 'lazy';
-        img.className = 'object-cover cursor-pointer w-full h-full rounded-lg';
+        img.className = 'object-cover cursor-pointer w-full h-full';
         img.addEventListener('click', () => window._openFeedImageModal(urls, idx));
         return img;
     };
 
-    const makeCell = (url, idx, extraStyle = '') => {
+    const makeCell = (url, idx) => {
         const d = document.createElement('div');
-        d.className = 'overflow-hidden h-full';
-        if (extraStyle) d.style.cssText = extraStyle;
+        d.style.cssText = `flex:1;height:${CELL_H}px;overflow:hidden;`;
         d.appendChild(makeImg(url, idx));
         return d;
     };
 
     if (n === 1) {
-        wrap.appendChild(makeCell(urls[0], 0));
-    } else if (n === 2) {
-        const grid = document.createElement('div');
-        grid.className = 'grid grid-cols-2 gap-1 h-full';
-        urls.forEach((u, i) => grid.appendChild(makeCell(u, i)));
-        wrap.appendChild(grid);
-    } else if (n === 3) {
-        const grid = document.createElement('div');
-        grid.className = 'grid gap-1 h-full';
-        grid.style.gridTemplateColumns = '1fr 1fr';
-        grid.style.gridTemplateRows = '1fr 1fr';
-        const left = makeCell(urls[0], 0, 'grid-row: span 2;');
-        left.style.gridRow = 'span 2';
-        grid.appendChild(left);
-        grid.appendChild(makeCell(urls[1], 1));
-        grid.appendChild(makeCell(urls[2], 2));
-        wrap.appendChild(grid);
+        // 1장: 전체 너비 × 208px
+        wrap.style.height = '208px';
+        const d = document.createElement('div');
+        d.style.cssText = 'width:100%;height:100%;overflow:hidden;';
+        d.appendChild(makeImg(urls[0], 0));
+        wrap.appendChild(d);
     } else {
-        const grid = document.createElement('div');
-        grid.className = 'grid grid-cols-2 gap-1 h-full';
-        urls.forEach((u, i) => {
-            const d = makeCell(u, i);
-            d.style.height = 'calc(208px / 2 - 2px)';
-            grid.appendChild(d);
-        });
-        wrap.appendChild(grid);
+        // 2장: 상단 행만 / 3장: 상단+하단(좌만) / 4장: 상단+하단(좌우)
+        const container = document.createElement('div');
+        container.style.cssText = `display:flex;flex-direction:column;gap:${GAP}px;`;
+
+        // 상단 행 (항상 2장)
+        const topRow = document.createElement('div');
+        topRow.style.cssText = `display:flex;gap:${GAP}px;`;
+        topRow.appendChild(makeCell(urls[0], 0));
+        topRow.appendChild(makeCell(urls[1], 1));
+        container.appendChild(topRow);
+
+        if (n >= 3) {
+            // 하단 행
+            const bottomRow = document.createElement('div');
+            bottomRow.style.cssText = `display:flex;gap:${GAP}px;`;
+            bottomRow.appendChild(makeCell(urls[2], 2));
+            if (n === 4) {
+                bottomRow.appendChild(makeCell(urls[3], 3));
+            }
+            container.appendChild(bottomRow);
+        }
+
+        wrap.appendChild(container);
     }
 
     return wrap;
@@ -485,7 +490,7 @@ function createFeedCard(id, data) {
                     if (pctEl) {
                         pctEl.textContent = pct + '%';
                         if (total > 0) pctEl.classList.remove('hidden');
-                        const isSelected = oid === newSelected;
+                        const isSelected = optId === newSelected;
                         pctEl.className = pctEl.className.replace(/text-\S+/g, '').trim();
                         pctEl.classList.add(isSelected ? 'text-[#2e3e4c]' : 'text-slate-400');
                     }

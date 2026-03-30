@@ -109,11 +109,11 @@
 
             <!-- 이미지 업로드 -->
             <div id="post-image-upload-section" class="px-4 py-4 space-y-2">
-                <p class="text-xs font-bold text-slate-500 uppercase tracking-wide">사진 업로드 (최대 4장)</p>
+                <p class="text-xs font-bold text-slate-500 uppercase tracking-wide">대표 사진 (1장, 16:9 비율로 자동 크롭)</p>
                 <label class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 cursor-pointer text-sm text-slate-500">
                     <i class="fas fa-image text-[#169976]"></i>
                     <span>사진 선택</span>
-                    <input type="file" id="image-input" accept="image/*" multiple class="hidden">
+                    <input type="file" id="image-input" accept="image/*" class="hidden">
                 </label>
                 <div id="existing-image-preview" class="grid grid-cols-3 gap-2"></div>
                 <div id="image-preview" class="grid grid-cols-3 gap-2"></div>
@@ -241,6 +241,34 @@
     <button class="sheet-btn danger" id="action-delete-image">
       <i class="fas fa-trash"></i> 이미지 삭제
     </button>
+  </div>
+</div>
+
+<!-- 게시물 이미지 액션시트 -->
+<div id="post-image-action-sheet" style="position:fixed;inset:0;z-index:200;display:none;">
+  <div id="post-image-action-backdrop" style="position:absolute;inset:0;background:rgba(0,0,0,0.4);"></div>
+  <div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:white;border-radius:1.2rem 1.2rem 0 0;padding:1rem;">
+    <button class="sheet-btn" id="post-action-change-image">
+      <i class="fas fa-image text-[#169976]"></i> 다른 이미지 선택
+    </button>
+    <button class="sheet-btn" id="post-action-adjust-image">
+      <i class="fas fa-crop-alt text-[#169976]"></i> 이미지 위치 조정
+    </button>
+    <button class="sheet-btn danger" id="post-action-delete-image">
+      <i class="fas fa-trash"></i> 이미지 삭제
+    </button>
+  </div>
+</div>
+
+<!-- 게시물 이미지 위치 조정 전체화면 UI -->
+<div id="post-adjust-screen" style="position:fixed;inset:0;z-index:300;background:#000;display:none;flex-direction:column;">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:0.75rem 1rem;background:#111;">
+    <button id="post-adjust-cancel-btn" style="color:#aaa;font-size:1.3rem;"><i class="fas fa-arrow-left"></i></button>
+    <span style="color:white;font-weight:700;font-size:0.95rem;">이미지 위치 조정</span>
+    <button id="post-adjust-save-btn" style="background:#169976;color:white;font-weight:700;padding:0.4rem 1.1rem;border-radius:0.6rem;font-size:0.9rem;">저장</button>
+  </div>
+  <div style="flex:1;overflow:hidden;position:relative;">
+    <img id="post-adjust-image" src="" alt="adjust" style="max-width:100%;max-height:100%;display:block;">
   </div>
 </div>
 
