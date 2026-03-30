@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>세상은 선택으로 만들어진다 | 픽스</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#169976">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="PIX">
+    <link rel="apple-touch-icon" href="pix_logo_nobackground.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="tailwind.config.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -229,12 +235,12 @@
     <header id="top-header">
         <!-- 피드 탭 -->
         <div id="feed-tabs">
-            <button class="feed-tab-btn active" data-tab="latest">🆕 최신</button>
-            <button class="feed-tab-btn" data-tab="hot">🔥 핫</button>
-            <button class="feed-tab-btn" data-tab="weekly">👑 위클리</button>
-            <button class="feed-tab-btn" data-tab="pix-only">PIX만</button>
-            <button class="feed-tab-btn" data-tab="most-comments">💬 댓글많은</button>
-            <button class="feed-tab-btn" data-tab="extreme">📊 극단결과</button>
+            <button class="feed-tab-btn active" data-tab="latest">⚡ NEW</button>
+            <button class="feed-tab-btn" data-tab="today-pix">오늘의 픽스 ⭐</button>
+            <button class="feed-tab-btn" data-tab="hot-topics">Hot Topics 🗨️</button>
+            <button class="feed-tab-btn" data-tab="weekly">Weekly 🔥</button>
+            <button class="feed-tab-btn" data-tab="balance">밸런스 게임 🎯</button>
+            <button class="feed-tab-btn" data-tab="vote-rank">🗳️ 투표순</button>
         </div>
     </header>
 
@@ -293,5 +299,14 @@ document.addEventListener('DOMContentLoaded', () => {
 <script type="module" src="index.js"></script>
 
 <!-- 로그인 모달은 auth.js에서 동적 주입 -->
+<script>
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js')
+            .then(reg => console.log('SW 등록 완료:', reg.scope))
+            .catch(err => console.log('SW 등록 실패:', err));
+    });
+}
+</script>
 </body>
 </html>

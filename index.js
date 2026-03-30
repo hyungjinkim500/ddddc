@@ -19,31 +19,37 @@ function buildQuery(tab, lastVisible) {
     const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
 
     let q;
+    const fifteenDaysAgo = new Date(now - 15 * 24 * 60 * 60 * 1000);
     switch (tab) {
-        case 'hot':
+        case 'today-pix':
+            // 24시간내 인기점수 높은 순
             q = lastVisible
-                ? query(base, where('createdAt', '>=', oneDayAgo), orderBy('createdAt', 'desc'), orderBy('popularityScore', 'desc'), startAfter(lastVisible), limit(PAGE_SIZE))
-                : query(base, where('createdAt', '>=', oneDayAgo), orderBy('createdAt', 'desc'), orderBy('popularityScore', 'desc'), limit(PAGE_SIZE));
+                ? query(base, where('createdAt', '>=', oneDayAgo), orderBy('popularityScore', 'desc'), startAfter(lastVisible), limit(PAGE_SIZE))
+                : query(base, where('createdAt', '>=', oneDayAgo), orderBy('popularityScore', 'desc'), limit(PAGE_SIZE));
+            break;
+        case 'hot-topics':
+            // 15일내 댓글 많은 순
+            q = lastVisible
+                ? query(base, where('createdAt', '>=', fifteenDaysAgo), orderBy('commentsCount', 'desc'), startAfter(lastVisible), limit(PAGE_SIZE))
+                : query(base, where('createdAt', '>=', fifteenDaysAgo), orderBy('commentsCount', 'desc'), limit(PAGE_SIZE));
             break;
         case 'weekly':
+            // 7일내 인기점수 높은 순
             q = lastVisible
-                ? query(base, where('createdAt', '>=', sevenDaysAgo), orderBy('createdAt', 'desc'), orderBy('popularityScore', 'desc'), startAfter(lastVisible), limit(PAGE_SIZE))
-                : query(base, where('createdAt', '>=', sevenDaysAgo), orderBy('createdAt', 'desc'), orderBy('popularityScore', 'desc'), limit(PAGE_SIZE));
+                ? query(base, where('createdAt', '>=', sevenDaysAgo), orderBy('popularityScore', 'desc'), startAfter(lastVisible), limit(PAGE_SIZE))
+                : query(base, where('createdAt', '>=', sevenDaysAgo), orderBy('popularityScore', 'desc'), limit(PAGE_SIZE));
             break;
-        case 'pix-only':
+        case 'balance':
+            // 밸런스게임(quiz)만 최신순
             q = lastVisible
-                ? query(base, where('type', 'in', ['quiz', 'superquiz', 'pix']), orderBy('createdAt', 'desc'), startAfter(lastVisible), limit(PAGE_SIZE))
-                : query(base, where('type', 'in', ['quiz', 'superquiz', 'pix']), orderBy('createdAt', 'desc'), limit(PAGE_SIZE));
+                ? query(base, where('type', '==', 'quiz'), orderBy('createdAt', 'desc'), startAfter(lastVisible), limit(PAGE_SIZE))
+                : query(base, where('type', '==', 'quiz'), orderBy('createdAt', 'desc'), limit(PAGE_SIZE));
             break;
-        case 'most-comments':
+        case 'vote-rank':
+            // 15일내 인기점수 높은 순
             q = lastVisible
-                ? query(base, where('type', 'in', ['quiz', 'superquiz', 'pix']), orderBy('commentsCount', 'desc'), startAfter(lastVisible), limit(PAGE_SIZE))
-                : query(base, where('type', 'in', ['quiz', 'superquiz', 'pix']), orderBy('commentsCount', 'desc'), limit(PAGE_SIZE));
-            break;
-        case 'extreme':
-            q = lastVisible
-                ? query(base, where('type', 'in', ['quiz', 'superquiz', 'pix']), orderBy('createdAt', 'desc'), startAfter(lastVisible), limit(PAGE_SIZE))
-                : query(base, where('type', 'in', ['quiz', 'superquiz', 'pix']), orderBy('createdAt', 'desc'), limit(PAGE_SIZE));
+                ? query(base, where('createdAt', '>=', fifteenDaysAgo), orderBy('popularityScore', 'desc'), startAfter(lastVisible), limit(PAGE_SIZE))
+                : query(base, where('createdAt', '>=', fifteenDaysAgo), orderBy('popularityScore', 'desc'), limit(PAGE_SIZE));
             break;
         default: // latest
             q = lastVisible
@@ -479,7 +485,7 @@ function createFeedCard(id, data) {
                     if (pctEl) {
                         pctEl.textContent = pct + '%';
                         if (total > 0) pctEl.classList.remove('hidden');
-                        const isSelected = optId === newSelected;
+                        const isSelected = oid === newSelected;
                         pctEl.className = pctEl.className.replace(/text-\S+/g, '').trim();
                         pctEl.classList.add(isSelected ? 'text-[#2e3e4c]' : 'text-slate-400');
                     }
@@ -699,6 +705,31 @@ function initAuthUI() {
 
 document.addEventListener('DOMContentLoaded', () => {
     initTabs();
+
+    // 탭바 마우스 드래그 스크롤
+    const feedTabsEl = document.getElementById('feed-tabs');
+    if (feedTabsEl) {
+        let isDown = false;
+        let startX = 0;
+        let scrollLeft = 0;
+        feedTabsEl.addEventListener('mousedown', (e) => {
+            isDown = true;
+            feedTabsEl.style.cursor = 'grabbing';
+            startX = e.pageX - feedTabsEl.offsetLeft;
+            scrollLeft = feedTabsEl.scrollLeft;
+        });
+        document.addEventListener('mouseup', () => {
+            isDown = false;
+            feedTabsEl.style.cursor = '';
+        });
+        feedTabsEl.addEventListener('mousemove', (e) => {
+            if (!isDown) return;
+            e.preventDefault();
+            const x = e.pageX - feedTabsEl.offsetLeft;
+            feedTabsEl.scrollLeft = scrollLeft - (x - startX) * 1.5;
+        });
+    }
+
     initInfiniteScroll();
     initAuthUI();
 
@@ -743,32 +774,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- 숨쉬는 헤더 기능 (Hide-on-Scroll) ---
     const feedContainer = document.getElementById('feed-container');
-    const feedTabs = document.getElementById('feed-tabs');
-    
-    if (feedContainer && feedTabs) {
+    const feedTabsScroll = document.getElementById('feed-tabs');
+
+    if (feedContainer && feedTabsScroll) {
         let lastScrollTop = 0;
-        const delta = 5; // 최소 스크롤 인식 거리
+        const delta = 5;
 
         feedContainer.addEventListener('scroll', () => {
             const st = feedContainer.scrollTop;
 
-            // 스크롤 위치가 최상단 근처면 탭 무조건 보이기
             if (st < delta) {
-                feedTabs.classList.remove('hidden-tab');
-                feedTabs.classList.add('visible-tab');
+                feedTabsScroll.classList.remove('hidden-tab');
+                feedTabsScroll.classList.add('visible-tab');
                 lastScrollTop = st;
                 return;
             }
 
-            // 아래로 스크롤 중이면 탭 숨기기
-            if (st > lastScrollTop && st > feedTabs.offsetHeight) {
-                feedTabs.classList.add('hidden-tab');
-                feedTabs.classList.remove('visible-tab');
-            } 
-            // 위로 스크롤 중이면 탭 보이기
-            else if (st < lastScrollTop) {
-                feedTabs.classList.remove('hidden-tab');
-                feedTabs.classList.add('visible-tab');
+            if (st > lastScrollTop && st > feedTabsScroll.offsetHeight) {
+                feedTabsScroll.classList.add('hidden-tab');
+                feedTabsScroll.classList.remove('visible-tab');
+            } else if (st < lastScrollTop) {
+                feedTabsScroll.classList.remove('hidden-tab');
+                feedTabsScroll.classList.add('visible-tab');
             }
 
             lastScrollTop = st;
