@@ -58,8 +58,8 @@ function injectLoginModal() {
             <div>
               <span style="font-size:0.85rem;font-weight:600;">픽스 이용약관 동의 (필수)</span>
               <div style="height:80px;overflow-y:auto;margin-top:6px;font-size:0.75rem;color:#64748b;border:1px solid #f1f5f9;border-radius:6px;padding:8px;line-height:1.6;">
-                제1조 (목적) 본 약관은 픽스(이하 "회사")가 제공하는 집단지성 투표 플랫폼 서비스(이하 "서비스")의 이용과 관련하여 회사와 회원 간의 권리, 의무 및 책임사항을 규정함을 목적으로 합니다.<br><br>
-                제2조 (정의) "회원"이란 본 약관에 동의하고 서비스를 이용하는 자를 말합니다.<br><br>
+                제1조 (목적) 본 약관은 픽스(이하 \"회사\")가 제공하는 집단지성 투표 플랫폼 서비스(이하 \"서비스\")의 이용과 관련하여 회사와 회원 간의 권리, 의무 및 책임사항을 규정함을 목적으로 합니다.<br><br>
+                제2조 (정의) \"회원\"이란 본 약관에 동의하고 서비스를 이용하는 자를 말합니다.<br><br>
                 제3조 (약관의 효력) 본 약관은 서비스 화면에 게시하거나 회원에게 공지함으로써 효력이 발생합니다.<br><br>
                 제4조 (이용 제한) 회사는 회원이 본 약관을 위반하거나 서비스의 정상적인 운영을 방해한 경우 서비스 이용을 제한할 수 있습니다.<br><br>
                 제5조 (면책조항) 회사는 천재지변, 불가항력 등으로 인한 서비스 중단에 대해 책임을 지지 않습니다.
@@ -199,7 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
         registerView.style.display = 'block';
     }
 
-    if (showTermsViewLink) showTermsViewLink.addEventListener('click', (e) => { e.preventDefault(); showTerms(); });
+    if (showTermsViewLink) showTermsViewLink.addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'register.html'; });
     if (showLoginFromTerms) showLoginFromTerms.addEventListener('click', (e) => { e.preventDefault(); showLogin(); });
     if (backToTerms) backToTerms.addEventListener('click', (e) => { e.preventDefault(); showTerms(); });
 
@@ -499,8 +499,8 @@ async function updateNotifBadge(uid) {
 
               const headerAvatar = document.getElementById('header-avatar');
               const userArea = document.getElementById('header-user-area');
-              if (headerAvatar && userData.photoURL) {
-                headerAvatar.src = userData.photoURL;
+              if (headerAvatar) {
+                headerAvatar.src = userData.photoURL || '/pix_profile.png';
                 headerAvatar.style.display = 'block';
               }
               if (userArea) userArea.classList.remove('hidden');
