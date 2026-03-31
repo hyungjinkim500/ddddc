@@ -606,8 +606,8 @@ async function loadPost(postId) {
         if (shareBtn && !shareBtn._initialized) {
             shareBtn._initialized = true;
             shareBtn.onclick = () => {
-                const ogUrl = `https://us-central1-dddc-hyungjin-0726.cloudfunctions.net/getPostOg?id=${postId}`;
-                navigator.clipboard.writeText(ogUrl).then(() => alert('링크가 복사되었습니다!'));
+                const shareUrl = `https://pixkorea.com/post.html?id=${postId}`;
+                navigator.clipboard.writeText(shareUrl).then(() => alert('링크가 복사되었습니다!'));
             };
         }
 

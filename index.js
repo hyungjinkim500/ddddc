@@ -398,9 +398,10 @@ function createFeedCard(id, data) {
 
     // 공유
     card.querySelector('.share-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
         const btn = e.currentTarget;
-        const ogUrl = `https://us-central1-dddc-hyungjin-0726.cloudfunctions.net/getPostOg?id=${btn.dataset.id}`;
-        navigator.clipboard?.writeText(ogUrl).then(() => alert('링크가 복사됐어요!'));
+        const shareUrl = `https://pixkorea.com/post.html?id=${btn.dataset.id}`;
+        navigator.clipboard?.writeText(shareUrl).then(() => alert('링크가 복사됐어요!'));
     });
 
     // PIX 더보기/접기 토글
