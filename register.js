@@ -54,11 +54,23 @@ document.getElementById('back-to-step1').addEventListener('click', (e) => {
 
 // 닉네임 중복확인
 let isNicknameOk = false;
+const BANNED_WORDS = ['씨발','시발','ㅅㅂ','존나','ㅈㄴ','병신','ㅂㅅ','새끼','ㅅㄲ','개새','미친','ㅁㅊ','꺼져','닥쳐','죽어','보지','ㅂㅈ','자지','ㅈㅈ','섹스','섹쓰','야동','포르노','강간','성교','음란','fuck','shit','bitch','ass','porn','sex','cock','pussy','dick'];
+function containsBannedWord(text) {
+    const lower = text.toLowerCase().replace(/\s/g, '');
+    return BANNED_WORDS.some(w => lower.includes(w.toLowerCase()));
+}
+
 document.getElementById('check-nickname-btn').addEventListener('click', async () => {
     const nickname = document.getElementById('input-nickname').value.trim();
     const msg = document.getElementById('nickname-msg');
     if (nickname.length < 2) {
         msg.textContent = '닉네임을 2자 이상 입력해주세요.';
+        msg.className = 'msg err';
+        isNicknameOk = false;
+        return;
+    }
+    if (containsBannedWord(nickname)) {
+        msg.textContent = '사용할 수 없는 단어가 포함되어 있습니다.';
         msg.className = 'msg err';
         isNicknameOk = false;
         return;
@@ -103,7 +115,7 @@ document.getElementById('check-email-btn').addEventListener('click', async () =>
         isEmailOk = false;
         return;
     }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailRegex = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
     if (!emailRegex.test(email)) {
         msg.textContent = '올바른 이메일 형식이 아닙니다.';
         msg.className = 'msg err';

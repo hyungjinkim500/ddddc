@@ -331,11 +331,19 @@ function initNicknameChange() {
     const input = document.getElementById('new-nickname-input');
     const msg = document.getElementById('nickname-change-msg');
     if (!btn || !input || !msg) return;
+
+    const BANNED_WORDS = ['씨발','시발','ㅅㅂ','존나','ㅈㄴ','병신','ㅂㅅ','새끼','ㅅㄲ','개새','미친','ㅁㅊ','꺼져','닥쳐','죽어','보지','ㅂㅈ','자지','ㅈㅈ','섹스','섹쓰','야동','포르노','강간','성교','음란','fuck','shit','bitch','ass','porn','sex','cock','pussy','dick'];
+    function containsBannedWord(text) {
+        const lower = text.toLowerCase().replace(/\s/g, '');
+        return BANNED_WORDS.some(w => lower.includes(w.toLowerCase()));
+    }
+
     btn.onclick = async () => {
         const user = auth.currentUser;
         if (!user) return;
         const newNickname = input.value.trim();
         if (!newNickname || newNickname.length < 2) { msg.textContent = '닉네임은 2자 이상이어야 합니다.'; msg.className = 'text-sm text-center text-red-500'; return; }
+        if (containsBannedWord(newNickname)) { msg.textContent = '사용할 수 없는 단어가 포함되어 있습니다.'; msg.className = 'text-sm text-center text-red-500'; return; }
         const userRef = doc(db, 'userProfiles', user.uid);
         const snap = await getDoc(userRef);
         if (snap.exists()) {

@@ -667,15 +667,23 @@ function initInfiniteScroll() {
         if (feedContainer.scrollTop + feedContainer.clientHeight >= feedContainer.scrollHeight - 200) {
             loadFeed();
         }
-        sessionStorage.setItem('feedScroll', feedContainer.scrollTop);
+        if (feedContainer.scrollTop > 0) {
+            sessionStorage.setItem('feedScroll', feedContainer.scrollTop);
+            sessionStorage.setItem('feedScrollType', 'container');
+        }
         sessionStorage.setItem('feedTab', currentTab);
     });
 
-    // window 스크롤 (feed-container가 전체 높이일 때)
+    // window 스크롤 (모바일 등 window 스크롤 폴백)
     window.addEventListener('scroll', () => {
         if (window.innerHeight + window.scrollY >= document.body.scrollHeight - 200) {
             loadFeed();
         }
+        if (window.scrollY > 0) {
+            sessionStorage.setItem('feedScroll', window.scrollY);
+            sessionStorage.setItem('feedScrollType', 'window');
+        }
+        sessionStorage.setItem('feedTab', currentTab);
     });
 }
 
@@ -753,13 +761,19 @@ document.addEventListener('DOMContentLoaded', () => {
         // 뒤로가기로 돌아온 경우 → 피드 로드 후 스크롤 복원
         loadFeed(true).then(() => {
             const container = document.getElementById('feed-container');
+            const scrollType = sessionStorage.getItem('feedScrollType') || 'container';
             if (container) {
                 // 카드 렌더링 완료 대기 후 복원
                 const tryRestore = (attempts = 0) => {
                     const feedList = document.getElementById('feed-list');
                     if (feedList && feedList.children.length > 0) {
-                        container.scrollTop = parseInt(savedScroll);
+                        if (scrollType === 'window') {
+                            window.scrollTo(0, parseInt(savedScroll));
+                        } else {
+                            container.scrollTop = parseInt(savedScroll);
+                        }
                         sessionStorage.removeItem('feedScroll');
+                        sessionStorage.removeItem('feedScrollType');
                         sessionStorage.removeItem('feedTab');
                     } else if (attempts < 20) {
                         setTimeout(() => tryRestore(attempts + 1), 100);
