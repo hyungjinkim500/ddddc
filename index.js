@@ -400,7 +400,7 @@ function createFeedCard(id, data) {
     card.querySelector('.share-btn').addEventListener('click', (e) => {
         e.stopPropagation();
         const btn = e.currentTarget;
-        const shareUrl = `https://pixkorea.com/post.html?id=${btn.dataset.id}`;
+        const shareUrl = `https://pixkorea.com/post?id=${btn.dataset.id}`;
         navigator.clipboard?.writeText(shareUrl).then(() => alert('링크가 복사됐어요!'));
     });
 

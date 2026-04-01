@@ -170,7 +170,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!target || !target._imageBlob) return;
     _cropTargetDiv = target;
     closeActionSheet();
-    _cropSourceBlob = target._imageBlob;
+    _cropSourceBlob = target._originalBlob || target._imageBlob;
     const url = URL.createObjectURL(_cropSourceBlob);
     const cropImg = document.getElementById('crop-image');
     cropImg.src = url;
@@ -207,6 +207,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       try {
         const compressed = await compressImage(new File([blob], 'crop.jpg', { type: 'image/jpeg' }));
         target._imageBlob = compressed;
+        // 원본은 _originalBlob에 유지 (덮어쓰지 않음)
         const url = URL.createObjectURL(compressed);
         const imgLabel = target._imgLabel;
         imgLabel.innerHTML = '';
@@ -248,6 +249,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       try {
         const blob = await compressImage(file);
         optionDiv._imageBlob = blob;
+        optionDiv._originalBlob = blob;
         const url = URL.createObjectURL(blob);
         imgLabel.innerHTML = '';
         const preview = document.createElement("img");
@@ -580,6 +582,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       const compressedBlob = await compressImage(file);
       // 즉시 크롭 화면 열기
       selectedImages[0] = compressedBlob;
+      originalImages[0] = compressedBlob;
       const url = URL.createObjectURL(compressedBlob);
       const adjustImg = document.getElementById('post-adjust-image');
       adjustImg.src = url;
@@ -635,6 +638,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   let _postAdjustCropper = null;
   // objectPosition 저장 배열 (각 이미지별)
   let imagePositions = [];
+  // 원본 이미지 보관 배열 (크롭 시 항상 원본 사용)
+  let originalImages = [];
 
   function openPostImageActionSheet(index) {
     _postActionTargetIndex = index;
@@ -661,8 +666,28 @@ document.addEventListener("DOMContentLoaded", async () => {
       try {
         const compressed = await compressImage(file);
         selectedImages[idx] = compressed;
+        originalImages[idx] = compressed;
         imagePositions[idx] = '50% 50%';
-        renderImagePreview();
+        // 다른 이미지 선택 후 바로 크롭 화면 열기
+        const url = URL.createObjectURL(compressed);
+        const adjustImg = document.getElementById('post-adjust-image');
+        adjustImg.src = url;
+        adjustImg.onload = () => {
+          if (_postAdjustCropper) { _postAdjustCropper.destroy(); _postAdjustCropper = null; }
+          _postAdjustCropper = new Cropper(adjustImg, {
+            aspectRatio: 16/9,
+            viewMode: 1,
+            dragMode: 'move',
+            autoCropArea: 1,
+            cropBoxResizable: false,
+            cropBoxMovable: false,
+            toggleDragModeOnDblclick: false,
+            background: false,
+          });
+        };
+        const screen = document.getElementById('post-adjust-screen');
+        screen.style.display = 'flex';
+        screen.dataset.targetIndex = String(idx);
       } catch(err) { alert('이미지 압축 실패'); }
     });
     tempInput.click();
@@ -679,7 +704,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById('post-action-adjust-image')?.addEventListener('click', () => {
     const idx = _postActionTargetIndex;
     closePostImageActionSheet();
-    const blob = selectedImages[idx];
+    const blob = originalImages[idx] || selectedImages[idx];
     if (!blob) return;
     const url = URL.createObjectURL(blob);
     const adjustImg = document.getElementById('post-adjust-image');
@@ -687,12 +712,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     adjustImg.onload = () => {
       if (_postAdjustCropper) { _postAdjustCropper.destroy(); _postAdjustCropper = null; }
       _postAdjustCropper = new Cropper(adjustImg, {
-        aspectRatio: NaN,
+        aspectRatio: 16/9,
         viewMode: 1,
         dragMode: 'move',
         autoCropArea: 1,
-        cropBoxResizable: true,
-        cropBoxMovable: true,
+        cropBoxResizable: false,
+        cropBoxMovable: false,
         toggleDragModeOnDblclick: false,
         background: false,
       });
@@ -710,12 +735,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById('post-adjust-save-btn')?.addEventListener('click', async () => {
     if (!_postAdjustCropper) return;
     const idx = Number(document.getElementById('post-adjust-screen').dataset.targetIndex);
-    const canvas = _postAdjustCropper.getCroppedCanvas();
+    const canvas = _postAdjustCropper.getCroppedCanvas({ width: 1280, height: 720 });
     canvas.toBlob(async (blob) => {
       if (!blob) return;
       try {
         const compressed = await compressImage(new File([blob], 'adjusted.jpg', { type: 'image/jpeg' }));
         selectedImages[idx] = compressed;
+        // 원본은 originalImages에 유지 (덮어쓰지 않음)
         imagePositions[idx] = '50% 50%';
         renderImagePreview();
       } catch(e) { alert('저장 실패'); }
@@ -745,9 +771,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   } else if (typeParam === 'balance') {
       const quizRadio = document.getElementById('type-quiz');
       if (quizRadio) { quizRadio.checked = true; lastChecked = quizRadio; setupOptions(); }
-      // 게시물 사진 업로드 섹션 숨기기
-      const uploadSection = document.getElementById('post-image-upload-section');
-      if (uploadSection) uploadSection.classList.add('hidden');
   }
 
   // 수정 모드: 제목/본문 로드

@@ -98,7 +98,7 @@ exports.deleteUserData = onCall(async (request) => {
 exports.getPostOg = onRequest({ maxInstances: 5 }, async (req, res) => {
     const postId = req.query.id;
     if (!postId) {
-        res.redirect('https://ddddc-hyungjinkim5000.workers.dev/post.html');
+        res.redirect('https://pixkorea.com/post.html');
         return;
     }
 
@@ -107,15 +107,15 @@ exports.getPostOg = onRequest({ maxInstances: 5 }, async (req, res) => {
         const postSnap = await db.collection("questions").doc(postId).get();
 
         if (!postSnap.exists) {
-            res.redirect(`https://ddddc-hyungjinkim5000.workers.dev/post.html?id=${postId}`);
+            res.redirect(`https://pixkorea.com/post.html?id=${postId}`);
             return;
         }
 
         const post = postSnap.data();
         const title = post.title || '픽스';
         const description = post.description || '집단지성 플랫폼 픽스에서 투표에 참여해보세요!';
-        const imageUrl = (post.imageUrls && post.imageUrls[0]) || 'https://ddddc-hyungjinkim5000.workers.dev/pix_logo_nobackground.png';
-        const pageUrl = `https://ddddc-hyungjinkim5000.workers.dev/post.html?id=${postId}`;
+        const imageUrl = (post.imageUrls && post.imageUrls[0]) || 'https://pixkorea.com/pix_logo_nobackground.png';
+        const pageUrl = `https://pixkorea.com/post.html?id=${postId}`;
 
         const html = `<!DOCTYPE html>
 <html>
@@ -143,6 +143,6 @@ exports.getPostOg = onRequest({ maxInstances: 5 }, async (req, res) => {
         res.status(200).send(html);
     } catch (e) {
         console.error('getPostOg error:', e);
-        res.redirect(`https://ddddc-hyungjinkim5000.workers.dev/post.html?id=${postId}`);
+        res.redirect(`https://pixkorea.com/post.html?id=${postId}`);
     }
 });

@@ -606,7 +606,7 @@ async function loadPost(postId) {
         if (shareBtn && !shareBtn._initialized) {
             shareBtn._initialized = true;
             shareBtn.onclick = () => {
-                const shareUrl = `https://pixkorea.com/post.html?id=${postId}`;
+                const shareUrl = `https://pixkorea.com/post?id=${postId}`;
                 navigator.clipboard.writeText(shareUrl).then(() => alert('링크가 복사되었습니다!'));
             };
         }
