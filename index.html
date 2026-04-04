@@ -188,17 +188,63 @@
             color: white;
         }
     </style>
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-Z333VZ22WB"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-Z333VZ22WB');
+</script>
 </head>
 <body>
 
 <div id="app">
-
+    <style>
+        #logo-animate {
+            animation: slideInLeft 0.6s cubic-bezier(0.22,1,0.36,1) both;
+        }
+        @keyframes slideInLeft {
+            from { opacity: 0; transform: translateX(-32px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        #catchphrase-wrap {
+            min-width: 0;
+            overflow: hidden;
+        }
+        #catchphrase {
+            font-family: 'Pretendard', sans-serif;
+            font-weight: 800;
+            font-size: 11px;
+            line-height: 1.35;
+            white-space: pre-line;
+            letter-spacing: -0.02em;
+        }
+        #cursor {
+            display: inline-block;
+            width: 2px;
+            height: 1em;
+            background: #222;
+            margin-left: 1px;
+            vertical-align: middle;
+            animation: blink 0.7s step-end infinite;
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+    </style>
     <!-- 로고바 (항상 고정) -->
     <div id="logo-bar">
         <div class="flex items-center justify-between px-4 py-2">
-            <a href="index.html" onclick="location.reload(); return false;">
-                <img src="./pix_logo_nobackground.png" alt="픽스" class="h-14">
-            </a>
+            <div class="flex items-center gap-3 min-w-0">
+                <a href="index.html" onclick="location.reload(); return false;" class="flex-shrink-0">
+                    <img id="logo-animate" src="./pix_text_logo_nobackground.png" alt="픽스" class="h-14">
+                </a>
+                <div id="catchphrase-wrap">
+                    <div id="catchphrase"></div>
+                </div>
+            </div>
             <div class="flex items-center gap-3">
                 <button id="header-search-btn" class="text-slate-500 dark:text-slate-400 hover:text-[#169976] transition cursor-pointer">
                     <i class="fas fa-search text-lg"></i>
@@ -292,6 +338,83 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Escape') quickSearchCancel?.click();
     });
 });
+</script>
+
+<script>
+(function() {
+    const phrases = [
+        { html: '<span style="color:#fb5498">세상</span>은 <span style="color:#624dea">선택</span>으로\n만들어진다.' },
+        { html: '<span style="color:#fb5498">당신</span>의 <span style="color:#624dea">PICK</span>이\n세상을 만든다.' },
+        { html: '<span style="color:#fb5498">선택</span>이 모이면,\n<span style="color:#624dea">지성</span>이 보인다.' },
+        { html: '세상의 모든 <span style="color:#fb5498">선택</span>\n-픽스' },
+        { html: '<span style="color:#fb5498">집단</span> <span style="color:#624dea">지성</span> 플랫폼\n-픽스' },
+    ];
+
+    let phraseIdx = 0;
+    let charIdx = 0;
+    let isDeleting = false;
+    let plainTexts = [];
+    let timer = null;
+
+    function getPlainText(html) {
+        const div = document.createElement('div');
+        div.innerHTML = html;
+        return div.textContent;
+    }
+
+    function buildPartialHtml(fullHtml, visibleCount) {
+        const div = document.createElement('div');
+        div.innerHTML = fullHtml;
+        let count = 0;
+        function walk(node) {
+            if (count >= visibleCount) { node.parentNode && node.parentNode.removeChild(node); return; }
+            if (node.nodeType === 3) {
+                const available = visibleCount - count;
+                if (node.textContent.length > available) {
+                    node.textContent = node.textContent.slice(0, available);
+                }
+                count += node.textContent.length;
+            } else if (node.nodeType === 1) {
+                Array.from(node.childNodes).forEach(walk);
+                if (node.textContent.length === 0) node.parentNode && node.parentNode.removeChild(node);
+            }
+        }
+        Array.from(div.childNodes).forEach(walk);
+        return div.innerHTML;
+    }
+
+    function type() {
+        const el = document.getElementById('catchphrase');
+        if (!el) return;
+        const cur = phrases[phraseIdx];
+        if (!plainTexts[phraseIdx]) plainTexts[phraseIdx] = getPlainText(cur.html);
+        const plain = plainTexts[phraseIdx];
+
+        if (!isDeleting) {
+            charIdx++;
+            el.innerHTML = buildPartialHtml(cur.html, charIdx) + '<span id="cursor"></span>';
+            if (charIdx >= plain.length) {
+                timer = setTimeout(() => { isDeleting = true; type(); }, 12200);
+                return;
+            }
+            timer = setTimeout(type, 100);
+        } else {
+            charIdx--;
+            el.innerHTML = buildPartialHtml(cur.html, charIdx) + '<span id="cursor"></span>';
+            if (charIdx <= 0) {
+                isDeleting = false;
+                phraseIdx = (phraseIdx + 1) % phrases.length;
+                timer = setTimeout(type, 300);
+                return;
+            }
+            timer = setTimeout(type, 50);
+        }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+        setTimeout(type, 700);
+    });
+})();
 </script>
 
 <script src="nav.js"></script>
