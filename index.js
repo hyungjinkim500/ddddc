@@ -201,8 +201,31 @@ function updateCardVoteUI(card, data, uid, selectedOptionId = null) {
     const btnB = card.querySelectorAll('.vote-option-btn')[1];
 
     if (barA) barA.style.width = options[0].percent + '%';
-    if (barA) barA.textContent = options[0].percent + '%';
-    if (barB) barB.textContent = options[1].percent + '%';
+    if (barA) barA.textContent = selectedOptionId ? options[0].percent + '%' : '?%';
+    if (barB) barB.textContent = selectedOptionId ? options[1].percent + '%' : '?%';
+
+    // 밸런스게임 바 색상: 선택한 방향만 그라데이션
+    const optBtns = card.querySelectorAll('.vote-option-btn');
+    const optAId = optBtns[0]?.dataset.optionId;
+    const optBId = optBtns[1]?.dataset.optionId;
+    if (barA && barB) {
+        if (selectedOptionId === optAId) {
+            barA.style.background = 'linear-gradient(90deg, #fb5498, #624dea)';
+            barA.style.color = 'white';
+            barB.style.background = 'rgba(148,163,184,0.2)';
+            barB.style.color = '#64748b';
+        } else if (selectedOptionId === optBId) {
+            barB.style.background = 'linear-gradient(90deg, #624dea, #fb5498)';
+            barB.style.color = 'white';
+            barA.style.background = 'rgba(148,163,184,0.3)';
+            barA.style.color = '#64748b';
+        } else {
+            barA.style.background = 'rgba(148,163,184,0.3)';
+            barA.style.color = '#64748b';
+            barB.style.background = 'rgba(148,163,184,0.2)';
+            barB.style.color = '#64748b';
+        }
+    }
 
     // 투표인원수 실시간 업데이트
     const voteObj2 = data.vote || {};
@@ -223,15 +246,14 @@ function updateCardVoteUI(card, data, uid, selectedOptionId = null) {
     // pix 타입은 모든 버튼 처리
     const allVoteBtns = card.querySelectorAll('.vote-option-btn');
     allVoteBtns.forEach(btn => {
-        btn.classList.remove('opacity-50', 'ring-[3px]', 'ring-inset', 'ring-[#169976]', 'ring-orange-400');
+        btn.classList.remove('opacity-50', 'ring-[3px]', 'ring-inset', 'ring-[#624dea]');
     });
 
     if (selectedOptionId) {
         allVoteBtns.forEach(btn => {
             if (!btn) return;
             if (btn.dataset.optionId === selectedOptionId) {
-                const isOrange = btn.classList.contains('border-orange-400');
-                btn.classList.add('ring-[3px]', 'ring-inset', isOrange ? 'ring-orange-400' : 'ring-[#624dea]');
+                btn.classList.add('ring-[3px]', 'ring-inset', 'ring-[#624dea]');
             } else {
                 btn.classList.add('opacity-50');
             }
@@ -311,22 +333,22 @@ function createFeedCard(id, data) {
             <div class="px-4 pb-1 pt-3 mt-1">
                 <!-- 결과 바 -->
                 <div class="relative h-5 rounded-lg overflow-hidden flex" style="background:#e2e8f0;">
-                    <div class="vote-bar-a h-full flex items-center justify-start pl-2 font-bold text-slate-700 text-xs transition-all duration-500"
-                        style="width:${optA.percent}%; background:#d0ebe4; min-width:20px;">
-                        ${optA.percent}%
+                    <div class="vote-bar-a h-full flex items-center justify-start pl-2 font-bold text-slate-500 text-xs transition-all duration-500"
+                        style="width:50%; background:rgba(148,163,184,0.3); min-width:20px;">
+                        ?%
                     </div>
-                    <div class="vote-bar-b h-full flex items-center justify-end pr-2 font-bold text-slate-700 text-xs transition-all duration-500 flex-1"
-                        style="background:rgba(249, 115, 22, 0.3);">
-                        ${optB.percent}%
+                    <div class="vote-bar-b h-full flex items-center justify-end pr-2 font-bold text-slate-500 text-xs transition-all duration-500 flex-1"
+                        style="background:rgba(148,163,184,0.2);">
+                        ?%
                     </div>
                 </div>
                 ${participationBar}
                 <div class="grid grid-cols-2 gap-2 mt-2 mb-2">
-                    <button class="vote-option-btn border-2 border-[#169976] text-[#169976] font-bold py-2.5 rounded-xl text-sm hover:bg-[#169976] hover:text-white transition"
+                    <button class="vote-option-btn border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 font-semibold py-2.5 rounded-xl text-sm transition"
                         data-option-id="${data.options?.[0]?.id || 'A'}">
                         ${optA.label || 'A'}
                     </button>
-                    <button class="vote-option-btn border-2 border-orange-400 text-orange-500 font-bold py-2.5 rounded-xl text-sm hover:bg-orange-400 hover:text-white transition"
+                    <button class="vote-option-btn border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 font-semibold py-2.5 rounded-xl text-sm transition"
                         data-option-id="${data.options?.[1]?.id || 'B'}">
                         ${optB.label || 'B'}
                     </button>
