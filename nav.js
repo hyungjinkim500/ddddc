@@ -34,13 +34,13 @@
         .nav-btn.pick-btn .pick-circle {
             width: 48px;
             height: 48px;
-            background: #3ef0cc;
+            background: linear-gradient(135deg, #fb5498, #624dea);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             margin-top: -20px;
-            box-shadow: 0 4px 12px rgba(22,153,118,0.4);
+            box-shadow: 0 4px 12px rgba(98,77,234,0.4);
         }
         .nav-btn.pick-btn .pick-circle i { font-size: 22px; color: white; }
     `;

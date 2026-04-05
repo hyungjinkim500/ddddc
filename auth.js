@@ -26,19 +26,19 @@ function injectLoginModal() {
     <div id="login-view">
       <h2 style="font-size:1.25rem;font-weight:700;text-align:center;margin-bottom:1rem;">로그인</h2>
       <form id="login-form" class="space-y-3">
-        <input type="email" name="email" placeholder="이메일" class="w-full px-3 py-2 border rounded-lg text-sm dark:bg-slate-700 dark:border-slate-600" required>
-        <input type="password" name="password" placeholder="비밀번호" class="w-full px-3 py-2 border rounded-lg text-sm dark:bg-slate-700 dark:border-slate-600" required>
-        <button type="submit" class="w-full bg-[#169976] text-white py-2 rounded-lg font-bold text-sm">로그인</button>
+        <input type="email" name="email" placeholder="이메일" class="w-full px-3 py-2 border rounded-lg text-sm dark:bg-slate-700 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-[#624dea]" required>
+        <input type="password" name="password" placeholder="비밀번호" class="w-full px-3 py-2 border rounded-lg text-sm dark:bg-slate-700 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-[#624dea]" required>
+        <button type="submit" class="w-full text-white py-2 rounded-lg font-bold text-sm" style="background:linear-gradient(135deg,#fb5498,#624dea);">로그인</button>
       </form>
       <label style="display:flex;align-items:center;gap:6px;margin-top:8px;cursor:pointer;font-size:0.75rem;color:#64748b;">
-        <input type="checkbox" id="remember-email" style="accent-color:#169976;">
+        <input type="checkbox" id="remember-email" style="accent-color:#624dea;">
         이메일 기억하기
       </label>
-      <button id="google-login-button" class="w-full mt-3 border border-slate-300 py-2 rounded-lg text-sm font-semibold hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-700 flex items-center justify-center gap-2">
+      <button id="google-login-button" class="w-full mt-3 py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-2" style="border:1.5px solid #624dea;color:#624dea;">
         <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" style="width:18px;height:18px;">
         구글로 로그인
       </button>
-      <p style="text-align:center;font-size:0.75rem;margin-top:1rem;color:#64748b;">계정이 없으신가요? <a href="#" id="show-terms-view-link" style="color:#169976;font-weight:700;">회원가입</a></p>
+      <p style="text-align:center;font-size:0.75rem;margin-top:1rem;color:#64748b;">계정이 없으신가요? <a href="#" id="show-terms-view-link" style="color:#fb5498;font-weight:700;">회원가입</a></p>
     </div>
 
     <!-- 약관 동의 화면 -->
@@ -47,19 +47,19 @@ function injectLoginModal() {
       <p style="text-align:center;font-size:0.75rem;color:#64748b;margin-bottom:1rem;">서비스 이용을 위해 약관에 동의해주세요</p>
       <div style="border:1px solid #e2e8f0;border-radius:12px;padding:1rem;margin-bottom:1rem;">
         <label style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:0.9rem;cursor:pointer;">
-          <input type="checkbox" id="terms-all" style="width:18px;height:18px;accent-color:#169976;">
+          <input type="checkbox" id="terms-all" style="width:18px;height:18px;accent-color:#624dea;">
           전체 동의
         </label>
       </div>
       <div style="display:flex;flex-direction:column;gap:8px;">
         <div style="border:1px solid #e2e8f0;border-radius:12px;padding:12px;">
           <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;">
-            <input type="checkbox" id="terms-service" style="width:16px;height:16px;margin-top:2px;accent-color:#169976;" required>
+            <input type="checkbox" id="terms-service" style="width:16px;height:16px;margin-top:2px;accent-color:#624dea;" required>
             <div>
               <span style="font-size:0.85rem;font-weight:600;">픽스 이용약관 동의 (필수)</span>
               <div style="height:80px;overflow-y:auto;margin-top:6px;font-size:0.75rem;color:#64748b;border:1px solid #f1f5f9;border-radius:6px;padding:8px;line-height:1.6;">
-                제1조 (목적) 본 약관은 픽스(이하 \"회사\")가 제공하는 집단지성 투표 플랫폼 서비스(이하 \"서비스\")의 이용과 관련하여 회사와 회원 간의 권리, 의무 및 책임사항을 규정함을 목적으로 합니다.<br><br>
-                제2조 (정의) \"회원\"이란 본 약관에 동의하고 서비스를 이용하는 자를 말합니다.<br><br>
+                제1조 (목적) 본 약관은 픽스(이하 \'회사\')가 제공하는 집단지성 투표 플랫폼 서비스(이하 \'서비스\')의 이용과 관련하여 회사와 회원 간의 권리, 의무 및 책임사항을 규정함을 목적으로 합니다.<br><br>
+                제2조 (정의) \'회원\'이란 본 약관에 동의하고 서비스를 이용하는 자를 말합니다.<br><br>
                 제3조 (약관의 효력) 본 약관은 서비스 화면에 게시하거나 회원에게 공지함으로써 효력이 발생합니다.<br><br>
                 제4조 (이용 제한) 회사는 회원이 본 약관을 위반하거나 서비스의 정상적인 운영을 방해한 경우 서비스 이용을 제한할 수 있습니다.<br><br>
                 제5조 (면책조항) 회사는 천재지변, 불가항력 등으로 인한 서비스 중단에 대해 책임을 지지 않습니다.
@@ -69,7 +69,7 @@ function injectLoginModal() {
         </div>
         <div style="border:1px solid #e2e8f0;border-radius:12px;padding:12px;">
           <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;">
-            <input type="checkbox" id="terms-privacy" style="width:16px;height:16px;margin-top:2px;accent-color:#169976;" required>
+            <input type="checkbox" id="terms-privacy" style="width:16px;height:16px;margin-top:2px;accent-color:#624dea;" required>
             <div>
               <span style="font-size:0.85rem;font-weight:600;">개인정보 수집 및 이용 동의 (필수)</span>
               <div style="height:80px;overflow-y:auto;margin-top:6px;font-size:0.75rem;color:#64748b;border:1px solid #f1f5f9;border-radius:6px;padding:8px;line-height:1.6;">
@@ -83,7 +83,7 @@ function injectLoginModal() {
         </div>
         <div style="border:1px solid #e2e8f0;border-radius:12px;padding:12px;">
           <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;">
-            <input type="checkbox" id="terms-marketing" style="width:16px;height:16px;margin-top:2px;accent-color:#169976;">
+            <input type="checkbox" id="terms-marketing" style="width:16px;height:16px;margin-top:2px;accent-color:#624dea;">
             <div>
               <span style="font-size:0.85rem;font-weight:600;">프로모션 정보 수신 동의 (선택)</span>
               <p style="font-size:0.75rem;color:#94a3b8;margin-top:4px;">이벤트, 혜택 등 마케팅 정보를 받습니다.</p>
@@ -91,8 +91,8 @@ function injectLoginModal() {
           </label>
         </div>
       </div>
-      <button id="terms-agree-btn" class="w-full mt-4 bg-[#169976] text-white py-2.5 rounded-xl font-bold text-sm">동의하고 계속하기</button>
-      <p style="text-align:center;font-size:0.75rem;margin-top:0.75rem;color:#64748b;">이미 계정이 있으신가요? <a href="#" id="show-login-from-terms" style="color:#169976;font-weight:700;">로그인</a></p>
+      <button id="terms-agree-btn" class="w-full mt-4 text-white py-2.5 rounded-xl font-bold text-sm" style="background:linear-gradient(135deg,#fb5498,#624dea);">동의하고 계속하기</button>
+      <p style="text-align:center;font-size:0.75rem;margin-top:0.75rem;color:#64748b;">이미 계정이 있으신가요? <a href="#" id="show-login-from-terms" style="color:#624dea;font-weight:700;">로그인</a></p>
     </div>
 
     <!-- 회원가입 화면 -->
@@ -102,20 +102,20 @@ function injectLoginModal() {
       <form id="register-form" class="space-y-3">
         <div>
           <div style="display:flex;gap:8px;">
-            <input type="text" name="nickname" placeholder="닉네임" class="flex-1 px-3 py-2 border rounded-lg text-sm dark:bg-slate-700 dark:border-slate-600" required maxlength="20">
-            <button type="button" id="check-nickname-btn" class="px-3 py-2 border border-[#169976] text-[#169976] rounded-lg text-xs font-bold whitespace-nowrap">중복확인</button>
+            <input type="text" name="nickname" placeholder="닉네임" class="flex-1 px-3 py-2 border rounded-lg text-sm dark:bg-slate-700 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-[#624dea]" required maxlength="20">
+            <button type="button" id="check-nickname-btn" class="px-3 py-2 border border-[#624dea] text-[#624dea] rounded-lg text-xs font-bold whitespace-nowrap">중복확인</button>
           </div>
           <p id="nickname-check-msg" style="font-size:0.7rem;margin-top:4px;padding-left:4px;"></p>
         </div>
-        <input type="email" name="email" placeholder="이메일" class="w-full px-3 py-2 border rounded-lg text-sm dark:bg-slate-700 dark:border-slate-600" required>
-        <input type="password" name="password" placeholder="비밀번호 (8자 이상)" class="w-full px-3 py-2 border rounded-lg text-sm dark:bg-slate-700 dark:border-slate-600" required minlength="8">
+        <input type="email" name="email" placeholder="이메일" class="w-full px-3 py-2 border rounded-lg text-sm dark:bg-slate-700 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-[#624dea]" required>
+        <input type="password" name="password" placeholder="비밀번호 (8자 이상)" class="w-full px-3 py-2 border rounded-lg text-sm dark:bg-slate-700 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-[#624dea]" required minlength="8">
         <div>
-          <input type="password" name="password_confirm" placeholder="비밀번호 확인" class="w-full px-3 py-2 border rounded-lg text-sm dark:bg-slate-700 dark:border-slate-600" required>
+          <input type="password" name="password_confirm" placeholder="비밀번호 확인" class="w-full px-3 py-2 border rounded-lg text-sm dark:bg-slate-700 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-[#624dea]" required>
           <p id="password-match-msg" style="font-size:0.7rem;margin-top:4px;padding-left:4px;"></p>
         </div>
-        <button type="submit" id="register-submit-btn" class="w-full bg-[#169976] text-white py-2 rounded-lg font-bold text-sm">가입하기</button>
+        <button type="submit" id="register-submit-btn" class="w-full text-white py-2 rounded-lg font-bold text-sm" style="background:linear-gradient(135deg,#fb5498,#624dea);">가입하기</button>
       </form>
-      <p style="text-align:center;font-size:0.75rem;margin-top:0.75rem;color:#64748b;"><a href="#" id="back-to-terms" style="color:#169976;">이전 단계로 돌아가기</a></p>
+      <p style="text-align:center;font-size:0.75rem;margin-top:0.75rem;color:#64748b;"><a href="#" id="back-to-terms" style="color:#624dea;">이전 단계로 돌아가기</a></p>
     </div>
   </div>
 </div>`;
