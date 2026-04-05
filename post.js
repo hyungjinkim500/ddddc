@@ -125,13 +125,13 @@ async function restoreUserVotes(user) {
             const pctEl = btn.querySelector('.pix-pct');
             if (fill) {
                 fill.style.width = pct + '%';
-                fill.style.background = (optId === _myVote) ? 'rgba(22,153,118,0.2)' : 'rgba(148,163,184,0.2)';
+                fill.style.background = (optId === _myVote) ? 'rgba(251,84,152,0.15)' : 'rgba(148,163,184,0.2)';
             }
             if (pctEl) {
                 pctEl.textContent = pct + '%';
                 if (total > 0) pctEl.classList.remove('hidden');
                 pctEl.className = pctEl.className.replace(/text-\S+/g, '').trim();
-                pctEl.classList.add((optId === _myVote) ? 'text-[#169976]' : 'text-slate-400');
+                pctEl.classList.add((optId === _myVote) ? 'text-slate-800' : 'text-slate-400');
             }
         });
     }
@@ -143,7 +143,7 @@ function applyVoteButtonUI(selectedId) {
         if (!selectedId) return;
         if (btn.dataset.optionId === selectedId) {
             btn.classList.add('ring-[3px]', 'ring-inset',
-                btn.classList.contains('border-orange-400') ? 'ring-orange-400' : 'ring-[#169976]'
+                btn.classList.contains('border-orange-400') ? 'ring-orange-400' : 'ring-[#624dea]'
             );
         } else {
             btn.classList.add('opacity-50');
@@ -213,13 +213,13 @@ function updateVoteBarUI(post) {
             const pctEl = btn.querySelector('.pix-pct');
             if (fill) {
                 fill.style.width = pct + '%';
-                fill.style.background = (optId === _myVote) ? 'rgba(22,153,118,0.2)' : 'rgba(148,163,184,0.2)';
+                fill.style.background = (optId === _myVote) ? 'rgba(251,84,152,0.15)' : 'rgba(148,163,184,0.2)';
             }
             if (pctEl) {
                 pctEl.textContent = pct + '%';
                 if (total > 0) pctEl.classList.remove('hidden');
                 pctEl.className = pctEl.className.replace(/text-\S+/g, '').trim();
-                pctEl.classList.add((optId === _myVote) ? 'text-[#169976]' : 'text-slate-400');
+                pctEl.classList.add((optId === _myVote) ? 'text-slate-800' : 'text-slate-400');
             }
         });
     } else {
@@ -478,13 +478,13 @@ async function loadPost(postId) {
                             const pctEl = b.querySelector('.pix-pct');
                             if (fill) {
                                 fill.style.width = pct + '%';
-                                fill.style.background = (oid === newSelected) ? 'rgba(22,153,118,0.2)' : 'rgba(148,163,184,0.2)';
+                                fill.style.background = (oid === newSelected) ? 'rgba(251,84,152,0.15)' : 'rgba(148,163,184,0.2)';
                             }
                             if (pctEl) {
                                 pctEl.textContent = pct + '%';
                                 if (total > 0) pctEl.classList.remove('hidden');
                                 pctEl.className = pctEl.className.replace(/text-\S+/g, '').trim();
-                                pctEl.classList.add((oid === newSelected) ? 'text-[#169976]' : 'text-slate-400');
+                                pctEl.classList.add((oid === newSelected) ? 'text-slate-800' : 'text-slate-400');
                             }
                         });
 

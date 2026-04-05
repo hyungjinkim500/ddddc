@@ -231,7 +231,7 @@ function updateCardVoteUI(card, data, uid, selectedOptionId = null) {
             if (!btn) return;
             if (btn.dataset.optionId === selectedOptionId) {
                 const isOrange = btn.classList.contains('border-orange-400');
-                btn.classList.add('ring-[3px]', 'ring-inset', isOrange ? 'ring-[#f6cdbe]' : 'ring-[#1fdfcb]');
+                btn.classList.add('ring-[3px]', 'ring-inset', isOrange ? 'ring-orange-400' : 'ring-[#624dea]');
             } else {
                 btn.classList.add('opacity-50');
             }
@@ -486,14 +486,14 @@ function createFeedCard(id, data) {
                     if (fill) {
                         fill.style.width = pct + '%';
                         const isThisSelected = optId === newSelected;
-                        fill.style.background = isThisSelected ? 'rgba(22,153,118,0.2)' : 'rgba(148,163,184,0.2)';
+                        fill.style.background = isThisSelected ? 'rgba(251,84,152,0.15)' : 'rgba(148,163,184,0.2)';
                     }
                     if (pctEl) {
                         pctEl.textContent = pct + '%';
                         if (total > 0) pctEl.classList.remove('hidden');
                         const isSelected = optId === newSelected;
                         pctEl.className = pctEl.className.replace(/text-\S+/g, '').trim();
-                        pctEl.classList.add(isSelected ? 'text-[#2e3e4c]' : 'text-slate-400');
+                        pctEl.classList.add(isSelected ? 'text-slate-800' : 'text-slate-400');
                     }
                 });
             }
@@ -580,14 +580,14 @@ function createFeedCard(id, data) {
                         if (fill) {
                             fill.style.width = pct + '%';
                             const isThisSelected = oid === selectedOption;
-                            fill.style.background = isThisSelected ? 'rgba(22,153,118,0.2)' : 'rgba(148,163,184,0.2)';
+                            fill.style.background = isThisSelected ? 'rgba(251,84,152,0.15)' : 'rgba(148,163,184,0.2)';
                         }
                         if (pctEl) {
                             pctEl.textContent = pct + '%';
                             if (total > 0) pctEl.classList.remove('hidden');
                             const isSelected = oid === selectedOption;
                             pctEl.className = pctEl.className.replace(/text-\S+/g, '').trim();
-                            pctEl.classList.add(isSelected ? 'text-[#2e3e4c]' : 'text-slate-400');
+                            pctEl.classList.add(isSelected ? 'text-slate-800' : 'text-slate-400');
                         }
                     });
                 }
